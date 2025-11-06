@@ -1,0 +1,33 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/forms";
+
+@theme {
+  --color-brand-orange: #F15A29;
+  --color-brand-dark: #1a1a1a;
+  --color-surface: #111111;
+  --color-surface-soft: #1a1a1a;
+}
+
+/* Estilos base del layout */
+html, body, #root { height: 100%; }
+body { font-family: 'Barlow', 'Barlow Semi Condensed', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; @apply bg-brand-dark text-white; }
+
+/* Jerarquía tipográfica sugerida */
+h1, .h1 { font-family: 'Barlow', ui-sans-serif, system-ui; font-weight: 900; }
+h2, .h2 { font-family: 'Barlow', ui-sans-serif, system-ui; font-weight: 700; }
+h3, .h3 { font-family: 'Barlow', ui-sans-serif, system-ui; font-weight: 700; }
+.subtitle { font-family: 'Barlow Semi Condensed', ui-sans-serif, system-ui; font-weight: 600; }
+.paragraph { font-family: 'Barlow', ui-sans-serif, system-ui; font-weight: 400; }
+
+/* Utilidades de tabla y botones */
+.btn { @apply inline-flex items-center justify-center px-3 py-2 rounded font-medium transition-colors; }
+.btn-primary { @apply bg-brand-orange text-black hover:brightness-110; }
+.btn-ghost { @apply bg-white/10 hover:bg-white/15; }
+.table { @apply w-full text-sm; }
+.table thead { @apply bg-white/10; }
+.table th, .table td { @apply p-2 text-left; }
+.table-zebra tbody tr:nth-child(even) { @apply bg-white/5; }
+
+/* Campos de formulario base */
+.input { @apply w-full bg-white text-black placeholder-gray-500 border border-gray-300 rounded-lg px-3 py-2.5 shadow-sm focus:outline-none focus:ring-1 focus:ring-brand-orange focus:border-brand-orange; }
+.select { @apply w-full bg-white text-black border border-gray-300 rounded-lg px-3 py-2.5 shadow-sm focus:outline-none focus:ring-1 focus:ring-brand-orange focus:border-brand-orange; }

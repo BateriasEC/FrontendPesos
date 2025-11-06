@@ -1,0 +1,169 @@
+import { useEffect, useMemo, useState } from 'react'
+import { api } from '../services/api'
+import * as XLSX from 'xlsx'
+import { Pagination } from '../components/Pagination'
+import { DateRange } from '../components/DateRange'
+
+type Nivel = { nivel: number; MED: number; G1: number; P1: number; P2: number; P3: number; P4: number }
+type Row = {
+  id: number
+  fecha: string
+  placa: string
+  codigoPallet: string
+  pesoIngreso: number
+  pesoSalida: number
+  variacion: number
+  productoId: number
+  cliente: string
+  niveles?: Nivel[]
+}
+
+export default function Pesajes() {
+  const [rows, setRows] = useState<Row[]>([])
+  const [q, setQ] = useState('')
+  const [producto, setProducto] = useState('')
+  const [cliente, setCliente] = useState('')
+  const [range, setRange] = useState({ from: '', to: '' })
+
+  const load = async () => { const { data } = await api.get('/weighings'); setRows(data) }
+  useEffect(() => { load() }, [])
+
+  const filtered = useMemo(() => rows.filter(r => {
+    const okQ = !q || r.placa.toLowerCase().includes(q.toLowerCase()) || r.codigoPallet.toLowerCase().includes(q.toLowerCase())
+    const okProd = !producto || String(r.productoId) === producto
+    const okCli = !cliente || r.cliente.toLowerCase().includes(cliente.toLowerCase())
+    const d = new Date(r.fecha)
+    const okFrom = !range.from || d >= new Date(range.from)
+    const okTo = !range.to || d <= new Date(range.to + 'T23:59:59')
+    return okQ && okProd && okCli && okFrom && okTo
+  }), [rows, q, producto, cliente, range])
+
+  const [page, setPage] = useState(1)
+  const pageSize = 10
+  const pageRows = useMemo(() => filtered.slice((page-1)*pageSize, page*pageSize), [filtered, page])
+
+  const exportExcel = () => {
+    const ws = XLSX.utils.json_to_sheet(filtered)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Pesajes')
+    XLSX.writeFile(wb, 'pesajes.xlsx')
+  }
+
+  const [labelRow, setLabelRow] = useState<Row | null>(null)
+  const [threshold, setThreshold] = useState(50)
+
+  return (
+    <div className="space-y-4">
+      <div className="grid md:grid-cols-5 gap-3 items-end">
+        <div>
+          <label className="block text-sm">Buscar</label>
+          <input value={q} onChange={e=>setQ(e.target.value)} className="mt-1 input" placeholder="Placa o Código Pallet" />
+        </div>
+        <div>
+          <label className="block text-sm">Producto</label>
+          <input value={producto} onChange={e=>setProducto(e.target.value)} className="mt-1 input" placeholder="ID producto" />
+        </div>
+        <div>
+          <label className="block text-sm">Cliente</label>
+          <input value={cliente} onChange={e=>setCliente(e.target.value)} className="mt-1 input" placeholder="Cliente" />
+        </div>
+        <div>
+          <label className="block text-sm">Umbral alerta (kg)</label>
+          <input className="mt-1 input" type="number" value={threshold} onChange={e=>setThreshold(Number(e.target.value)||0)} />
+        </div>
+        <div className="flex gap-2 items-end">
+          <button onClick={exportExcel} className="btn btn-ghost">Exportar Excel</button>
+        </div>
+        <DateRange from={range.from} to={range.to} onChange={setRange} />
+      </div>
+
+      <div className="overflow-auto rounded border border-white/10">
+        <table className="table table-zebra">
+          <thead className="bg-white/10">
+            <tr>
+              <th className="text-left p-2">Fecha</th>
+              <th className="text-left p-2">Placa</th>
+              <th className="text-left p-2">Código Pallet</th>
+              <th className="text-left p-2">Peso Ingreso (kg)</th>
+              <th className="text-left p-2">Peso Salida (kg)</th>
+              <th className="text-left p-2">Variación (kg)</th>
+              <th className="text-left p-2 w-40">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pageRows.map((r, i) => (
+              <tr key={r.id} className={(i % 2 === 0 ? 'bg-white/5 ' : '') + (Math.abs(r.variacion) > threshold ? 'outline outline-1 outline-red-500/60' : '')}>
+                <td className="p-2">{new Date(r.fecha).toLocaleString()}</td>
+                <td className="p-2">{r.placa}</td>
+                <td className="p-2">{r.codigoPallet}</td>
+                <td className="p-2">{r.pesoIngreso?.toLocaleString(undefined,{maximumFractionDigits:2})} kg</td>
+                <td className="p-2">{r.pesoSalida!=null ? `${r.pesoSalida.toLocaleString(undefined,{maximumFractionDigits:2})} kg` : '-'}</td>
+                <td className="p-2">{r.variacion?.toLocaleString(undefined,{maximumFractionDigits:2})} kg</td>
+                <td className="p-2 flex gap-2">
+                  <button onClick={()=>setLabelRow(r)} className="text-xs btn btn-ghost w-24 text-center">Etiqueta</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="flex justify-end">
+        <Pagination page={page} pageSize={pageSize} total={filtered.length} onChange={setPage} />
+      </div>
+
+      
+
+      {labelRow && (
+        <div className="bg-white/5 border border-white/10 rounded p-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold">Etiqueta del pallet</h3>
+            <button onClick={()=>setLabelRow(null)} className="text-xs px-2 py-1 bg-white/10 rounded">Cerrar</button>
+          </div>
+          <div className="mt-3 grid md:grid-cols-2 gap-4">
+            <div className="border border-dashed border-white/20 rounded p-4">
+              <div className="text-xs text-white/70">Código</div>
+              <div className="text-xl font-semibold">{labelRow.codigoPallet}</div>
+              <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                <div><span className="text-white/60">Placa: </span>{labelRow.placa}</div>
+                <div><span className="text-white/60">Cliente: </span>{labelRow.cliente}</div>
+                <div><span className="text-white/60">Producto: </span>{String(labelRow.productoId)}</div>
+                <div><span className="text-white/60">Fecha: </span>{new Date(labelRow.fecha).toLocaleString()}</div>
+              </div>
+            </div>
+            <div className="overflow-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-white/10">
+                  <tr>
+                    <th className="p-2">NIVEL</th>
+                    <th className="p-2">MED</th>
+                    <th className="p-2">G1</th>
+                    <th className="p-2">P1</th>
+                    <th className="p-2">P2</th>
+                    <th className="p-2">P3</th>
+                    <th className="p-2">P4</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(labelRow.niveles && labelRow.niveles.length>0 ? labelRow.niveles : Array.from({length:5}, (_,i)=>({nivel:i+1, MED:0,G1:0,P1:0,P2:0,P3:0,P4:0})) ).map((n: any, i: number) => (
+                    <tr key={i} className={i % 2 === 0 ? 'bg-white/5' : ''}>
+                      <td className="p-2">{n.nivel}</td>
+                      <td className="p-2">{n.MED}</td>
+                      <td className="p-2">{n.G1}</td>
+                      <td className="p-2">{n.P1}</td>
+                      <td className="p-2">{n.P2}</td>
+                      <td className="p-2">{n.P3}</td>
+                      <td className="p-2">{n.P4}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+

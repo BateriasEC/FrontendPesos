@@ -1,0 +1,101 @@
+/* Estilos específicos para Sábanas de Pesajes */
+.report-sabanas {
+  font-family: 'Barlow', sans-serif;
+}
+
+.report-sabanas table {
+  min-width: 100%;
+}
+
+.report-sabanas th {
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.report-sabanas td {
+  vertical-align: top;
+}
+
+/* Tablas internas responsivas */
+.report-sabanas .overflow-x-auto {
+  max-width: 100%;
+}
+
+.report-sabanas table table {
+  font-size: 0.875rem;
+}
+
+/* Responsive: en pantallas pequeñas, apilar columnas */
+@media (max-width: 768px) {
+  .report-sabanas table {
+    display: block;
+  }
+  
+  .report-sabanas thead {
+    display: none;
+  }
+  
+  .report-sabanas tbody {
+    display: block;
+  }
+  
+  .report-sabanas tr {
+    display: block;
+    margin-bottom: 2rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.02);
+  }
+  
+  .report-sabanas td {
+    display: block;
+    border: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 1rem 0.5rem;
+  }
+  
+  .report-sabanas td:before {
+    content: attr(data-label);
+    font-weight: 600;
+    display: block;
+    margin-bottom: 0.5rem;
+    color: rgba(255, 255, 255, 0.7);
+  }
+  
+  .report-sabanas td:last-child {
+    border-bottom: none;
+  }
+}
+
+/* Asegurar que las tablas internas tengan scroll horizontal si es necesario */
+.report-sabanas .overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+}
+
+.report-sabanas table table {
+  min-width: 600px; /* Ancho mínimo para tablas internas */
+}
+
+/* Mejoras visuales para los estados */
+.report-sabanas .text-green-500 {
+  color: #10b981;
+  font-weight: bold;
+  font-size: 1.1em;
+}
+
+.report-sabanas .text-red-500 {
+  color: #ef4444;
+  font-weight: bold;
+  font-size: 1.1em;
+}
+
+/* Botón Ver más */
+.report-sabanas button.btn-ghost {
+  transition: background-color 0.2s;
+}
+
+.report-sabanas button.btn-ghost:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
