@@ -25,11 +25,26 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Token inválido o expirado - limpiar y redirigir al login
-      localStorage.removeItem('token')
-      // Solo redirigir si no estamos ya en la página de login
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login'
+      // Verificar si el error es realmente de autenticación
+      const errorMessage = error.response?.data?.message || ''
+      
+      // Solo cerrar sesión si es un error de autenticación real (no errores de validación u otros)
+      if (errorMessage.includes('token') || 
+          errorMessage.includes('autenticación') || 
+          errorMessage.includes('Unauthorized') ||
+          errorMessage.includes('expired') ||
+          errorMessage.includes('invalid')) {
+        // Token inválido o expirado - limpiar y redirigir al login
+        localStorage.removeItem('token')
+        // Solo redirigir si no estamos ya en la página de login
+        if (window.location.pathname !== '/login') {
+          console.warn('Sesión cerrada: Token inválido o expirado')
+          window.location.href = '/login'
+        }
+      } else {
+        // Es un 401 pero no es de autenticación (puede ser validación u otro error)
+        // No cerrar sesión, solo rechazar la promesa
+        console.warn('Error 401 no relacionado con autenticación:', errorMessage)
       }
     }
     return Promise.reject(error)

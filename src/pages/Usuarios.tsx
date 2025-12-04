@@ -116,33 +116,47 @@ export default function Usuarios() {
 
   return (
     <div className="space-y-4 w-full">
-      <h1 className="text-2xl font-bold mb-4">Usuarios</h1>
+      <h1 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4">Usuarios</h1>
       
-      <div className="flex flex-col sm:flex-row flex-wrap items-end gap-3">
-        <div>
-          <label className="block text-sm">Buscar</label>
-          <input value={q} onChange={e=>setQ(e.target.value)} className="mt-1 input" placeholder="Nombre o correo" />
+      <div className="flex flex-col gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="flex-1">
+            <label className="block text-sm mb-1">Buscar</label>
+            <input 
+              value={q} 
+              onChange={e=>setQ(e.target.value)} 
+              className="w-full input text-sm" 
+              placeholder="Nombre o correo" 
+            />
+          </div>
+          <div className="flex-1">
+            <label className="block text-sm mb-1">Rol</label>
+            <select 
+              value={role} 
+              onChange={e=>setRole(e.target.value as any)} 
+              className="w-full select text-sm"
+            >
+              <option value="">Todos</option>
+              <option value="admin">Admin</option>
+              <option value="supervisor">Supervisor</option>
+              <option value="operador">Operador</option>
+            </select>
+          </div>
+          <div className="flex items-end sm:col-span-2 lg:col-span-1">
+            <button onClick={openNew} className="w-full sm:w-auto btn btn-primary">Nuevo Usuario</button>
+          </div>
         </div>
-        <div>
-          <label className="block text-sm">Rol</label>
-          <select value={role} onChange={e=>setRole(e.target.value as any)} className="mt-1 select">
-            <option value="">Todos</option>
-            <option value="admin">Admin</option>
-            <option value="supervisor">Supervisor</option>
-            <option value="operador">Operador</option>
-          </select>
-        </div>
-        <button onClick={openNew} className="ml-auto btn btn-primary">Nuevo</button>
       </div>
 
-      <div className="overflow-x-auto rounded border border-white/10">
-        <table className="table table-zebra w-full min-w-[600px]">
+      {/* Vista de tabla para desktop */}
+      <div className="hidden md:block overflow-x-auto rounded border border-white/10">
+        <table className="table table-zebra w-full">
           <thead className="bg-white/10">
             <tr>
-              <th className="text-left p-2">Nombre</th>
-              <th className="text-left p-2">Correo</th>
-              <th className="text-left p-2">Rol</th>
-              <th className="p-2 text-center w-48">Acciones</th>
+              <th className="text-left p-2 text-sm">Nombre</th>
+              <th className="text-left p-2 text-sm">Correo</th>
+              <th className="text-left p-2 text-sm">Rol</th>
+              <th className="p-2 text-center text-sm w-48">Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -155,13 +169,13 @@ export default function Usuarios() {
             ) : (
               pageRows.map((u, i) => (
                 <tr key={u.id} className={i % 2 === 0 ? 'bg-white/5' : ''}>
-                  <td className="p-2">{u.name}</td>
-                  <td className="p-2">{u.email}</td>
-                  <td className="p-2 capitalize">{u.role}</td>
+                  <td className="p-2 text-sm">{u.name}</td>
+                  <td className="p-2 text-sm">{u.email}</td>
+                  <td className="p-2 text-sm capitalize">{u.role}</td>
                   <td className="p-2">
                     <div className="w-full flex justify-center items-center gap-2">
-                      <button onClick={()=>openEdit(u)} className="text-xs btn btn-ghost w-24">Editar</button>
-                      <button onClick={()=>remove(u.id)} className="text-xs btn w-24 bg-red-500/20 text-red-300 hover:bg-red-500/30">Eliminar</button>
+                      <button onClick={()=>openEdit(u)} className="text-xs btn btn-ghost w-20">Editar</button>
+                      <button onClick={()=>remove(u.id)} className="text-xs btn w-20 bg-red-500/20 text-red-300 hover:bg-red-500/30">Eliminar</button>
                     </div>
                   </td>
                 </tr>
@@ -169,6 +183,45 @@ export default function Usuarios() {
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Vista de cards para móvil */}
+      <div className="md:hidden space-y-3">
+        {pageRows.length === 0 ? (
+          <div className="p-6 text-center text-gray-400 bg-white/5 rounded border border-white/10">
+            No hay usuarios registrados
+          </div>
+        ) : (
+          pageRows.map((u) => (
+            <div key={u.id} className="bg-white/5 rounded border border-white/10 p-4 space-y-2">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <h3 className="font-semibold text-white text-base">{u.name}</h3>
+                  <p className="text-sm text-gray-300 mt-1">{u.email}</p>
+                </div>
+                <span className="px-2 py-1 rounded text-xs capitalize bg-blue-500/20 text-blue-300">
+                  {u.role}
+                </span>
+              </div>
+              <div className="pt-2 border-t border-white/10">
+                <div className="flex gap-2">
+                  <button 
+                    onClick={()=>openEdit(u)} 
+                    className="flex-1 btn btn-ghost text-sm py-2"
+                  >
+                    Editar
+                  </button>
+                  <button 
+                    onClick={()=>remove(u.id)} 
+                    className="flex-1 btn bg-red-500/20 text-red-300 hover:bg-red-500/30 text-sm py-2"
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       <div className="flex justify-end">

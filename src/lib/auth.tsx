@@ -86,6 +86,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [token])
 
+  // Verificar expiración del token periódicamente
+  useEffect(() => {
+    const checkTokenExpiration = () => {
+      const storedToken = localStorage.getItem('token')
+      if (storedToken) {
+        try {
+          const decoded = jwtDecode<JwtPayload>(storedToken)
+          // Verificar si el token expirará en los próximos 2 minutos
+          const expirationTime = decoded.exp ? decoded.exp * 1000 : 0
+          const timeUntilExpiration = expirationTime - Date.now()
+          
+          if (timeUntilExpiration < 0) {
+            // Token ya expirado
+            console.warn('Token expirado, cerrando sesión')
+            localStorage.removeItem('token')
+            setToken(null)
+            setUser(null)
+            if (window.location.pathname !== '/login') {
+              window.location.href = '/login'
+            }
+          } else if (timeUntilExpiration < 2 * 60 * 1000) {
+            // Token expirará en menos de 2 minutos - mostrar advertencia
+            console.warn(`Token expirará en ${Math.round(timeUntilExpiration / 1000)} segundos`)
+          }
+        } catch (error) {
+          console.error('Error verificando token:', error)
+        }
+      }
+    }
+
+    // Verificar cada minuto
+    const interval = setInterval(checkTokenExpiration, 60000)
+    checkTokenExpiration() // Verificar inmediatamente
+
+    return () => clearInterval(interval)
+  }, [token])
+
   // Cargar token al iniciar la app (solo una vez)
   useEffect(() => {
     const storedToken = localStorage.getItem('token')
@@ -95,6 +132,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Verificar si el token no ha expirado
         if (decoded.exp && decoded.exp < Date.now() / 1000) {
           // Token expirado
+          console.warn('Token expirado al cargar la app')
           localStorage.removeItem('token')
           setToken(null)
           setUser(null)
@@ -126,6 +164,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } catch {
         // Token inválido, limpiar
+        console.error('Token inválido al cargar la app')
         localStorage.removeItem('token')
         setToken(null)
         setUser(null)

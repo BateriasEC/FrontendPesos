@@ -86,33 +86,48 @@ export default function Clientes() {
 
   return (
     <div className="space-y-4 w-full">
-      <h1 className="text-2xl font-bold mb-4">Clientes</h1>
+      <h1 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4">Clientes</h1>
       
-      <div className="flex flex-col sm:flex-row flex-wrap items-end gap-3">
-        <div>
-          <label className="block text-sm">Buscar</label>
-          <input className="mt-1 input" placeholder="Nombre o RUC" value={q} onChange={e=>setQ(e.target.value)} />
+      {/* Filtros y botón - Mejorado para móvil */}
+      <div className="flex flex-col gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="flex-1">
+            <label className="block text-sm mb-1">Buscar</label>
+            <input 
+              className="w-full input text-sm" 
+              placeholder="Nombre o RUC" 
+              value={q} 
+              onChange={e=>setQ(e.target.value)} 
+            />
+          </div>
+          <div className="flex-1">
+            <label className="block text-sm mb-1">Estado</label>
+            <select 
+              className="w-full select text-sm" 
+              value={estado} 
+              onChange={e=>setEstado(e.target.value as any)}
+            >
+              <option value="">Todos</option>
+              <option value="activo">Activo</option>
+              <option value="inactivo">Inactivo</option>
+            </select>
+          </div>
+          <div className="flex items-end sm:col-span-2 lg:col-span-1">
+            <button onClick={openNew} className="w-full sm:w-auto btn btn-primary">Nuevo Cliente</button>
+          </div>
         </div>
-        <div>
-          <label className="block text-sm">Estado</label>
-          <select className="mt-1 select" value={estado} onChange={e=>setEstado(e.target.value as any)}>
-            <option value="">Todos</option>
-            <option value="activo">Activo</option>
-            <option value="inactivo">Inactivo</option>
-          </select>
-        </div>
-        <button onClick={openNew} className="ml-auto btn btn-primary">Nuevo</button>
       </div>
 
-      <div className="overflow-x-auto rounded border border-white/10">
-        <table className="table table-zebra w-full min-w-[600px]">
+      {/* Vista de tabla para desktop, cards para móvil */}
+      <div className="hidden md:block overflow-x-auto rounded border border-white/10">
+        <table className="table table-zebra w-full">
           <thead className="bg-white/10">
             <tr>
-              <th className="p-2 text-left">Nombre</th>
-              <th className="p-2 text-left">RUC</th>
-              <th className="p-2 text-left">Contacto</th>
-              <th className="p-2 text-left">Estado</th>
-              <th className="p-2 text-center w-48">Acciones</th>
+              <th className="p-2 text-left text-sm">Nombre</th>
+              <th className="p-2 text-left text-sm">RUC</th>
+              <th className="p-2 text-left text-sm">Contacto</th>
+              <th className="p-2 text-left text-sm">Estado</th>
+              <th className="p-2 text-center text-sm w-48">Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -125,14 +140,14 @@ export default function Clientes() {
             ) : (
               pageRows.map((c, i) => (
                 <tr key={c.id} className={i % 2 === 0 ? 'bg-white/5' : ''}>
-                  <td className="p-2">{c.nombre}</td>
-                  <td className="p-2">{(c as any).ruc}</td>
-                  <td className="p-2">{c.contacto}</td>
-                  <td className="p-2 capitalize">{c.estado}</td>
+                  <td className="p-2 text-sm">{c.nombre}</td>
+                  <td className="p-2 text-sm">{(c as any).ruc}</td>
+                  <td className="p-2 text-sm">{c.contacto}</td>
+                  <td className="p-2 text-sm capitalize">{c.estado}</td>
                   <td className="p-2">
                     <div className="flex justify-center items-center gap-2">
-                      <button onClick={()=>openEdit(c)} className="text-xs btn btn-ghost w-24">Editar</button>
-                      <button onClick={()=>remove(c.id)} className="text-xs btn w-24 bg-red-500/20 text-red-300 hover:bg-red-500/30">Eliminar</button>
+                      <button onClick={()=>openEdit(c)} className="text-xs btn btn-ghost w-20">Editar</button>
+                      <button onClick={()=>remove(c.id)} className="text-xs btn w-20 bg-red-500/20 text-red-300 hover:bg-red-500/30">Eliminar</button>
                     </div>
                   </td>
                 </tr>
@@ -140,6 +155,50 @@ export default function Clientes() {
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Vista de cards para móvil */}
+      <div className="md:hidden space-y-3">
+        {pageRows.length === 0 ? (
+          <div className="p-6 text-center text-gray-400 bg-white/5 rounded border border-white/10">
+            No hay clientes registrados
+          </div>
+        ) : (
+          pageRows.map((c) => (
+            <div key={c.id} className="bg-white/5 rounded border border-white/10 p-4 space-y-2">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <h3 className="font-semibold text-white text-base">{c.nombre}</h3>
+                  <p className="text-sm text-gray-300 mt-1">RUC: {(c as any).ruc || 'N/A'}</p>
+                </div>
+                <span className={`px-2 py-1 rounded text-xs capitalize ${
+                  c.estado === 'activo' ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'
+                }`}>
+                  {c.estado}
+                </span>
+              </div>
+              <div className="pt-2 border-t border-white/10">
+                <p className="text-sm text-gray-300 mb-3">
+                  <span className="text-gray-400">Contacto:</span> {c.contacto}
+                </p>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={()=>openEdit(c)} 
+                    className="flex-1 btn btn-ghost text-sm py-2"
+                  >
+                    Editar
+                  </button>
+                  <button 
+                    onClick={()=>remove(c.id)} 
+                    className="flex-1 btn bg-red-500/20 text-red-300 hover:bg-red-500/30 text-sm py-2"
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       <div className="flex justify-end">

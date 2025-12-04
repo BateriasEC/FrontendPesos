@@ -1,9 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline'
+import { ArrowRightOnRectangleIcon, Bars3Icon } from '@heroicons/react/24/outline'
 import { useAuth } from '../lib/auth'
 
-export function Header() {
+type HeaderProps = {
+  onMenuClick?: () => void
+}
+
+export function Header({ onMenuClick }: HeaderProps) {
   const { user, logout } = useAuth()
   const [now, setNow] = useState(new Date())
   const navigate = useNavigate()
@@ -18,8 +22,18 @@ export function Header() {
     return () => clearInterval(id)
   }, [])
   return (
-    <header className="flex items-center justify-between px-2 sm:px-4 h-14 bg-brand-dark border-b border-white/10 shrink-0">
+    <header className="flex items-center justify-between px-2 sm:px-4 h-14 bg-brand-dark border-b border-white/10 shrink-0 z-30 relative">
       <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+        {/* Botón hamburguesa solo en móvil */}
+        {onMenuClick && (
+          <button
+            onClick={onMenuClick}
+            className="md:hidden p-2 -ml-1 rounded hover:bg-white/10 transition-colors"
+            aria-label="Abrir menú"
+          >
+            <Bars3Icon className="w-6 h-6 text-white" />
+          </button>
+        )}
         <img src="/logorubix-removebg-preview.png" alt="Rubix" className="w-6 h-6 sm:w-8 sm:h-8 object-contain shrink-0" />
         <div className="font-semibold text-sm sm:text-base truncate">Rubix Energy Group</div>
       </div>
