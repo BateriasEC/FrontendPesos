@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { api } from '../services/api'
 import * as XLSX from 'xlsx'
 import { Modal } from '../components/Modal'
@@ -9,7 +9,9 @@ type Producto = { id: number; codigo: string; nombre: string; tipo: string; peso
 export default function Catalogo() {
   const [rows, setRows] = useState<Producto[]>([])
   const [q, setQ] = useState('')
-  const load = async () => {
+  const [loading, setLoading] = useState(true)
+  const load = useCallback(async () => {
+    setLoading(true)
     try {
       const response = await api.get('/products')
       const products = response.data?.data || response.data || []
@@ -17,9 +19,11 @@ export default function Catalogo() {
     } catch (error: any) {
       console.error('Error cargando productos:', error)
       setRows([])
+    } finally {
+      setLoading(false)
     }
-  }
-  useEffect(() => { load() }, [])
+  }, [])
+  useEffect(() => { load() }, [load])
   const filtered = useMemo(() => rows.filter(r => !q || r.nombre.toLowerCase().includes(q.toLowerCase()) || r.codigo.toLowerCase().includes(q.toLowerCase())), [rows, q])
   const [page, setPage] = useState(1)
   const pageSize = 10
@@ -93,35 +97,44 @@ export default function Catalogo() {
         </label>
       </div>
 
-      <div className="overflow-x-auto rounded border border-white/10">
-        <table className="table table-zebra w-full min-w-[700px]">
-          <thead className="bg-white/10">
-            <tr>
-              <th className="text-left p-2">Código</th>
-              <th className="text-left p-2">Nombre</th>
-              <th className="text-left p-2">Tipo</th>
-              <th className="text-left p-2">Peso G/M/P</th>
-              <th className="p-2 text-center w-48">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pageRows.map((p, i) => (
-              <tr key={p.id} className={i % 2 === 0 ? 'bg-white/5' : ''}>
-                <td className="p-2">{p.codigo}</td>
-                <td className="p-2">{p.nombre}</td>
-                <td className="p-2">{p.tipo}</td>
-                <td className="p-2">{p.pesoEsperado.G} / {p.pesoEsperado.M} / {p.pesoEsperado.P}</td>
-                <td className="p-2">
-                  <div className="flex justify-center items-center gap-2">
-                    <button onClick={()=>openEdit(p)} className="text-xs btn btn-ghost w-24">Editar</button>
-                    <button onClick={()=>remove(p.id)} className="text-xs btn w-24 bg-red-500/20 text-red-300 hover:bg-red-500/30">Eliminar</button>
-                  </div>
-                </td>
+      {loading ? (
+        <div className="flex items-center justify-center min-h-[400px] bg-white/5 rounded border border-white/10">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-orange mx-auto mb-4"></div>
+            <p className="text-gray-400">Cargando catálogo...</p>
+          </div>
+        </div>
+      ) : (
+        <div className="overflow-x-auto rounded border border-white/10">
+          <table className="table table-zebra w-full min-w-[700px]">
+            <thead className="bg-white/10">
+              <tr>
+                <th className="text-left p-2">Código</th>
+                <th className="text-left p-2">Nombre</th>
+                <th className="text-left p-2">Tipo</th>
+                <th className="text-left p-2">Peso G/M/P</th>
+                <th className="p-2 text-center w-48">Acciones</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {pageRows.map((p, i) => (
+                <tr key={p.id} className={i % 2 === 0 ? 'bg-white/5' : ''}>
+                  <td className="p-2">{p.codigo}</td>
+                  <td className="p-2">{p.nombre}</td>
+                  <td className="p-2">{p.tipo}</td>
+                  <td className="p-2">{p.pesoEsperado.G} / {p.pesoEsperado.M} / {p.pesoEsperado.P}</td>
+                  <td className="p-2">
+                    <div className="flex justify-center items-center gap-2">
+                      <button onClick={()=>openEdit(p)} className="text-xs btn btn-ghost w-24">Editar</button>
+                      <button onClick={()=>remove(p.id)} className="text-xs btn w-24 bg-red-500/20 text-red-300 hover:bg-red-500/30">Eliminar</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       <div className="flex justify-end">
         <Pagination page={page} pageSize={pageSize} total={filtered.length} onChange={setPage} />

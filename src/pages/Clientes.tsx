@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { api } from '../services/api'
 import { Pagination } from '../components/Pagination'
 import { Modal } from '../components/Modal'
@@ -9,8 +9,10 @@ export default function Clientes() {
   const [rows, setRows] = useState<Cliente[]>([])
   const [q, setQ] = useState('')
   const [estado, setEstado] = useState<Cliente['estado'] | ''>('')
+  const [loading, setLoading] = useState(true)
 
-  const load = async () => {
+  const load = useCallback(async () => {
+    setLoading(true)
     try {
       const response = await api.get('/clients')
       // El backend devuelve { data: [...] } por el TransformInterceptor
@@ -28,9 +30,11 @@ export default function Clientes() {
       console.error('Error cargando clientes:', error)
       alert(error.response?.data?.message || error.message || 'Error al cargar clientes')
       setRows([])
+    } finally {
+      setLoading(false)
     }
-  }
-  useEffect(() => { load() }, [])
+  }, [])
+  useEffect(() => { load() }, [load])
 
   const filtered = useMemo(() => rows.filter(r => (
     (!q || r.nombre.toLowerCase().includes(q.toLowerCase()) || (r as any).ruc?.toLowerCase().includes(q.toLowerCase())) &&
@@ -119,8 +123,16 @@ export default function Clientes() {
       </div>
 
       {/* Vista de tabla para desktop, cards para móvil */}
-      <div className="hidden md:block overflow-x-auto rounded border border-white/10">
-        <table className="table table-zebra w-full">
+      {loading ? (
+        <div className="hidden md:flex items-center justify-center min-h-[400px] bg-white/5 rounded border border-white/10">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-orange mx-auto mb-4"></div>
+            <p className="text-gray-400">Cargando clientes...</p>
+          </div>
+        </div>
+      ) : (
+        <div className="hidden md:block overflow-x-auto rounded border border-white/10">
+          <table className="table table-zebra w-full">
           <thead className="bg-white/10">
             <tr>
               <th className="p-2 text-left text-sm">Nombre</th>
@@ -155,17 +167,26 @@ export default function Clientes() {
             )}
           </tbody>
         </table>
-      </div>
+        </div>
+      )}
 
       {/* Vista de cards para móvil */}
-      <div className="md:hidden space-y-3">
-        {pageRows.length === 0 ? (
-          <div className="p-6 text-center text-gray-400 bg-white/5 rounded border border-white/10">
-            No hay clientes registrados
+      {loading ? (
+        <div className="md:hidden flex items-center justify-center min-h-[400px] bg-white/5 rounded border border-white/10">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-orange mx-auto mb-4"></div>
+            <p className="text-gray-400">Cargando clientes...</p>
           </div>
-        ) : (
-          pageRows.map((c) => (
-            <div key={c.id} className="bg-white/5 rounded border border-white/10 p-4 space-y-2">
+        </div>
+      ) : (
+        <div className="md:hidden space-y-3">
+          {pageRows.length === 0 ? (
+            <div className="p-6 text-center text-gray-400 bg-white/5 rounded border border-white/10">
+              No hay clientes registrados
+            </div>
+          ) : (
+            pageRows.map((c) => (
+              <div key={c.id} className="bg-white/5 rounded border border-white/10 p-4 space-y-2">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <h3 className="font-semibold text-white text-base">{c.nombre}</h3>
@@ -199,11 +220,14 @@ export default function Clientes() {
             </div>
           ))
         )}
-      </div>
+        </div>
+      )}
 
-      <div className="flex justify-end">
-        <Pagination page={page} pageSize={pageSize} total={filtered.length} onChange={setPage} />
-      </div>
+      {!loading && (
+        <div className="flex justify-end">
+          <Pagination page={page} pageSize={pageSize} total={filtered.length} onChange={setPage} />
+        </div>
+      )}
 
       <Modal open={isModalOpen} title={editing ? 'Editar cliente' : 'Crear cliente'} onClose={closeModal}>
         <div className="grid md:grid-cols-2 gap-3">

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { api } from '../services/api'
 import { Pagination } from '../components/Pagination'
 import { Modal } from '../components/Modal'
@@ -21,7 +21,7 @@ export default function Productos() {
   const [sortField, setSortField] = useState<keyof Producto | null>(null)
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -41,11 +41,11 @@ export default function Productos() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
   
   useEffect(() => { 
     load() 
-  }, [])
+  }, [load])
 
   const handleSort = (field: keyof Producto) => {
     if (sortField === field) {
@@ -132,8 +132,12 @@ export default function Productos() {
         </div>
       )}
 
+      <div className="flex flex-col sm:flex-row items-end gap-3">
+        <button onClick={openNew} className="ml-auto btn btn-primary">Nuevo</button>
+      </div>
+
       {loading ? (
-        <div className="w-full flex items-center justify-center min-h-[400px]">
+        <div className="w-full flex items-center justify-center min-h-[400px] bg-white/5 rounded border border-white/10">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-orange mx-auto mb-4"></div>
             <p className="text-gray-400">Cargando productos...</p>
@@ -141,10 +145,6 @@ export default function Productos() {
         </div>
       ) : (
         <>
-          <div className="flex flex-col sm:flex-row items-end gap-3">
-            <button onClick={openNew} className="ml-auto btn btn-primary">Nuevo</button>
-          </div>
-
           <div className="overflow-x-auto rounded border border-white/10 bg-black/20">
             <table className="table table-zebra w-full min-w-[600px]">
               <thead className="bg-white/10">

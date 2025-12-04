@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { api } from '../services/api'
 import { Pagination } from '../components/Pagination'
 
@@ -14,7 +14,7 @@ export default function Vehiculos() {
   const [estado, setEstado] = useState<Vehiculo['estado'] | ''>('')
   const [loading, setLoading] = useState(true)
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true)
     try {
       const response = await api.get('/vehicles')
@@ -47,8 +47,8 @@ export default function Vehiculos() {
     } finally {
       setLoading(false)
     }
-  }
-  useEffect(() => { load() }, [])
+  }, [])
+  useEffect(() => { load() }, [load])
 
   const filtered = useMemo(() => rows.filter(r => (
     (!q || r.placa.toLowerCase().includes(q.toLowerCase()) || r.cliente.toLowerCase().includes(q.toLowerCase())) &&
@@ -58,17 +58,6 @@ export default function Vehiculos() {
   const [page, setPage] = useState(1)
   const pageSize = 10
   const pageRows = useMemo(() => filtered.slice((page-1)*pageSize, page*pageSize), [filtered, page])
-
-  if (loading) {
-    return (
-      <div className="w-full flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-orange mx-auto mb-4"></div>
-          <p className="text-gray-400">Cargando vehículos...</p>
-        </div>
-      </div>
-    )
-  }
 
   return (
     <div className="space-y-4 w-full">
@@ -101,49 +90,66 @@ export default function Vehiculos() {
       </div>
 
       {/* Vista de tabla para desktop */}
-      <div className="hidden md:block overflow-x-auto rounded border border-white/10">
-        <table className="table table-zebra w-full">
-          <thead className="bg-white/10">
-            <tr>
-              <th className="p-2 text-left text-sm">Código</th>
-              <th className="p-2 text-left text-sm">Placa</th>
-              <th className="p-2 text-left text-sm">Cliente</th>
-              <th className="p-2 text-left text-sm">Estado</th>
-              <th className="p-2 text-left text-sm">Ingreso</th>
-              <th className="p-2 text-left text-sm">Salida</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pageRows.length === 0 ? (
+      {loading ? (
+        <div className="hidden md:flex items-center justify-center min-h-[400px] bg-white/5 rounded border border-white/10">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-orange mx-auto mb-4"></div>
+            <p className="text-gray-400">Cargando vehículos...</p>
+          </div>
+        </div>
+      ) : (
+        <div className="hidden md:block overflow-x-auto rounded border border-white/10">
+          <table className="table table-zebra w-full">
+            <thead className="bg-white/10">
               <tr>
-                <td colSpan={6} className="p-4 text-center text-gray-400">
-                  No hay vehículos registrados
-                </td>
+                <th className="p-2 text-left text-sm">Código</th>
+                <th className="p-2 text-left text-sm">Placa</th>
+                <th className="p-2 text-left text-sm">Cliente</th>
+                <th className="p-2 text-left text-sm">Estado</th>
+                <th className="p-2 text-left text-sm">Ingreso</th>
+                <th className="p-2 text-left text-sm">Salida</th>
               </tr>
-            ) : (
-              pageRows.map((v, i) => (
-                <tr key={v.id} className={i % 2 === 0 ? 'bg-white/5' : ''}>
-                  <td className="p-2 text-sm">{`COD-${String(v.id).padStart(3,'0')}`}</td>
-                  <td className="p-2 text-sm">{v.placa}</td>
-                  <td className="p-2 text-sm">{v.cliente}</td>
-                  <td className="p-2 text-sm capitalize">{v.estado.replace('_',' ')}</td>
-                  <td className="p-2 text-sm">{formatDate(v.ingresoAt)}</td>
-                  <td className="p-2 text-sm">{formatDate(v.salidaAt)}</td>
+            </thead>
+            <tbody>
+              {pageRows.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="p-4 text-center text-gray-400">
+                    No hay vehículos registrados
+                  </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              ) : (
+                pageRows.map((v, i) => (
+                  <tr key={v.id} className={i % 2 === 0 ? 'bg-white/5' : ''}>
+                    <td className="p-2 text-sm">{`COD-${String(v.id).padStart(3,'0')}`}</td>
+                    <td className="p-2 text-sm">{v.placa}</td>
+                    <td className="p-2 text-sm">{v.cliente}</td>
+                    <td className="p-2 text-sm capitalize">{v.estado.replace('_',' ')}</td>
+                    <td className="p-2 text-sm">{formatDate(v.ingresoAt)}</td>
+                    <td className="p-2 text-sm">{formatDate(v.salidaAt)}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Vista de cards para móvil */}
-      <div className="md:hidden space-y-3">
-        {pageRows.length === 0 ? (
-          <div className="p-6 text-center text-gray-400 bg-white/5 rounded border border-white/10">
-            No hay vehículos registrados
+      {loading ? (
+        <div className="md:hidden flex items-center justify-center min-h-[400px] bg-white/5 rounded border border-white/10">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-orange mx-auto mb-4"></div>
+            <p className="text-gray-400">Cargando vehículos...</p>
           </div>
-        ) : (
-          pageRows.map((v) => (
+        </div>
+      ) : (
+        <div className="md:hidden space-y-3">
+          {pageRows.length === 0 ? (
+            <div className="p-6 text-center text-gray-400 bg-white/5 rounded border border-white/10">
+              No hay vehículos registrados
+            </div>
+          ) : (
+            pageRows.map((v) => (
             <div key={v.id} className="bg-white/5 rounded border border-white/10 p-4 space-y-2">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
@@ -172,11 +178,14 @@ export default function Vehiculos() {
             </div>
           ))
         )}
-      </div>
+        </div>
+      )}
 
-      <div className="flex justify-end">
-        <Pagination page={page} pageSize={pageSize} total={filtered.length} onChange={setPage} />
-      </div>
+      {!loading && (
+        <div className="flex justify-end">
+          <Pagination page={page} pageSize={pageSize} total={filtered.length} onChange={setPage} />
+        </div>
+      )}
     </div>
   )
 }

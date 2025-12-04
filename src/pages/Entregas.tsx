@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { api } from '../services/api'
 
 type Delivery = { id: number; negociacion: string; fecha: string; grupo: string; cantidad: number; estado: 'pendiente'|'despachado' }
@@ -12,8 +12,10 @@ export default function Entregas() {
   const [fecha, setFecha] = useState(() => new Date().toISOString().slice(0,10))
   const [rows, setRows] = useState<Delivery[]>([])
   const [cliente, setCliente] = useState('')
+  const [loading, setLoading] = useState(true)
 
-  const load = async () => {
+  const load = useCallback(async () => {
+    setLoading(true)
     try {
       const response = await api.get('/entregas')
       // El backend usa /entregas, no /deliveries
@@ -29,9 +31,11 @@ export default function Entregas() {
       } catch {
         setRows([])
       }
+    } finally {
+      setLoading(false)
     }
-  }
-  useEffect(() => { load() }, [])
+  }, [])
+  useEffect(() => { load() }, [load])
 
   const resumen = useMemo(() => {
     const map = new Map<string, number>()
@@ -69,20 +73,29 @@ export default function Entregas() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-        {resumen.map(r => (
-          <div key={r.grupo} className="rounded border border-white/10 p-3 bg-white/5">
-            <div className="flex items-center justify-between">
-              <div className="font-medium">{r.grupo}</div>
-              <span className="text-sm text-gray-300">Cant: {r.cantidad}</span>
-            </div>
-            <div className="mt-2 flex gap-2">
-              <button className="btn btn-ghost" onClick={()=>agregar(r.grupo)}>+ Agregar</button>
-              <button className="btn btn-primary" onClick={()=>despachar(r.grupo)}>Despachar</button>
-            </div>
+      {loading ? (
+        <div className="flex items-center justify-center min-h-[400px] bg-white/5 rounded border border-white/10">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-orange mx-auto mb-4"></div>
+            <p className="text-gray-400">Cargando entregas...</p>
           </div>
-        ))}
-      </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+          {resumen.map(r => (
+            <div key={r.grupo} className="rounded border border-white/10 p-3 bg-white/5">
+              <div className="flex items-center justify-between">
+                <div className="font-medium">{r.grupo}</div>
+                <span className="text-sm text-gray-300">Cant: {r.cantidad}</span>
+              </div>
+              <div className="mt-2 flex gap-2">
+                <button className="btn btn-ghost" onClick={()=>agregar(r.grupo)}>+ Agregar</button>
+                <button className="btn btn-primary" onClick={()=>despachar(r.grupo)}>Despachar</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

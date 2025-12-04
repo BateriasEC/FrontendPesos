@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { api } from '../services/api'
 import { Pagination } from '../components/Pagination'
 import { Modal } from '../components/Modal'
@@ -10,8 +10,10 @@ export default function Tolerancias() {
   const [q, setQ] = useState('')
   const [editing, setEditing] = useState<Tol | null>(null)
   const [form, setForm] = useState<Omit<Tol,'id'>>({ familia: 'Baterías', productoCodigo: '', min: -2, max: 2 })
+  const [loading, setLoading] = useState(true)
 
-  const load = async () => {
+  const load = useCallback(async () => {
+    setLoading(true)
     try {
       const response = await api.get('/tolerances')
       const tolerances = response.data?.data || response.data || []
@@ -19,9 +21,11 @@ export default function Tolerancias() {
     } catch (error: any) {
       console.error('Error cargando tolerancias:', error)
       setRows([])
+    } finally {
+      setLoading(false)
     }
-  }
-  useEffect(() => { load() }, [])
+  }, [])
+  useEffect(() => { load() }, [load])
 
   const filtered = useMemo(() => rows.filter(r => !q || r.familia.toLowerCase().includes(q.toLowerCase()) || r.productoCodigo.toLowerCase().includes(q.toLowerCase())), [rows, q])
   const [page, setPage] = useState(1)
@@ -48,19 +52,27 @@ export default function Tolerancias() {
         <button onClick={openNew} className="ml-auto btn btn-primary">Nuevo</button>
       </div>
 
-      <div className="overflow-x-auto rounded border border-white/10">
-        <table className="table table-zebra w-full min-w-[600px]">
-          <thead className="bg-white/10">
-            <tr>
-              <th className="p-2 text-left">Familia</th>
-              <th className="p-2 text-left">Producto</th>
-              <th className="p-2 text-left">Mín (kg)</th>
-              <th className="p-2 text-left">Máx (kg)</th>
-              <th className="p-2 text-center w-48">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pageRows.map((t, i) => (
+      {loading ? (
+        <div className="flex items-center justify-center min-h-[400px] bg-white/5 rounded border border-white/10">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-orange mx-auto mb-4"></div>
+            <p className="text-gray-400">Cargando tolerancias...</p>
+          </div>
+        </div>
+      ) : (
+        <div className="overflow-x-auto rounded border border-white/10">
+          <table className="table table-zebra w-full min-w-[600px]">
+            <thead className="bg-white/10">
+              <tr>
+                <th className="p-2 text-left">Familia</th>
+                <th className="p-2 text-left">Producto</th>
+                <th className="p-2 text-left">Mín (kg)</th>
+                <th className="p-2 text-left">Máx (kg)</th>
+                <th className="p-2 text-center w-48">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pageRows.map((t, i) => (
               <tr key={t.id} className={i % 2 === 0 ? 'bg-white/5' : ''}>
                 <td className="p-2">{t.familia}</td>
                 <td className="p-2">{t.productoCodigo}</td>
@@ -76,11 +88,14 @@ export default function Tolerancias() {
             ))}
           </tbody>
         </table>
-      </div>
+        </div>
+      )}
 
-      <div className="flex justify-end">
-        <Pagination page={page} pageSize={pageSize} total={filtered.length} onChange={setPage} />
-      </div>
+      {!loading && (
+        <div className="flex justify-end">
+          <Pagination page={page} pageSize={pageSize} total={filtered.length} onChange={setPage} />
+        </div>
+      )}
 
       <Modal open={!!editing} title={(editing && (editing as any).id) ? 'Editar tolerancia' : 'Crear tolerancia'} onClose={()=>setEditing(null)}>
         <div className="grid md:grid-cols-2 gap-3">

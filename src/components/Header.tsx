@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, memo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowRightOnRectangleIcon, Bars3Icon } from '@heroicons/react/24/outline'
 import { useAuth } from '../lib/auth'
@@ -7,9 +7,21 @@ type HeaderProps = {
   onMenuClick?: () => void
 }
 
+// Componente separado para el reloj para evitar re-renders del header completo
+const Clock = memo(() => {
+  const [now, setNow] = useState(() => new Date())
+  
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(id)
+  }, [])
+  
+  return <div className="text-xs sm:text-sm text-gray-300 hidden md:block shrink-0">{now.toLocaleString()}</div>
+})
+Clock.displayName = 'Clock'
+
 export function Header({ onMenuClick }: HeaderProps) {
   const { user, logout } = useAuth()
-  const [now, setNow] = useState(new Date())
   const navigate = useNavigate()
 
   const handleLogout = () => {
@@ -17,12 +29,8 @@ export function Header({ onMenuClick }: HeaderProps) {
     navigate('/login')
   }
 
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 1000)
-    return () => clearInterval(id)
-  }, [])
   return (
-    <header className="flex items-center justify-between px-2 sm:px-4 h-14 bg-brand-dark border-b border-white/10 shrink-0 z-30 relative">
+    <header className="flex items-center justify-between px-2 sm:px-4 h-14 bg-brand-dark border-b border-white/10 shrink-0 z-30 fixed top-0 left-0 right-0">
       <div className="flex items-center gap-2 sm:gap-3 min-w-0">
         {/* Botón hamburguesa solo en móvil */}
         {onMenuClick && (
@@ -37,10 +45,10 @@ export function Header({ onMenuClick }: HeaderProps) {
         <img src="/logorubix-removebg-preview.png" alt="Rubix" className="w-6 h-6 sm:w-8 sm:h-8 object-contain shrink-0" />
         <div className="font-semibold text-sm sm:text-base truncate">Rubix Energy Group</div>
       </div>
-      <div className="text-xs sm:text-sm text-gray-300 hidden md:block shrink-0">{now.toLocaleString()}</div>
+      <Clock />
       <div className="flex items-center gap-2 sm:gap-3 shrink-0">
         <span className="text-xs sm:text-sm text-gray-300 hidden sm:inline truncate max-w-[150px] md:max-w-none">
-          {user ? `${user.name} · ${user.role}` : 'Sesión no iniciada'}
+          {user ? user.role : 'Sesión no iniciada'}
         </span>
         <button
           onClick={handleLogout}

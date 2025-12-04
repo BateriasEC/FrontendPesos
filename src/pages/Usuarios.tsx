@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { api } from '../services/api'
 import { Modal } from '../components/Modal'
 import { Pagination } from '../components/Pagination'
@@ -9,8 +9,10 @@ export default function Usuarios() {
   const [rows, setRows] = useState<Usuario[]>([])
   const [q, setQ] = useState('')
   const [role, setRole] = useState<Usuario['role'] | ''>('')
+  const [loading, setLoading] = useState(true)
 
-  const load = async () => {
+  const load = useCallback(async () => {
+    setLoading(true)
     try {
       const response = await api.get('/users')
       // El backend devuelve { data: [...] } por el TransformInterceptor
@@ -28,9 +30,11 @@ export default function Usuarios() {
       console.error('Error cargando usuarios:', error)
       alert(error.response?.data?.message || error.message || 'Error al cargar usuarios')
       setRows([])
+    } finally {
+      setLoading(false)
     }
-  }
-  useEffect(() => { load() }, [])
+  }, [])
+  useEffect(() => { load() }, [load])
 
   const filtered = useMemo(() => rows.filter(r => (
     (!q || r.name.toLowerCase().includes(q.toLowerCase()) || r.email.toLowerCase().includes(q.toLowerCase())) &&
@@ -149,51 +153,68 @@ export default function Usuarios() {
       </div>
 
       {/* Vista de tabla para desktop */}
-      <div className="hidden md:block overflow-x-auto rounded border border-white/10">
-        <table className="table table-zebra w-full">
-          <thead className="bg-white/10">
-            <tr>
-              <th className="text-left p-2 text-sm">Nombre</th>
-              <th className="text-left p-2 text-sm">Correo</th>
-              <th className="text-left p-2 text-sm">Rol</th>
-              <th className="p-2 text-center text-sm w-48">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pageRows.length === 0 ? (
+      {loading ? (
+        <div className="hidden md:flex items-center justify-center min-h-[400px] bg-white/5 rounded border border-white/10">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-orange mx-auto mb-4"></div>
+            <p className="text-gray-400">Cargando usuarios...</p>
+          </div>
+        </div>
+      ) : (
+        <div className="hidden md:block overflow-x-auto rounded border border-white/10">
+          <table className="table table-zebra w-full">
+            <thead className="bg-white/10">
               <tr>
-                <td colSpan={4} className="p-4 text-center text-gray-400">
-                  No hay usuarios registrados
-                </td>
+                <th className="text-left p-2 text-sm">Nombre</th>
+                <th className="text-left p-2 text-sm">Correo</th>
+                <th className="text-left p-2 text-sm">Rol</th>
+                <th className="p-2 text-center text-sm w-48">Acciones</th>
               </tr>
-            ) : (
-              pageRows.map((u, i) => (
-                <tr key={u.id} className={i % 2 === 0 ? 'bg-white/5' : ''}>
-                  <td className="p-2 text-sm">{u.name}</td>
-                  <td className="p-2 text-sm">{u.email}</td>
-                  <td className="p-2 text-sm capitalize">{u.role}</td>
-                  <td className="p-2">
-                    <div className="w-full flex justify-center items-center gap-2">
-                      <button onClick={()=>openEdit(u)} className="text-xs btn btn-ghost w-20">Editar</button>
-                      <button onClick={()=>remove(u.id)} className="text-xs btn w-20 bg-red-500/20 text-red-300 hover:bg-red-500/30">Eliminar</button>
-                    </div>
+            </thead>
+            <tbody>
+              {pageRows.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="p-4 text-center text-gray-400">
+                    No hay usuarios registrados
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              ) : (
+                pageRows.map((u, i) => (
+                  <tr key={u.id} className={i % 2 === 0 ? 'bg-white/5' : ''}>
+                    <td className="p-2 text-sm">{u.name}</td>
+                    <td className="p-2 text-sm">{u.email}</td>
+                    <td className="p-2 text-sm capitalize">{u.role}</td>
+                    <td className="p-2">
+                      <div className="w-full flex justify-center items-center gap-2">
+                        <button onClick={()=>openEdit(u)} className="text-xs btn btn-ghost w-20">Editar</button>
+                        <button onClick={()=>remove(u.id)} className="text-xs btn w-20 bg-red-500/20 text-red-300 hover:bg-red-500/30">Eliminar</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Vista de cards para móvil */}
-      <div className="md:hidden space-y-3">
-        {pageRows.length === 0 ? (
-          <div className="p-6 text-center text-gray-400 bg-white/5 rounded border border-white/10">
-            No hay usuarios registrados
+      {loading ? (
+        <div className="md:hidden flex items-center justify-center min-h-[400px] bg-white/5 rounded border border-white/10">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-orange mx-auto mb-4"></div>
+            <p className="text-gray-400">Cargando usuarios...</p>
           </div>
-        ) : (
-          pageRows.map((u) => (
-            <div key={u.id} className="bg-white/5 rounded border border-white/10 p-4 space-y-2">
+        </div>
+      ) : (
+        <div className="md:hidden space-y-3">
+          {pageRows.length === 0 ? (
+            <div className="p-6 text-center text-gray-400 bg-white/5 rounded border border-white/10">
+              No hay usuarios registrados
+            </div>
+          ) : (
+            pageRows.map((u) => (
+              <div key={u.id} className="bg-white/5 rounded border border-white/10 p-4 space-y-2">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <h3 className="font-semibold text-white text-base">{u.name}</h3>
@@ -222,11 +243,14 @@ export default function Usuarios() {
             </div>
           ))
         )}
-      </div>
+        </div>
+      )}
 
-      <div className="flex justify-end">
-        <Pagination page={page} pageSize={pageSize} total={filtered.length} onChange={setPage} />
-      </div>
+      {!loading && (
+        <div className="flex justify-end">
+          <Pagination page={page} pageSize={pageSize} total={filtered.length} onChange={setPage} />
+        </div>
+      )}
 
       <Modal open={!!editing} title={(editing && (editing as any).id) ? 'Editar usuario' : 'Crear usuario'} onClose={()=>setEditing(null)}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

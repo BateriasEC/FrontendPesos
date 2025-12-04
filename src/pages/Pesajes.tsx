@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { api } from '../services/api'
 import * as XLSX from 'xlsx'
 import { Pagination } from '../components/Pagination'
@@ -24,8 +24,10 @@ export default function Pesajes() {
   const [producto, setProducto] = useState('')
   const [cliente, setCliente] = useState('')
   const [range, setRange] = useState({ from: '', to: '' })
+  const [loading, setLoading] = useState(true)
 
-  const load = async () => {
+  const load = useCallback(async () => {
+    setLoading(true)
     try {
       const response = await api.get('/weighings')
       // El backend devuelve { data: { data: [...], total, ... } } por el TransformInterceptor
@@ -57,9 +59,11 @@ export default function Pesajes() {
     } catch (error: any) {
       console.error('Error cargando pesajes:', error)
       setRows([])
+    } finally {
+      setLoading(false)
     }
-  }
-  useEffect(() => { load() }, [])
+  }, [])
+  useEffect(() => { load() }, [load])
 
   const filtered = useMemo(() => rows.filter(r => {
     const okQ = !q || r.placa.toLowerCase().includes(q.toLowerCase()) || r.codigoPallet.toLowerCase().includes(q.toLowerCase())
@@ -112,48 +116,59 @@ export default function Pesajes() {
         <DateRange from={range.from} to={range.to} onChange={setRange} />
       </div>
 
-      <div className="overflow-x-auto rounded border border-white/10">
-        <table className="table table-zebra w-full min-w-[800px]">
-          <thead className="bg-white/10">
-            <tr>
-              <th className="text-left p-2">Fecha</th>
-              <th className="text-left p-2">Placa</th>
-              <th className="text-left p-2">Código Pallet</th>
-              <th className="text-left p-2">Peso Ingreso (kg)</th>
-              <th className="text-left p-2">Peso Salida (kg)</th>
-              <th className="text-left p-2">Variación (kg)</th>
-              <th className="text-left p-2 w-40">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pageRows.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="p-4 text-center text-gray-400">
-                  No hay pesajes registrados
-                </td>
-              </tr>
-            ) : (
-              pageRows.map((r, i) => (
-                <tr key={r.id} className={(i % 2 === 0 ? 'bg-white/5 ' : '') + (Math.abs(r.variacion) > threshold ? 'outline outline-1 outline-red-500/60' : '')}>
-                  <td className="p-2">{new Date(r.fecha).toLocaleString()}</td>
-                  <td className="p-2">{r.placa}</td>
-                  <td className="p-2">{r.codigoPallet}</td>
-                  <td className="p-2">{r.pesoIngreso?.toLocaleString(undefined,{maximumFractionDigits:2})} kg</td>
-                  <td className="p-2">{r.pesoSalida!=null ? `${r.pesoSalida.toLocaleString(undefined,{maximumFractionDigits:2})} kg` : '-'}</td>
-                  <td className="p-2">{r.variacion?.toLocaleString(undefined,{maximumFractionDigits:2})} kg</td>
-                  <td className="p-2 flex gap-2">
-                    <button onClick={()=>setLabelRow(r)} className="text-xs btn btn-ghost w-24 text-center">Etiqueta</button>
-                  </td>
+      {loading ? (
+        <div className="flex items-center justify-center min-h-[400px] bg-white/5 rounded border border-white/10">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-orange mx-auto mb-4"></div>
+            <p className="text-gray-400">Cargando pesajes...</p>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className="overflow-x-auto rounded border border-white/10">
+            <table className="table table-zebra w-full min-w-[800px]">
+              <thead className="bg-white/10">
+                <tr>
+                  <th className="text-left p-2">Fecha</th>
+                  <th className="text-left p-2">Placa</th>
+                  <th className="text-left p-2">Código Pallet</th>
+                  <th className="text-left p-2">Peso Ingreso (kg)</th>
+                  <th className="text-left p-2">Peso Salida (kg)</th>
+                  <th className="text-left p-2">Variación (kg)</th>
+                  <th className="text-left p-2 w-40">Acciones</th>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              </thead>
+              <tbody>
+                {pageRows.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="p-4 text-center text-gray-400">
+                      No hay pesajes registrados
+                    </td>
+                  </tr>
+                ) : (
+                  pageRows.map((r, i) => (
+                    <tr key={r.id} className={(i % 2 === 0 ? 'bg-white/5 ' : '') + (Math.abs(r.variacion) > threshold ? 'outline outline-1 outline-red-500/60' : '')}>
+                      <td className="p-2">{new Date(r.fecha).toLocaleString()}</td>
+                      <td className="p-2">{r.placa}</td>
+                      <td className="p-2">{r.codigoPallet}</td>
+                      <td className="p-2">{r.pesoIngreso?.toLocaleString(undefined,{maximumFractionDigits:2})} kg</td>
+                      <td className="p-2">{r.pesoSalida!=null ? `${r.pesoSalida.toLocaleString(undefined,{maximumFractionDigits:2})} kg` : '-'}</td>
+                      <td className="p-2">{r.variacion?.toLocaleString(undefined,{maximumFractionDigits:2})} kg</td>
+                      <td className="p-2 flex gap-2">
+                        <button onClick={()=>setLabelRow(r)} className="text-xs btn btn-ghost w-24 text-center">Etiqueta</button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
 
-      <div className="flex justify-end">
-        <Pagination page={page} pageSize={pageSize} total={filtered.length} onChange={setPage} />
-      </div>
+          <div className="flex justify-end">
+            <Pagination page={page} pageSize={pageSize} total={filtered.length} onChange={setPage} />
+          </div>
+        </>
+      )}
 
       
 

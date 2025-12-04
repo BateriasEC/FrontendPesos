@@ -8,9 +8,9 @@ export function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
-    <div className="min-h-screen flex flex-col bg-brand-dark">
+    <div className="min-h-screen bg-brand-dark">
       <Header onMenuClick={() => setSidebarOpen(true)} />
-      <div className="flex flex-1 overflow-hidden relative">
+      <div className="flex relative min-h-screen">
         {/* Overlay para móvil */}
         {sidebarOpen && (
           <div 
@@ -19,10 +19,12 @@ export function Layout() {
           />
         )}
         
-        {/* Sidebar */}
+        {/* Sidebar - Fixed en desktop para que se quede estático */}
         <aside className={`
-          fixed md:static inset-y-0 left-0 z-50
+          fixed md:fixed left-0 z-50
           w-64 md:w-60
+          top-14 md:top-14
+          h-[calc(100vh-3.5rem)] md:h-[calc(100vh-3.5rem)]
           transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
           transition-transform duration-300 ease-in-out
           bg-black/20 border-r border-white/10
@@ -42,8 +44,8 @@ export function Layout() {
           </div>
         </aside>
 
-        {/* Main content */}
-        <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto min-h-0 w-full">
+        {/* Main content - Con margen superior para header y margen izquierdo para sidebar en desktop */}
+        <main className="flex-1 p-3 sm:p-4 md:p-6 w-full pt-20 md:pt-20 md:ml-60 min-h-screen overflow-y-auto">
           <div className="max-w-full">
             <Outlet />
           </div>
