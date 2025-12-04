@@ -4,7 +4,17 @@ import { api, setAuthToken } from '../services/api'
 
 type Role = 'admin' | 'supervisor' | 'operador'
 
-type JwtPayload = { id: number; email: string; name: string; role: Role; exp: number }
+type JwtPayload = { 
+  sub?: string | number;  // ID del usuario (puede ser UUID o número)
+  id?: number | string;
+  email?: string;
+  name?: string;
+  username?: string;
+  fullName?: string;
+  role?: Role | string | { codigo: string; nombre: string };
+  exp: number;
+  iat?: number;
+}
 
 type User = Omit<JwtPayload, 'exp'>
 
@@ -30,55 +40,154 @@ function createFakeJwt(user: any): string {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'))
+  // Cargar token del localStorage al iniciar
+  const initialToken = localStorage.getItem('token')
+  const [token, setToken] = useState<string | null>(initialToken)
   const [user, setUser] = useState<User | null>(() => {
-    const t = localStorage.getItem('token')
-    if (!t) return null
+    if (!initialToken) return null
     try {
-      const decoded = jwtDecode<JwtPayload>(t)
-      return { id: decoded.id, email: decoded.email, name: decoded.name, role: decoded.role }
+      const decoded = jwtDecode<JwtPayload>(initialToken)
+      
+      // Mapear el rol del backend al formato esperado
+      const roleMap: Record<string, Role> = {
+        'ADMIN': 'admin',
+        'SUPERVISOR': 'supervisor',
+        'OPERADOR': 'operador',
+      }
+      
+      const roleCode = typeof decoded.role === 'object' && decoded.role?.codigo 
+        ? decoded.role.codigo 
+        : typeof decoded.role === 'string' 
+        ? decoded.role 
+        : 'OPERADOR'
+      const userRole = roleMap[roleCode.toUpperCase()] || 'operador'
+      
+      // Obtener ID (puede venir como sub, id, o ser un UUID)
+      const userId = decoded.sub || decoded.id || 1
+      const userIdNumber = typeof userId === 'string' ? parseInt(userId.replace(/-/g, '').substring(0, 10), 16) % 2147483647 : userId
+      
+      return { 
+        id: userIdNumber, 
+        email: decoded.email || '', 
+        name: decoded.fullName || decoded.name || decoded.username || '', 
+        role: userRole 
+      }
     } catch {
       return null
     }
   })
 
+  // Configurar el token en axios al cargar el componente y cuando cambie
   useEffect(() => {
-    setAuthToken(token)
+    if (token) {
+      setAuthToken(token)
+    } else {
+      setAuthToken(null)
+    }
   }, [token])
+
+  // Cargar token al iniciar la app (solo una vez)
+  useEffect(() => {
+    const storedToken = localStorage.getItem('token')
+    if (storedToken && !token) {
+      try {
+        const decoded = jwtDecode<JwtPayload>(storedToken)
+        // Verificar si el token no ha expirado
+        if (decoded.exp && decoded.exp < Date.now() / 1000) {
+          // Token expirado
+          localStorage.removeItem('token')
+          setToken(null)
+          setUser(null)
+        } else {
+          // Token válido - mapear usuario
+          const roleMap: Record<string, Role> = {
+            'ADMIN': 'admin',
+            'SUPERVISOR': 'supervisor',
+            'OPERADOR': 'operador',
+          }
+          
+          const roleCode = typeof decoded.role === 'object' && decoded.role?.codigo 
+            ? decoded.role.codigo 
+            : typeof decoded.role === 'string' 
+            ? decoded.role 
+            : 'OPERADOR'
+          const userRole = roleMap[roleCode.toUpperCase()] || 'operador'
+          
+          const userId = decoded.sub || decoded.id || 1
+          const userIdNumber = typeof userId === 'string' ? parseInt(userId.replace(/-/g, '').substring(0, 10), 16) % 2147483647 : userId
+          
+          setToken(storedToken)
+          setUser({ 
+            id: userIdNumber, 
+            email: decoded.email || '', 
+            name: decoded.fullName || decoded.name || decoded.username || '', 
+            role: userRole 
+          })
+        }
+      } catch {
+        // Token inválido, limpiar
+        localStorage.removeItem('token')
+        setToken(null)
+        setUser(null)
+      }
+    }
+  }, [])
 
   const login = async (email: string, password: string) => {
     try {
-      const { data } = await api.get(`/users`, { params: { email } })
-      const found = (data as any[]).find((u) => u.email === email && u.password === password)
-      if (!found) throw new Error('Credenciales inválidas')
-      const fake = createFakeJwt(found)
-      localStorage.setItem('token', fake)
-      setToken(fake)
-      const decoded = jwtDecode<JwtPayload>(fake)
-      setUser({ id: decoded.id, email: decoded.email, name: decoded.name, role: decoded.role })
-    } catch (error: any) {
-      // Si la API falla, usar datos de ejemplo para desarrollo
-      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-        console.warn('API no disponible, usando datos de ejemplo')
-        const mockUsers = [
-          { id: 1, email: 'admin@rubix.com', password: 'admin123', name: 'Admin', role: 'admin' },
-          { id: 2, email: 'super@rubix.com', password: 'super123', name: 'Supervisor', role: 'supervisor' },
-          { id: 3, email: 'oper@rubix.com', password: 'oper123', name: 'Operador', role: 'operador' },
-        ]
-        const found = mockUsers.find((u) => u.email === email && u.password === password)
-        if (!found) throw new Error('Credenciales inválidas')
-        const fake = createFakeJwt(found)
-        localStorage.setItem('token', fake)
-        setToken(fake)
-        const decoded = jwtDecode<JwtPayload>(fake)
-        setUser({ id: decoded.id, email: decoded.email, name: decoded.name, role: decoded.role })
-        return
+      // Llamar al endpoint real del backend
+      const response = await api.post('/auth/login', { email, password })
+      
+      // El backend puede devolver: { data: { access_token, user, ... } } o directamente { access_token, user, ... }
+      const responseData = response.data.data || response.data
+      const { access_token, user } = responseData
+      
+      if (!access_token || !user) {
+        console.error('Respuesta del servidor:', response.data)
+        throw new Error('Respuesta inválida del servidor')
       }
-      // Si es otro error, relanzarlo
-      if (error.response?.status === 404 || error.response?.status === 401) {
+      
+      // Guardar token real del backend
+      localStorage.setItem('token', access_token)
+      setToken(access_token)
+      
+      // Mapear el usuario del backend al formato esperado
+      const roleMap: Record<string, Role> = {
+        'ADMIN': 'admin',
+        'SUPERVISOR': 'supervisor',
+        'OPERADOR': 'operador',
+      }
+      
+      // El rol puede venir como objeto { codigo: 'ADMIN' } o como string
+      const roleCode = user.role?.codigo || user.role || 'OPERADOR'
+      const userRole = roleMap[roleCode] || 'operador'
+      
+      // Convertir UUID a número simple para compatibilidad (o usar el UUID directamente)
+      const userId = user.id ? (typeof user.id === 'string' ? 1 : user.id) : 1
+      
+      setUser({
+        id: userId,
+        email: user.email,
+        name: user.fullName || user.username,
+        role: userRole,
+      })
+    } catch (error: any) {
+      console.error('Error en login:', error)
+      console.error('Detalles del error:', error.response?.data)
+      
+      // Si es error de credenciales
+      if (error.response?.status === 401) {
         throw new Error('Credenciales inválidas')
       }
-      throw new Error(error.message || 'Error al conectar con el servidor. Verifique su conexión.')
+      
+      // Si es error de conexión
+      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout') || !error.response) {
+        throw new Error('Error al conectar con el servidor. Verifique que el backend esté corriendo en http://localhost:3000')
+      }
+      
+      // Otros errores
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Error al iniciar sesión'
+      throw new Error(errorMessage)
     }
   }
 

@@ -25,7 +25,40 @@ export default function Pesajes() {
   const [cliente, setCliente] = useState('')
   const [range, setRange] = useState({ from: '', to: '' })
 
-  const load = async () => { const { data } = await api.get('/weighings'); setRows(data) }
+  const load = async () => {
+    try {
+      const response = await api.get('/weighings')
+      // El backend devuelve { data: { data: [...], total, ... } } por el TransformInterceptor
+      // O puede devolver directamente { data: [...], total, ... }
+      const responseData = response.data?.data || response.data
+      let weighings: any[] = []
+      
+      // Si es un objeto paginado, extraer el array de data
+      if (responseData && Array.isArray(responseData.data)) {
+        weighings = responseData.data
+      } else if (Array.isArray(responseData)) {
+        weighings = responseData
+      }
+      
+      // Mapear el formato del backend al formato esperado por la web
+      const mappedWeighings = weighings.map((w: any) => ({
+        id: w.id,
+        fecha: w.fecha || w.createdAt || new Date().toISOString(),
+        placa: w.placa || w.vehicle?.placa || w.vehicle?.codigoTrazabilidad || '',
+        codigoPallet: w.codigoPallet || w.pallet?.codigo || '',
+        pesoIngreso: w.pesoIngreso || Number(w.pesoTotal) || 0,
+        pesoSalida: w.pesoSalida ? Number(w.pesoSalida) : (w.pesoDescarga ? Number(w.pesoDescarga) : null),
+        variacion: w.variacion || Number(w.variacionPeso) || 0,
+        productoId: w.productoId || w.product?.id || w.productId || 0,
+        cliente: w.cliente || w.vehicle?.cliente || '',
+        niveles: w.niveles || []
+      }))
+      setRows(mappedWeighings)
+    } catch (error: any) {
+      console.error('Error cargando pesajes:', error)
+      setRows([])
+    }
+  }
   useEffect(() => { load() }, [])
 
   const filtered = useMemo(() => rows.filter(r => {
@@ -53,8 +86,10 @@ export default function Pesajes() {
   const [threshold, setThreshold] = useState(50)
 
   return (
-    <div className="space-y-4">
-      <div className="grid md:grid-cols-5 gap-3 items-end">
+    <div className="space-y-4 w-full">
+      <h1 className="text-2xl font-bold mb-4">Pesajes</h1>
+      
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 items-end">
         <div>
           <label className="block text-sm">Buscar</label>
           <input value={q} onChange={e=>setQ(e.target.value)} className="mt-1 input" placeholder="Placa o Código Pallet" />
@@ -77,8 +112,8 @@ export default function Pesajes() {
         <DateRange from={range.from} to={range.to} onChange={setRange} />
       </div>
 
-      <div className="overflow-auto rounded border border-white/10">
-        <table className="table table-zebra">
+      <div className="overflow-x-auto rounded border border-white/10">
+        <table className="table table-zebra w-full min-w-[800px]">
           <thead className="bg-white/10">
             <tr>
               <th className="text-left p-2">Fecha</th>
@@ -91,19 +126,27 @@ export default function Pesajes() {
             </tr>
           </thead>
           <tbody>
-            {pageRows.map((r, i) => (
-              <tr key={r.id} className={(i % 2 === 0 ? 'bg-white/5 ' : '') + (Math.abs(r.variacion) > threshold ? 'outline outline-1 outline-red-500/60' : '')}>
-                <td className="p-2">{new Date(r.fecha).toLocaleString()}</td>
-                <td className="p-2">{r.placa}</td>
-                <td className="p-2">{r.codigoPallet}</td>
-                <td className="p-2">{r.pesoIngreso?.toLocaleString(undefined,{maximumFractionDigits:2})} kg</td>
-                <td className="p-2">{r.pesoSalida!=null ? `${r.pesoSalida.toLocaleString(undefined,{maximumFractionDigits:2})} kg` : '-'}</td>
-                <td className="p-2">{r.variacion?.toLocaleString(undefined,{maximumFractionDigits:2})} kg</td>
-                <td className="p-2 flex gap-2">
-                  <button onClick={()=>setLabelRow(r)} className="text-xs btn btn-ghost w-24 text-center">Etiqueta</button>
+            {pageRows.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="p-4 text-center text-gray-400">
+                  No hay pesajes registrados
                 </td>
               </tr>
-            ))}
+            ) : (
+              pageRows.map((r, i) => (
+                <tr key={r.id} className={(i % 2 === 0 ? 'bg-white/5 ' : '') + (Math.abs(r.variacion) > threshold ? 'outline outline-1 outline-red-500/60' : '')}>
+                  <td className="p-2">{new Date(r.fecha).toLocaleString()}</td>
+                  <td className="p-2">{r.placa}</td>
+                  <td className="p-2">{r.codigoPallet}</td>
+                  <td className="p-2">{r.pesoIngreso?.toLocaleString(undefined,{maximumFractionDigits:2})} kg</td>
+                  <td className="p-2">{r.pesoSalida!=null ? `${r.pesoSalida.toLocaleString(undefined,{maximumFractionDigits:2})} kg` : '-'}</td>
+                  <td className="p-2">{r.variacion?.toLocaleString(undefined,{maximumFractionDigits:2})} kg</td>
+                  <td className="p-2 flex gap-2">
+                    <button onClick={()=>setLabelRow(r)} className="text-xs btn btn-ghost w-24 text-center">Etiqueta</button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

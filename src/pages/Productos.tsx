@@ -9,6 +9,8 @@ export default function Productos() {
   const [rows, setRows] = useState<Producto[]>([])
   const [editing, setEditing] = useState<Producto | null>(null)
   const [form, setForm] = useState<Omit<Producto,'id'>>({ descripcion: '', peso: 0, caja: '' })
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   
   // Filtros por columna
   const [filterDescripcion, setFilterDescripcion] = useState('')
@@ -19,29 +21,31 @@ export default function Productos() {
   const [sortField, setSortField] = useState<keyof Producto | null>(null)
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
 
-  const load = async () => { 
+  const load = async () => {
+    setLoading(true)
+    setError(null)
     try {
-      const { data } = await api.get('/productos')
-      setRows(data)
-    } catch (error) {
+      const response = await api.get('/products')
+      const products = response.data?.data || response.data || []
+      const mappedProducts = products.map((p: any) => ({
+        id: p.id,
+        descripcion: p.nombre || p.descripcion || '',
+        peso: Number(p.pesoEsperado || p.peso || 0),
+        caja: p.tipoProducto?.nombre || p.caja || ''
+      }))
+      setRows(mappedProducts)
+    } catch (error: any) {
       console.error('Error al cargar productos:', error)
-      // En caso de que el endpoint no exista aún, usar datos de ejemplo
-      setRows([
-        { id: 1, descripcion: 'GRANDES 1.2', peso: 31.24, caja: 'GRANDES' },
-        { id: 2, descripcion: 'EXTRA GRANDE', peso: 47.93, caja: 'GRANDE' },
-        { id: 3, descripcion: 'GRANDES 2', peso: 33.39, caja: '4D/N150' },
-        { id: 4, descripcion: 'GRANDES 1.1', peso: 31.24, caja: 'N400' },
-        { id: 5, descripcion: 'MEDIANAS 2', peso: 23.18, caja: 'N100' },
-        { id: 6, descripcion: 'PEQUEÑA 3', peso: 16.47, caja: '24 / 34' },
-        { id: 7, descripcion: 'PEQUEÑA 4', peso: 19.28, caja: 'F65' },
-        { id: 8, descripcion: 'MEDIANAS 1', peso: 23.18, caja: '30H / 31' },
-        { id: 9, descripcion: 'PEQUEÑA 2.2', peso: 14.78, caja: '66 / 48' },
-        { id: 10, descripcion: 'PEQUEÑA 2.1', peso: 14.78, caja: '65 / 25' },
-      ])
+      setError('Error al cargar productos. Por favor, intente nuevamente.')
+      setRows([])
+    } finally {
+      setLoading(false)
     }
   }
   
-  useEffect(() => { load() }, [])
+  useEffect(() => { 
+    load() 
+  }, [])
 
   const handleSort = (field: keyof Producto) => {
     if (sortField === field) {
@@ -60,7 +64,6 @@ export default function Productos() {
       return matchDescripcion && matchPeso && matchCaja
     })
 
-    // Aplicar ordenamiento
     if (sortField) {
       result = [...result].sort((a, b) => {
         const aVal = a[sortField]
@@ -90,21 +93,14 @@ export default function Productos() {
   const save = async () => {
     try {
       if (editing && (editing as any).id) {
-        await api.patch(`/productos/${(editing as any).id}`, form)
+        await api.patch(`/products/${(editing as any).id}`, form)
       } else {
-        await api.post(`/productos`, form)
+        await api.post(`/products`, form)
       }
       await load()
       setEditing(null)
     } catch (error) {
       console.error('Error al guardar producto:', error)
-      // Simular éxito para desarrollo
-      if (editing && (editing as any).id) {
-        setRows(rows.map(r => r.id === (editing as any).id ? { ...r, ...form } : r))
-      } else {
-        const newId = Math.max(...rows.map(r => r.id), 0) + 1
-        setRows([...rows, { id: newId, ...form }])
-      }
       setEditing(null)
     }
   }
@@ -112,12 +108,10 @@ export default function Productos() {
   const remove = async (id: number) => { 
     if (window.confirm('¿Está seguro de eliminar este producto?')) {
       try {
-        await api.delete(`/productos/${id}`)
+        await api.delete(`/products/${id}`)
         await load()
       } catch (error) {
         console.error('Error al eliminar producto:', error)
-        // Simular éxito para desarrollo
-        setRows(rows.filter(r => r.id !== id))
       }
     }
   }
@@ -128,81 +122,109 @@ export default function Productos() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-end gap-3">
-        <button onClick={openNew} className="ml-auto btn btn-primary">Nuevo</button>
-      </div>
+    <div className="space-y-4 w-full" style={{ minHeight: '400px' }}>
+      <h1 className="text-2xl font-bold mb-4 text-white">Volumen de Productos</h1>
+      
+      {error && (
+        <div className="bg-red-500/20 border border-red-500/50 rounded p-3 text-red-300">
+          {error}
+          <button onClick={load} className="ml-2 underline">Reintentar</button>
+        </div>
+      )}
 
-      <div className="overflow-auto rounded border border-white/10">
-        <table className="table table-zebra w-full">
-          <thead className="bg-white/10">
-            <tr>
-              <th className="p-2 text-left">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-1 cursor-pointer hover:text-white" onClick={() => handleSort('descripcion')}>
-                    Descripción
-                    <SortIcon field="descripcion" />
-                  </div>
-                  <input 
-                    className="input input-sm w-full text-xs" 
-                    placeholder="Filtrar.." 
-                    value={filterDescripcion}
-                    onChange={e => { setFilterDescripcion(e.target.value); setPage(1) }}
-                  />
-                </div>
-              </th>
-              <th className="p-2 text-left">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-1 cursor-pointer hover:text-white" onClick={() => handleSort('peso')}>
-                    Peso
-                    <SortIcon field="peso" />
-                  </div>
-                  <input 
-                    className="input input-sm w-full text-xs" 
-                    placeholder="Filtrar.." 
-                    value={filterPeso}
-                    onChange={e => { setFilterPeso(e.target.value); setPage(1) }}
-                  />
-                </div>
-              </th>
-              <th className="p-2 text-left">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-1 cursor-pointer hover:text-white" onClick={() => handleSort('caja')}>
-                    Caja
-                    <SortIcon field="caja" />
-                  </div>
-                  <input 
-                    className="input input-sm w-full text-xs" 
-                    placeholder="Filtrar.." 
-                    value={filterCaja}
-                    onChange={e => { setFilterCaja(e.target.value); setPage(1) }}
-                  />
-                </div>
-              </th>
-              <th className="p-2 text-center w-48">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pageRows.map((p, i) => (
-              <tr key={p.id} className={i % 2 === 0 ? 'bg-white/5' : ''}>
-                <td className="p-2">{p.descripcion}</td>
-                <td className="p-2">{p.peso.toFixed(2)}</td>
-                <td className="p-2">{p.caja}</td>
-                <td className="p-2">
-                  <div className="flex justify-center items-center gap-2">
-                    <button onClick={()=>openEdit(p)} className="text-xs btn btn-ghost w-24">Editar</button>
-                    <button onClick={()=>remove(p.id)} className="text-xs btn w-24 bg-red-500/20 text-red-300 hover:bg-red-500/30">Eliminar</button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {loading ? (
+        <div className="w-full flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-orange mx-auto mb-4"></div>
+            <p className="text-gray-400">Cargando productos...</p>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className="flex flex-col sm:flex-row items-end gap-3">
+            <button onClick={openNew} className="ml-auto btn btn-primary">Nuevo</button>
+          </div>
 
-      <div className="flex justify-end">
-        <Pagination page={page} pageSize={pageSize} total={filtered.length} onChange={setPage} />
-      </div>
+          <div className="overflow-x-auto rounded border border-white/10 bg-black/20">
+            <table className="table table-zebra w-full min-w-[600px]">
+              <thead className="bg-white/10">
+                <tr>
+                  <th className="p-2 text-left text-white">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1 cursor-pointer hover:text-white" onClick={() => handleSort('descripcion')}>
+                        Descripción
+                        <SortIcon field="descripcion" />
+                      </div>
+                      <input 
+                        className="input input-sm w-full text-xs bg-white/10 text-white" 
+                        placeholder="Filtrar.." 
+                        value={filterDescripcion}
+                        onChange={e => { setFilterDescripcion(e.target.value); setPage(1) }}
+                      />
+                    </div>
+                  </th>
+                  <th className="p-2 text-left text-white">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1 cursor-pointer hover:text-white" onClick={() => handleSort('peso')}>
+                        Peso
+                        <SortIcon field="peso" />
+                      </div>
+                      <input 
+                        className="input input-sm w-full text-xs bg-white/10 text-white" 
+                        placeholder="Filtrar.." 
+                        value={filterPeso}
+                        onChange={e => { setFilterPeso(e.target.value); setPage(1) }}
+                      />
+                    </div>
+                  </th>
+                  <th className="p-2 text-left text-white">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1 cursor-pointer hover:text-white" onClick={() => handleSort('caja')}>
+                        Caja
+                        <SortIcon field="caja" />
+                      </div>
+                      <input 
+                        className="input input-sm w-full text-xs bg-white/10 text-white" 
+                        placeholder="Filtrar.." 
+                        value={filterCaja}
+                        onChange={e => { setFilterCaja(e.target.value); setPage(1) }}
+                      />
+                    </div>
+                  </th>
+                  <th className="p-2 text-center w-48 text-white">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pageRows.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="p-4 text-center text-gray-400">
+                      {rows.length === 0 ? 'No hay productos registrados' : 'No hay productos que coincidan con los filtros'}
+                    </td>
+                  </tr>
+                ) : (
+                  pageRows.map((p, i) => (
+                    <tr key={p.id} className={i % 2 === 0 ? 'bg-white/5' : ''}>
+                      <td className="p-2 text-white">{p.descripcion || '-'}</td>
+                      <td className="p-2 text-white">{p.peso.toFixed(2)}</td>
+                      <td className="p-2 text-white">{p.caja || '-'}</td>
+                      <td className="p-2">
+                        <div className="flex justify-center items-center gap-2">
+                          <button onClick={()=>openEdit(p)} className="text-xs btn btn-ghost w-24">Editar</button>
+                          <button onClick={()=>remove(p.id)} className="text-xs btn w-24 bg-red-500/20 text-red-300 hover:bg-red-500/30">Eliminar</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="flex justify-end">
+            <Pagination page={page} pageSize={pageSize} total={filtered.length} onChange={setPage} />
+          </div>
+        </>
+      )}
 
       <Modal open={!!editing} title={(editing && (editing as any).id) ? 'Editar producto' : 'Crear producto'} onClose={()=>setEditing(null)}>
         <div className="grid md:grid-cols-2 gap-3">
@@ -241,4 +263,3 @@ export default function Productos() {
     </div>
   )
 }
-

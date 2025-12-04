@@ -11,8 +11,9 @@ export default function Repesos() {
   const dentro = variacion >= minTol && variacion <= maxTol
 
   return (
-    <div className="space-y-4">
-      <div className="grid md:grid-cols-4 gap-3">
+    <div className="space-y-4 w-full">
+      <h1 className="text-2xl font-bold mb-4">Re-pesos</h1>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
         <div>
           <label className="block text-sm">Código Pallet</label>
           <input className="mt-1 input" value={codigo} onChange={e=>setCodigo(e.target.value)} />

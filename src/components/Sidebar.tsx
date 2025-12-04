@@ -8,7 +8,7 @@ const activeCls = 'bg-white/15 text-white'
 export function Sidebar() {
   const { hasRole } = useAuth()
   return (
-    <aside className="w-60 shrink-0 h-[calc(100vh-56px)] bg-black/20 border-r border-white/10 p-3">
+    <aside className="w-full md:w-60 shrink-0 h-auto md:h-[calc(100vh-56px)] bg-black/20 border-r border-white/10 p-3 overflow-y-auto">
       <nav className="space-y-1 text-sm">
         <NavLink to="/" className={({isActive})=>`${linkBase} ${isActive?activeCls:''}`}>
           <HomeIcon className="w-4 h-4" /> Dashboard

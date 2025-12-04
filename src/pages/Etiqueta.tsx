@@ -5,7 +5,8 @@ export default function Etiqueta() {
   const ref = useRef<HTMLDivElement>(null)
   const code = '86210-955693'
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 w-full">
+      <h1 className="text-2xl font-bold mb-4">Etiquetas</h1>
       <div className="flex gap-2">
         <button className="btn btn-ghost" onClick={()=> ref.current && exportElementPNG(ref.current)}>Exportar PNG</button>
         <button className="btn btn-ghost" onClick={()=> ref.current && exportElementPDF(ref.current)}>Exportar PDF</button>

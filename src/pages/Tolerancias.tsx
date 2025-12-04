@@ -11,7 +11,16 @@ export default function Tolerancias() {
   const [editing, setEditing] = useState<Tol | null>(null)
   const [form, setForm] = useState<Omit<Tol,'id'>>({ familia: 'Baterías', productoCodigo: '', min: -2, max: 2 })
 
-  const load = async () => { const { data } = await api.get('/tolerances'); setRows(data) }
+  const load = async () => {
+    try {
+      const response = await api.get('/tolerances')
+      const tolerances = response.data?.data || response.data || []
+      setRows(tolerances)
+    } catch (error: any) {
+      console.error('Error cargando tolerancias:', error)
+      setRows([])
+    }
+  }
   useEffect(() => { load() }, [])
 
   const filtered = useMemo(() => rows.filter(r => !q || r.familia.toLowerCase().includes(q.toLowerCase()) || r.productoCodigo.toLowerCase().includes(q.toLowerCase())), [rows, q])
@@ -29,7 +38,8 @@ export default function Tolerancias() {
   const remove = async (id: number) => { await api.delete(`/tolerances/${id}`); await load() }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 w-full">
+      <h1 className="text-2xl font-bold mb-4">Tolerancias</h1>
       <div className="flex items-end gap-3">
         <div>
           <label className="block text-sm">Buscar</label>
@@ -38,8 +48,8 @@ export default function Tolerancias() {
         <button onClick={openNew} className="ml-auto btn btn-primary">Nuevo</button>
       </div>
 
-      <div className="overflow-auto rounded border border-white/10">
-        <table className="table table-zebra">
+      <div className="overflow-x-auto rounded border border-white/10">
+        <table className="table table-zebra w-full min-w-[600px]">
           <thead className="bg-white/10">
             <tr>
               <th className="p-2 text-left">Familia</th>

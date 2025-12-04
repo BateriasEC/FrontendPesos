@@ -11,8 +11,24 @@ export default function Usuarios() {
   const [role, setRole] = useState<Usuario['role'] | ''>('')
 
   const load = async () => {
-    const { data } = await api.get('/users')
-    setRows(data)
+    try {
+      const response = await api.get('/users')
+      // El backend devuelve { data: [...] } por el TransformInterceptor
+      const users = response.data?.data || response.data || []
+      // Mapear el formato del backend al formato esperado por la web
+      const mappedUsers = users.map((u: any) => ({
+        id: u.id,
+        name: u.fullName || u.name || u.username || '',
+        email: u.email || '',
+        role: (u.role?.codigo || u.role || 'OPERADOR').toLowerCase() as 'admin' | 'supervisor' | 'operador',
+        password: '' // No se envía la contraseña desde el backend
+      }))
+      setRows(mappedUsers)
+    } catch (error: any) {
+      console.error('Error cargando usuarios:', error)
+      alert(error.response?.data?.message || error.message || 'Error al cargar usuarios')
+      setRows([])
+    }
   }
   useEffect(() => { load() }, [])
 
@@ -27,28 +43,82 @@ export default function Usuarios() {
 
   const [editing, setEditing] = useState<Usuario | null>(null)
   const [form, setForm] = useState<Omit<Usuario, 'id'>>({ name: '', email: '', role: 'operador', password: '' })
+  const [roles, setRoles] = useState<Array<{id: string, codigo: string, nombre: string}>>([])
+
+  // Cargar roles al montar el componente
+  useEffect(() => {
+    const loadRoles = async () => {
+      try {
+        // Buscar roles en la respuesta de usuarios o crear un endpoint
+        // Por ahora, mapeamos los códigos de rol conocidos
+        const roleMap: Record<string, string> = {
+          'admin': 'ADMIN',
+          'supervisor': 'SUPERVISOR',
+          'operador': 'OPERADOR'
+        }
+        // Intentar obtener roles desde el backend (si existe endpoint)
+        // Si no, usar los códigos conocidos
+        setRoles([
+          { id: '', codigo: 'ADMIN', nombre: 'Administrador' },
+          { id: '', codigo: 'SUPERVISOR', nombre: 'Supervisor' },
+          { id: '', codigo: 'OPERADOR', nombre: 'Operador' }
+        ])
+      } catch (err) {
+        console.error('Error cargando roles:', err)
+      }
+    }
+    loadRoles()
+  }, [])
 
   const openNew = () => { setEditing({} as any); setForm({ name: '', email: '', role: 'operador', password: '' }) }
   const openEdit = (u: Usuario) => { setEditing(u); setForm({ name: u.name, email: u.email, role: u.role, password: u.password }) }
 
   const save = async () => {
-    if (editing) {
-      if ((editing as any).id) {
-        await api.patch(`/users/${(editing as any).id}`, form)
-      } else {
-        await api.post(`/users`, form)
+    try {
+      // Mapear el formato de la web al formato del backend
+      const roleCodeMap: Record<string, string> = {
+        'admin': 'ADMIN',
+        'supervisor': 'SUPERVISOR',
+        'operador': 'OPERADOR'
       }
-    } else {
-      await api.post(`/users`, form)
+      
+      // Convertir el rol a código
+      const roleCode = roleCodeMap[form.role] || 'OPERADOR'
+
+      // Generar username desde el email (parte antes del @)
+      const username = form.email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '')
+
+      const backendData = {
+        username: username,
+        email: form.email,
+        fullName: form.name,
+        password: form.password,
+        roleCode: roleCode  // El backend ahora acepta roleCode y lo convierte a roleId
+      }
+
+      if (editing) {
+        if ((editing as any).id) {
+          await api.patch(`/users/${(editing as any).id}`, backendData)
+        } else {
+          await api.post(`/users`, backendData)
+        }
+      } else {
+        await api.post(`/users`, backendData)
+      }
+      await load()
+      setEditing(null)
+    } catch (err: any) {
+      alert(err.response?.data?.message || err.message || 'Error al guardar usuario')
+      console.error('Error guardando usuario:', err)
     }
-    await load()
-    setEditing(null)
   }
   const remove = async (id: number) => { await api.delete(`/users/${id}`); await load() }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-end gap-3">
+    <div className="space-y-4 w-full">
+      <h1 className="text-2xl font-bold mb-4">Usuarios</h1>
+      
+      <div className="flex flex-col sm:flex-row flex-wrap items-end gap-3">
         <div>
           <label className="block text-sm">Buscar</label>
           <input value={q} onChange={e=>setQ(e.target.value)} className="mt-1 input" placeholder="Nombre o correo" />
@@ -65,8 +135,8 @@ export default function Usuarios() {
         <button onClick={openNew} className="ml-auto btn btn-primary">Nuevo</button>
       </div>
 
-      <div className="overflow-auto rounded border border-white/10">
-        <table className="table table-zebra">
+      <div className="overflow-x-auto rounded border border-white/10">
+        <table className="table table-zebra w-full min-w-[600px]">
           <thead className="bg-white/10">
             <tr>
               <th className="text-left p-2">Nombre</th>
@@ -76,19 +146,27 @@ export default function Usuarios() {
             </tr>
           </thead>
           <tbody>
-            {pageRows.map((u, i) => (
-              <tr key={u.id} className={i % 2 === 0 ? 'bg-white/5' : ''}>
-                <td className="p-2">{u.name}</td>
-                <td className="p-2">{u.email}</td>
-                <td className="p-2 capitalize">{u.role}</td>
-                <td className="p-2">
-                  <div className="w-full flex justify-center items-center gap-2">
-                    <button onClick={()=>openEdit(u)} className="text-xs btn btn-ghost w-24">Editar</button>
-                    <button onClick={()=>remove(u.id)} className="text-xs btn w-24 bg-red-500/20 text-red-300 hover:bg-red-500/30">Eliminar</button>
-                  </div>
+            {pageRows.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="p-4 text-center text-gray-400">
+                  No hay usuarios registrados
                 </td>
               </tr>
-            ))}
+            ) : (
+              pageRows.map((u, i) => (
+                <tr key={u.id} className={i % 2 === 0 ? 'bg-white/5' : ''}>
+                  <td className="p-2">{u.name}</td>
+                  <td className="p-2">{u.email}</td>
+                  <td className="p-2 capitalize">{u.role}</td>
+                  <td className="p-2">
+                    <div className="w-full flex justify-center items-center gap-2">
+                      <button onClick={()=>openEdit(u)} className="text-xs btn btn-ghost w-24">Editar</button>
+                      <button onClick={()=>remove(u.id)} className="text-xs btn w-24 bg-red-500/20 text-red-300 hover:bg-red-500/30">Eliminar</button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, BarChart, Bar } from 'recharts'
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts'
+import { api } from '../services/api'
 
 type Weighing = {
   id: number
@@ -7,31 +8,78 @@ type Weighing = {
   variacion: number
 }
 
+type DashboardStats = {
+  vehiclesInPlant: number
+  weighingsToday: number
+  avgVariation: number
+  alerts: number
+  weighingsLast24h: Array<{ fecha: string; variacion: number }>
+}
+
 export default function Dashboard() {
   const [weighings, setWeighings] = useState<Weighing[]>([])
   const [loading, setLoading] = useState(true)
   const [threshold, setThreshold] = useState(50)
+  const [stats, setStats] = useState<DashboardStats>({
+    vehiclesInPlant: 0,
+    weighingsToday: 0,
+    avgVariation: 0,
+    alerts: 0,
+    weighingsLast24h: []
+  })
 
-  // Simulación local: genera datos para tarjetas y gráfica
+  // Cargar datos reales del backend
   useEffect(() => {
-    const now = new Date()
-    const items: Weighing[] = []
-    // últimos 24 puntos (cada 30 min aprox.)
-    for (let i = 23; i >= 0; i--) {
-      const d = new Date(now.getTime() - i * 30 * 60 * 1000)
-      const variacion = Math.round((Math.random() * 80 - 40) * 10) / 10 // -40 a 40
-      items.push({ id: i + 1, fecha: d.toISOString(), variacion })
+    const loadStats = async () => {
+      setLoading(true)
+      try {
+        const response = await api.get('/dashboard/stats')
+        const data = response.data?.data || response.data || {}
+        
+        setStats({
+          vehiclesInPlant: data.vehiclesInPlant || 0,
+          weighingsToday: data.weighingsToday || 0,
+          avgVariation: Number(data.avgVariation || 0).toFixed(2),
+          alerts: data.alerts || 0,
+          weighingsLast24h: data.weighingsLast24h || []
+        })
+
+        // Mapear datos de las últimas 24h para la gráfica
+        const mappedWeighings = (data.weighingsLast24h || []).map((w: any, index: number) => ({
+          id: index + 1,
+          fecha: w.fecha || w.updatedAt || new Date().toISOString(),
+          variacion: Number(w.variacion || w.variacionPeso || 0)
+        }))
+        
+        setWeighings(mappedWeighings)
+      } catch (error: any) {
+        console.error('Error cargando estadísticas del dashboard:', error)
+        // Si falla, usar valores por defecto
+        setStats({
+          vehiclesInPlant: 0,
+          weighingsToday: 0,
+          avgVariation: 0,
+          alerts: 0,
+          weighingsLast24h: []
+        })
+        setWeighings([])
+      } finally {
+        setLoading(false)
+      }
     }
-    setWeighings(items)
-    setLoading(false)
+
+    loadStats()
+    // Actualización automática deshabilitada - los datos se cargan solo al entrar
+    // Si necesitas actualizar, recarga la página o agrega un botón de refresh
+    // Para habilitar auto-refresh, descomenta la siguiente línea:
+    // const interval = setInterval(loadStats, 120000) // 2 minutos
+    // return () => clearInterval(interval)
   }, [])
 
-  // Valor quemado (simulado) a pedido: no depende de la API
-  // Valores simulados
-  const vehiclesInPlant = 3
-  const weighingsToday = 2
-  const avgVariation = 2.6
-  const alerts = 4
+  const vehiclesInPlant = stats.vehiclesInPlant
+  const weighingsToday = stats.weighingsToday
+  const avgVariation = stats.avgVariation
+  const alerts = stats.alerts
   const eficiencia = useMemo(() => [
     { bascula: 'B1', ef: 92 },
     { bascula: 'B2', ef: 87 },
@@ -40,8 +88,9 @@ export default function Dashboard() {
   ], [])
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+    <div className="space-y-6 w-full">
+      <h1 className="text-2xl font-bold mb-4">Dashboard</h1>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4">
         <Card title="Vehículos en planta" value={vehiclesInPlant} />
         <Card title="Pesajes hoy" value={weighingsToday} />
         <Card title="Variación promedio" value={`${avgVariation} kg`} />
@@ -57,9 +106,9 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <section className="bg-white/5 border border-white/10 rounded p-4">
-        <h2 className="font-semibold mb-2">Mapa de básculas</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <section className="bg-white/5 border border-white/10 rounded p-3 sm:p-4">
+        <h2 className="font-semibold mb-2 text-base sm:text-lg">Mapa de básculas</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3">
           {[1,2,3,4].map(i => (
             <div key={i} className="rounded p-4 bg-black/30 border border-white/10">
               <div className="text-sm">Báscula {i}</div>
@@ -72,10 +121,19 @@ export default function Dashboard() {
         </div>
       </section>
 
-      <section className="bg-white/5 border border-white/10 rounded p-4">
-        <h2 className="font-semibold mb-2">Gráfica en vivo</h2>
+      <section className="bg-white/5 border border-white/10 rounded p-3 sm:p-4">
+        <h2 className="font-semibold mb-2 text-base sm:text-lg">Gráfica de Variaciones (Últimas 24h)</h2>
         {loading ? (
-          <div className="text-sm text-gray-400">Cargando…</div>
+          <div className="text-sm text-gray-400 flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-orange mx-auto mb-2"></div>
+              <p>Cargando datos...</p>
+            </div>
+          </div>
+        ) : weighings.length === 0 ? (
+          <div className="text-sm text-gray-400 flex items-center justify-center h-64">
+            No hay datos de pesajes en las últimas 24 horas
+          </div>
         ) : (
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
@@ -87,8 +145,11 @@ export default function Dashboard() {
                   tick={{ fill: '#D1D5DB', fontSize: 12 }}
                 />
                 <YAxis />
-                <Tooltip labelFormatter={(v) => new Date(v as string).toLocaleString()} />
-                <Line type="monotone" dataKey="variacion" stroke="#F15A29" dot={false} />
+                <Tooltip 
+                  labelFormatter={(v) => new Date(v as string).toLocaleString()}
+                  formatter={(value: number) => [`${value.toFixed(2)} kg`, 'Variación']}
+                />
+                <Line type="monotone" dataKey="variacion" stroke="#F15A29" dot={false} strokeWidth={2} />
               </LineChart>
             </ResponsiveContainer>
           </div>

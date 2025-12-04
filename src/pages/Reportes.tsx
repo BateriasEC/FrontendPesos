@@ -42,9 +42,19 @@ export default function Reportes() {
 
   const load = async () => {
     try {
-      const { data } = await api.get('/weighings');
-      if (Array.isArray(data) && data.length > 0) {
-        setRows(data)
+      const response = await api.get('/weighings')
+      // El backend devuelve { data: [...] } por el TransformInterceptor
+      const weighings = response.data?.data || response.data || []
+      if (Array.isArray(weighings) && weighings.length > 0) {
+        // Mapear el formato del backend
+        const mappedWeighings = weighings.map((w: any) => ({
+          id: w.id,
+          fecha: w.createdAt || w.fecha || new Date().toISOString(),
+          variacion: w.variacion || 0,
+          productoId: w.productoId || w.product?.id || 0,
+          cliente: w.vehicle?.cliente || w.cliente || ''
+        }))
+        setRows(mappedWeighings)
       } else {
         // Generar datos de ejemplo (últimos 14 días)
         const tmp: Row[] = []
@@ -199,7 +209,8 @@ export default function Reportes() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full">
+      <h1 className="text-2xl font-bold mb-4">Reportes</h1>
       <div className="flex items-end gap-3">
         <DateRange from={range.from} to={range.to} onChange={setRange} />
       </div>

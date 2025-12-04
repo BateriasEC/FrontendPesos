@@ -13,7 +13,24 @@ export default function Entregas() {
   const [rows, setRows] = useState<Delivery[]>([])
   const [cliente, setCliente] = useState('')
 
-  const load = async () => { const { data } = await api.get('/deliveries'); setRows(data) }
+  const load = async () => {
+    try {
+      const response = await api.get('/entregas')
+      // El backend usa /entregas, no /deliveries
+      const entregas = response.data?.data || response.data || []
+      setRows(entregas)
+    } catch (error: any) {
+      console.error('Error cargando entregas:', error)
+      // Intentar con /deliveries como fallback
+      try {
+        const response = await api.get('/deliveries')
+        const deliveries = response.data?.data || response.data || []
+        setRows(deliveries)
+      } catch {
+        setRows([])
+      }
+    }
+  }
   useEffect(() => { load() }, [])
 
   const resumen = useMemo(() => {
@@ -35,8 +52,9 @@ export default function Entregas() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="grid md:grid-cols-4 gap-3 items-end">
+    <div className="space-y-4 w-full">
+      <h1 className="text-2xl font-bold mb-4">Entregas Parciales</h1>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 items-end">
         <div>
           <label className="block text-sm">Negociación</label>
           <input className="input mt-1" value={negociacion} onChange={e=>setNegociacion(e.target.value)} />
@@ -51,7 +69,7 @@ export default function Entregas() {
         </div>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
         {resumen.map(r => (
           <div key={r.grupo} className="rounded border border-white/10 p-3 bg-white/5">
             <div className="flex items-center justify-between">

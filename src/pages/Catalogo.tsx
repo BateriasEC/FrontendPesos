@@ -9,7 +9,16 @@ type Producto = { id: number; codigo: string; nombre: string; tipo: string; peso
 export default function Catalogo() {
   const [rows, setRows] = useState<Producto[]>([])
   const [q, setQ] = useState('')
-  const load = async () => { const { data } = await api.get('/products'); setRows(data) }
+  const load = async () => {
+    try {
+      const response = await api.get('/products')
+      const products = response.data?.data || response.data || []
+      setRows(products)
+    } catch (error: any) {
+      console.error('Error cargando productos:', error)
+      setRows([])
+    }
+  }
   useEffect(() => { load() }, [])
   const filtered = useMemo(() => rows.filter(r => !q || r.nombre.toLowerCase().includes(q.toLowerCase()) || r.codigo.toLowerCase().includes(q.toLowerCase())), [rows, q])
   const [page, setPage] = useState(1)
@@ -69,7 +78,8 @@ export default function Catalogo() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 w-full">
+      <h1 className="text-2xl font-bold mb-4">Catálogo de Productos</h1>
       <div className="flex flex-wrap items-end gap-3">
         <div>
           <label className="block text-sm">Buscar</label>
@@ -83,8 +93,8 @@ export default function Catalogo() {
         </label>
       </div>
 
-      <div className="overflow-auto rounded border border-white/10">
-        <table className="table table-zebra">
+      <div className="overflow-x-auto rounded border border-white/10">
+        <table className="table table-zebra w-full min-w-[700px]">
           <thead className="bg-white/10">
             <tr>
               <th className="text-left p-2">Código</th>

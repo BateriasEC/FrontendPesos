@@ -10,7 +10,26 @@ export default function Clientes() {
   const [q, setQ] = useState('')
   const [estado, setEstado] = useState<Cliente['estado'] | ''>('')
 
-  const load = async () => { const { data } = await api.get('/clients'); setRows(data) }
+  const load = async () => {
+    try {
+      const response = await api.get('/clients')
+      // El backend devuelve { data: [...] } por el TransformInterceptor
+      const clients = response.data?.data || response.data || []
+      // Mapear el formato del backend al formato esperado por la web
+      const mappedClients = clients.map((c: any) => ({
+        id: c.id,
+        nombre: c.nombre || '',
+        ruc: c.ruc || '',
+        contacto: c.contacto || '',
+        estado: (c.estado?.codigo || c.estado || 'ACTIVO').toLowerCase() as 'activo' | 'inactivo'
+      }))
+      setRows(mappedClients)
+    } catch (error: any) {
+      console.error('Error cargando clientes:', error)
+      alert(error.response?.data?.message || error.message || 'Error al cargar clientes')
+      setRows([])
+    }
+  }
   useEffect(() => { load() }, [])
 
   const filtered = useMemo(() => rows.filter(r => (
@@ -66,8 +85,10 @@ export default function Clientes() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-end gap-3">
+    <div className="space-y-4 w-full">
+      <h1 className="text-2xl font-bold mb-4">Clientes</h1>
+      
+      <div className="flex flex-col sm:flex-row flex-wrap items-end gap-3">
         <div>
           <label className="block text-sm">Buscar</label>
           <input className="mt-1 input" placeholder="Nombre o RUC" value={q} onChange={e=>setQ(e.target.value)} />
@@ -83,8 +104,8 @@ export default function Clientes() {
         <button onClick={openNew} className="ml-auto btn btn-primary">Nuevo</button>
       </div>
 
-      <div className="overflow-auto rounded border border-white/10">
-        <table className="table table-zebra">
+      <div className="overflow-x-auto rounded border border-white/10">
+        <table className="table table-zebra w-full min-w-[600px]">
           <thead className="bg-white/10">
             <tr>
               <th className="p-2 text-left">Nombre</th>
@@ -95,20 +116,28 @@ export default function Clientes() {
             </tr>
           </thead>
           <tbody>
-            {pageRows.map((c, i) => (
-              <tr key={c.id} className={i % 2 === 0 ? 'bg-white/5' : ''}>
-                <td className="p-2">{c.nombre}</td>
-                <td className="p-2">{(c as any).ruc}</td>
-                <td className="p-2">{c.contacto}</td>
-                <td className="p-2 capitalize">{c.estado}</td>
-                <td className="p-2">
-                  <div className="flex justify-center items-center gap-2">
-                    <button onClick={()=>openEdit(c)} className="text-xs btn btn-ghost w-24">Editar</button>
-                    <button onClick={()=>remove(c.id)} className="text-xs btn w-24 bg-red-500/20 text-red-300 hover:bg-red-500/30">Eliminar</button>
-                  </div>
+            {pageRows.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="p-4 text-center text-gray-400">
+                  No hay clientes registrados
                 </td>
               </tr>
-            ))}
+            ) : (
+              pageRows.map((c, i) => (
+                <tr key={c.id} className={i % 2 === 0 ? 'bg-white/5' : ''}>
+                  <td className="p-2">{c.nombre}</td>
+                  <td className="p-2">{(c as any).ruc}</td>
+                  <td className="p-2">{c.contacto}</td>
+                  <td className="p-2 capitalize">{c.estado}</td>
+                  <td className="p-2">
+                    <div className="flex justify-center items-center gap-2">
+                      <button onClick={()=>openEdit(c)} className="text-xs btn btn-ghost w-24">Editar</button>
+                      <button onClick={()=>remove(c.id)} className="text-xs btn w-24 bg-red-500/20 text-red-300 hover:bg-red-500/30">Eliminar</button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

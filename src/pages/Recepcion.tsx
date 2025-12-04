@@ -18,8 +18,9 @@ export default function Recepcion() {
   }
 
   return (
-    <form onSubmit={submit} className="space-y-4">
-      <div className="grid md:grid-cols-3 gap-3">
+    <form onSubmit={submit} className="space-y-4 w-full">
+      <h1 className="text-2xl font-bold mb-4">Recepción de Baterías</h1>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
         <div>
           <label className="block text-sm">Negociación</label>
           <input value={negociacion} onChange={e=>setNegociacion(e.target.value)} className="mt-1 input" />

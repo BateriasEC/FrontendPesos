@@ -11,7 +11,16 @@ export default function Gestiones() {
   const [editing, setEditing] = useState<Gestion | null>(null)
   const [form, setForm] = useState<Omit<Gestion, 'id'>>({ nombre: '', tipo: 'entrada', activo: true })
 
-  const load = async () => { const { data } = await api.get('/gestiones'); setRows(data) }
+  const load = async () => {
+    try {
+      const response = await api.get('/gestiones')
+      const gestiones = response.data?.data || response.data || []
+      setRows(gestiones)
+    } catch (error: any) {
+      console.error('Error cargando gestiones:', error)
+      setRows([])
+    }
+  }
   useEffect(() => { load() }, [])
 
   const filtered = useMemo(() => rows.filter(r => !q || r.nombre.toLowerCase().includes(q.toLowerCase())), [rows, q])
@@ -29,7 +38,8 @@ export default function Gestiones() {
   const remove = async (id: number) => { await api.delete(`/gestiones/${id}`); await load() }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 w-full">
+      <h1 className="text-2xl font-bold mb-4">Gestiones</h1>
       <div className="flex items-end gap-3">
         <div>
           <label className="block text-sm">Buscar</label>
@@ -38,8 +48,8 @@ export default function Gestiones() {
         <button onClick={openNew} className="ml-auto btn btn-primary">Nuevo</button>
       </div>
 
-      <div className="overflow-auto rounded border border-white/10">
-        <table className="table table-zebra">
+      <div className="overflow-x-auto rounded border border-white/10">
+        <table className="table table-zebra w-full min-w-[500px]">
           <thead className="bg-white/10">
             <tr>
               <th className="p-2 text-left">Nombre</th>
