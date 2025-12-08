@@ -28,17 +28,6 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
-function createFakeJwt(user: any): string {
-  // Simula JWT; en producción este token debe venir del backend
-  const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))
-  const exp = Math.floor(Date.now() / 1000) + 60 * 60 * 8
-  const payload = btoa(
-    JSON.stringify({ id: user.id, email: user.email, name: user.name, role: user.role, exp })
-  )
-  const signature = 'mocked-signature'
-  return `${header}.${payload}.${signature}`
-}
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Cargar token del localStorage al iniciar
   const initialToken = localStorage.getItem('token')
@@ -221,7 +210,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       // Si es error de conexión
       if (error.code === 'ECONNABORTED' || error.message?.includes('timeout') || !error.response) {
-        throw new Error('Error al conectar con el servidor. Verifique que el backend esté corriendo en http://localhost:3000')
+        throw new Error('Error al conectar con el servidor. Verifique su conexión a internet y que el backend esté disponible.')
+      }
+      
+      // Si es error de CORS
+      if (error.message?.includes('CORS') || error.message?.includes('Network Error')) {
+        throw new Error('Error de conexión. Verifique la configuración del servidor.')
       }
       
       // Otros errores
@@ -237,8 +231,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const hasRole = (...roles: Role[]) => {
-    if (!user) return false
-    return roles.includes(user.role)
+    if (!user || !user.role) return false
+    // Asegurar que user.role sea un Role válido
+    const userRole: Role = typeof user.role === 'string' && ['admin', 'supervisor', 'operador'].includes(user.role)
+      ? user.role as Role
+      : 'operador'
+    return roles.includes(userRole)
   }
 
   const value = useMemo(() => ({ user, token, login, logout, hasRole }), [user, token])
