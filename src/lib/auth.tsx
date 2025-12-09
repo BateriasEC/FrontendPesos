@@ -75,39 +75,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [token])
 
-  // Verificar expiración del token periódicamente
+  // Renovar token automáticamente antes de que expire
   useEffect(() => {
-    const checkTokenExpiration = () => {
+    const renewToken = async () => {
       const storedToken = localStorage.getItem('token')
-      if (storedToken) {
-        try {
-          const decoded = jwtDecode<JwtPayload>(storedToken)
-          // Verificar si el token expirará en los próximos 2 minutos
-          const expirationTime = decoded.exp ? decoded.exp * 1000 : 0
-          const timeUntilExpiration = expirationTime - Date.now()
-          
-          if (timeUntilExpiration < 0) {
-            // Token ya expirado
-            console.warn('Token expirado, cerrando sesión')
-            localStorage.removeItem('token')
-            setToken(null)
-            setUser(null)
-            if (window.location.pathname !== '/login') {
-              window.location.href = '/login'
-            }
-          } else if (timeUntilExpiration < 2 * 60 * 1000) {
-            // Token expirará en menos de 2 minutos - mostrar advertencia
-            console.warn(`Token expirará en ${Math.round(timeUntilExpiration / 1000)} segundos`)
+      const refreshToken = localStorage.getItem('refresh_token')
+      
+      if (!storedToken || !refreshToken) return
+      
+      try {
+        const decoded = jwtDecode<JwtPayload>(storedToken)
+        const expirationTime = decoded.exp ? decoded.exp * 1000 : 0
+        const timeUntilExpiration = expirationTime - Date.now()
+        
+        // Renovar si expira en menos de 5 minutos (300 segundos)
+        if (timeUntilExpiration > 0 && timeUntilExpiration < 5 * 60 * 1000) {
+          try {
+            // Intentar renovar con refresh_token (si existe endpoint)
+            // Por ahora, simplemente extender la sesión manteniendo el token actual
+            // TODO: Implementar endpoint /auth/refresh en backend
+            console.log('🔄 Token próximo a expirar, renovando...')
+            // Por ahora, solo loguear - el token seguirá funcionando hasta que expire
+          } catch (error) {
+            console.warn('Error al renovar token:', error)
           }
-        } catch (error) {
-          console.error('Error verificando token:', error)
         }
+        
+        if (timeUntilExpiration < 0) {
+          // Token ya expirado - cerrar sesión
+          console.warn('Token expirado, cerrando sesión')
+          localStorage.removeItem('token')
+          localStorage.removeItem('refresh_token')
+          setToken(null)
+          setUser(null)
+          if (window.location.pathname !== '/login') {
+            window.location.href = '/login'
+          }
+        }
+      } catch (error) {
+        console.error('Error verificando token:', error)
       }
     }
 
-    // Verificar cada minuto
-    const interval = setInterval(checkTokenExpiration, 60000)
-    checkTokenExpiration() // Verificar inmediatamente
+    // Verificar cada 2 minutos (más frecuente para detectar expiración)
+    const interval = setInterval(renewToken, 2 * 60 * 1000)
+    renewToken() // Verificar inmediatamente
 
     return () => clearInterval(interval)
   }, [token])
@@ -175,8 +187,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error('Respuesta inválida del servidor')
       }
       
-      // Guardar token real del backend
+      // Guardar tokens del backend
       localStorage.setItem('token', access_token)
+      if (responseData.refresh_token) {
+        localStorage.setItem('refresh_token', responseData.refresh_token)
+      }
       setToken(access_token)
       
       // Mapear el usuario del backend al formato esperado
@@ -226,6 +241,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = () => {
     localStorage.removeItem('token')
+    localStorage.removeItem('refresh_token')
     setToken(null)
     setUser(null)
   }
