@@ -225,7 +225,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       // Si es error de conexión
       if (error.code === 'ECONNABORTED' || error.message?.includes('timeout') || !error.response) {
-        throw new Error('Error al conectar con el servidor. Verifique su conexión a internet y que el backend esté disponible.')
+        //throw new Error('Error al conectar con el servidor. Verifique su conexión a internet y que el backend esté disponible.')
+        throw new Error('No se pudo conectar con el servidor. Inténtalo de nuevo en unos segundos.')
+
       }
       
       // Si es error de CORS

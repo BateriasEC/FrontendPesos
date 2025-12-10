@@ -28,14 +28,14 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 md:p-8" style={{ backgroundColor: '#FDB71A' }}>
-      <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-0 bg-white rounded-2xl overflow-hidden shadow-2xl" style={{ border: '3px solid #EE3626' }}>
+      <div className="w-full max-w-4xl grid grid-cols-1 lg:grid-cols-2 gap-0 bg-white rounded-2xl overflow-hidden shadow-2xl" style={{ border: '3px solid #EE3626' }}>
         {/* Sección izquierda - Imagen */}
-        <div className="hidden lg:flex items-center justify-center bg-gradient-to-br from-[#FDB71A] to-[#FDB71A]/80 p-8 order-1 lg:order-1">
+        <div className="hidden lg:flex items-center justify-center bg-[#FDB71A] p-8 order-1 lg:order-1">
           <div className="w-full h-full flex items-center justify-center">
             <img 
               src="src/images/login.png" 
               alt="Login visual" 
-              className="w-full h-full object-contain max-h-[600px] animate-fade-in"
+              className="w-full h-full object-contain  max-h-[550px] animate-fade-in"
             />
           </div>
         </div>
@@ -43,11 +43,11 @@ export default function Login() {
         {/* Sección derecha - Formulario */}
         <div className="flex flex-col justify-center p-8 md:p-12 bg-white order-2 lg:order-2 relative">
           {/* Eslogan en la esquina superior derecha */}
-          <div className="absolute -top-2 right-2 z-10">
+          <div className="absolute -top-2 right-0 z-10">
             <img 
               src="src/images/eslogan.png" 
               alt="Eslogan" 
-              className="h-24 md:h-32 w-auto object-contain"
+              className="h-24 md:h-28 w-auto object-cover"
             />
           </div>
           <div className="w-full max-w-md mx-auto">
