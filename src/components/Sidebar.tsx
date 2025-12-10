@@ -3,14 +3,15 @@ import { useAuth } from '../lib/auth'
 import { HomeIcon, UsersIcon, Squares2X2Icon, ScaleIcon, ChartBarIcon, InboxArrowDownIcon, TruckIcon, TagIcon, UserGroupIcon, CubeIcon } from '@heroicons/react/24/outline'
 
 const linkBase = 'flex items-center gap-2 px-3 py-2 rounded hover:bg-white/10 transition-colors'
-const activeCls = 'bg-white/15 text-white'
+const activeCls = 'cuerpo bg-white/15 text-white'
 
 export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const { hasRole } = useAuth()
   return (
+    <div className="">
     <nav className="space-y-1 text-sm">
         <NavLink to="/" className={({isActive})=>`${linkBase} ${isActive?activeCls:''}`} onClick={onNavigate}>
-          <HomeIcon className="w-4 h-4" /> Dashboard
+          <HomeIcon className=" w-4 h-4" /> Dashboard
         </NavLink>
         {hasRole('admin') && (
           <NavLink to="/usuarios" className={({isActive})=>`${linkBase} ${isActive?activeCls:''}`} onClick={onNavigate}>
@@ -67,7 +68,11 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         <NavLink to="/etiqueta" className={({isActive})=>`${linkBase} ${isActive?activeCls:''}`}>
           <TagIcon className="w-4 h-4" /> Etiqueta
         </NavLink> */}
+        
       </nav>
+      </div>
+      
+      
   )
 }
 

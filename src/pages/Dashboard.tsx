@@ -88,10 +88,10 @@ export default function Dashboard() {
   ], [])
 
   return (
-    <div className="space-y-6 w-full">
+    <div className=" space-y-6 w-full">
       <h1 className="text-2xl font-bold mb-4">Dashboard</h1>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4">
-        <Card title="Vehículos en planta" value={vehiclesInPlant} />
+        <Card title=" Vehículos en planta" value={vehiclesInPlant} />
         <Card title="Pesajes hoy" value={weighingsToday} />
         <Card title="Variación promedio" value={`${avgVariation} kg`} />
         <Card title="Alertas de desviación" value={alerts} />
@@ -99,7 +99,7 @@ export default function Dashboard() {
           <div className="text-sm text-gray-300 mb-2">Umbral alerta (kg)</div>
           <input
             type="number"
-            className="input w-full"
+            className=" input w-full"
             value={threshold}
             onChange={e=>setThreshold(Number(e.target.value)||0)}
           />
@@ -107,7 +107,7 @@ export default function Dashboard() {
       </div>
 
       <section className="bg-white/5 border border-white/10 rounded p-3 sm:p-4">
-        <h2 className="font-semibold mb-2 text-base sm:text-lg">Mapa de básculas</h2>
+        <h2 className=" font-semibold mb-2 text-base sm:text-lg">Mapa de básculas</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3">
           {[1,2,3,4].map(i => (
             <div key={i} className="rounded p-4 bg-black/30 border border-white/10">

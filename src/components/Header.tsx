@@ -16,7 +16,7 @@ const Clock = memo(() => {
     return () => clearInterval(id)
   }, [])
   
-  return <div className="text-xs sm:text-sm text-gray-300 hidden md:block shrink-0">{now.toLocaleString()}</div>
+  return <div className="text-black text-xs sm:text-sm  hidden md:block shrink-0">{now.toLocaleString()}</div>
 })
 Clock.displayName = 'Clock'
 
@@ -30,8 +30,8 @@ export function Header({ onMenuClick }: HeaderProps) {
   }
 
   return (
-    <header className="flex items-center justify-between px-2 sm:px-4 h-14 bg-brand-dark border-b border-white/10 shrink-0 z-30 fixed top-0 left-0 right-0">
-      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+    <header     className="bg-[#FDB71A] text-white flex items-center justify-between px-2 sm:px-4 h-14 border-b  border-white/10 shrink-0 z-30 fixed top-0 left-0 right-0">
+      <div className=" flex items-center gap-2 sm:gap-3 min-w-0">
         {/* Botón hamburguesa solo en móvil */}
         {onMenuClick && (
           <button
@@ -42,20 +42,20 @@ export function Header({ onMenuClick }: HeaderProps) {
             <Bars3Icon className="w-6 h-6 text-white" />
           </button>
         )}
-        <img src="/logorubix-removebg-preview.png" alt="Rubix" className="w-6 h-6 sm:w-8 sm:h-8 object-contain shrink-0" />
-        <div className="font-semibold text-sm sm:text-base truncate">Rubix Energy Group</div>
+        <img src="src/images/logo.png " alt="" className="w-50 h-50 sm:w-50 sm:h-50 object-contain shrink-0" />
+        <div className=" font-semibold text-sm sm:text-base truncate"></div>
       </div>
       <Clock />
-      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-        <span className="text-xs sm:text-sm text-gray-300 hidden sm:inline truncate max-w-[150px] md:max-w-none">
+      <div className=" flex items-center gap-2 sm:gap-3 shrink-0">
+        <span className="text-black text-xs header-text sm:text-sm header-text  hidden sm:inline truncate max-w-[150px] md:max-w-none">
           {user ? user.role : 'Sesión no iniciada'}
         </span>
-        <button
+        <button 
           onClick={handleLogout}
-          className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-full bg-gradient-to-r from-brand-orange to-brand-orange/70 text-xs sm:text-sm font-semibold text-white shadow hover:brightness-110 transition"
+          className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-full bg-[#EE3626] text-xs sm:text-sm font-semibold text-white shadow hover:brightness-110 transition"
         >
           <ArrowRightOnRectangleIcon className="w-4 h-4" />
-          <span className="hidden sm:inline">{user ? 'Cerrar sesión' : 'Ir a login'}</span>
+          <span className=" hidden sm:inline">{user ? 'Cerrar sesión' : 'Ir a login'}</span>
           <span className="sm:hidden">{user ? 'Salir' : 'Login'}</span>
         </button>
       </div>

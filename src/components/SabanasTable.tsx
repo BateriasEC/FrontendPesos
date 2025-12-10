@@ -28,7 +28,7 @@ type SabanasTableProps = {
 export function SabanasTable({ data }: SabanasTableProps) {
   if (data.length === 0) {
     return (
-      <div className="p-8 text-center text-white/60">
+      <div className=" p-8 text-center text-white/60">
         No hay datos para el rango de fechas seleccionado
       </div>
     )
@@ -38,7 +38,7 @@ export function SabanasTable({ data }: SabanasTableProps) {
     <>
       {/* Vista de tabla para pantallas grandes */}
       <div className="hidden lg:block overflow-x-auto">
-        <table className="w-full border-collapse min-w-[1200px]">
+        <table className=" w-full border-collapse min-w-[1200px]">
           <thead className="bg-white/10">
             <tr>
               <th className="p-3 text-left border-r border-white/10">CAMIÓN</th>

@@ -1,6 +1,31 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/forms";
 
+/* Carga de fuentes personalizadas */
+@font-face {
+  font-family: 'Barlow Extra Bold';
+  src: url('./assets/fonts/Barlow-ExtraBold.ttf') format('truetype');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Barlow';
+  src: url('./assets/fonts/Barlow-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Barlow Semi Condensed';
+  src: url('./assets/fonts/BarlowSemiCondensed-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 @theme {
   --color-brand-orange: #F15A29;
   --color-brand-dark: #1a1a1a;
@@ -10,14 +35,20 @@
 
 /* Estilos base del layout */
 html, body, #root { height: 100%; }
-body { font-family: 'Barlow', 'Barlow Semi Condensed', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; @apply bg-brand-dark text-white; }
+body { font-family: 'Barlow', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; font-weight: 400; @apply bg-brand-dark text-white; }
 
-/* Jerarquía tipográfica sugerida */
-h1, .h1 { font-family: 'Barlow', ui-sans-serif, system-ui; font-weight: 900; }
-h2, .h2 { font-family: 'Barlow', ui-sans-serif, system-ui; font-weight: 700; }
-h3, .h3 { font-family: 'Barlow', ui-sans-serif, system-ui; font-weight: 700; }
-.subtitle { font-family: 'Barlow Semi Condensed', ui-sans-serif, system-ui; font-weight: 600; }
+/* Jerarquía tipográfica - Títulos con Barlow Extra Bold */
+h1, .h1 { font-family: 'Barlow Extra Bold', ui-sans-serif, system-ui; font-weight: 800; }
+h2, .h2 { font-family: 'Barlow Extra Bold', ui-sans-serif, system-ui; font-weight: 800; }
+h3, .h3 { font-family: 'Barlow Extra Bold', ui-sans-serif, system-ui; font-weight: 800; }
+h4, .h4 { font-family: 'Barlow Extra Bold', ui-sans-serif, system-ui; font-weight: 800; }
+h5, .h5 { font-family: 'Barlow Extra Bold', ui-sans-serif, system-ui; font-weight: 800; }
+h6, .h6 { font-family: 'Barlow Extra Bold', ui-sans-serif, system-ui; font-weight: 800; }
+
+/* Subtítulos y textos con Barlow Regular */
+.subtitle { font-family: 'Barlow', ui-sans-serif, system-ui; font-weight: 400; }
 .paragraph { font-family: 'Barlow', ui-sans-serif, system-ui; font-weight: 400; }
+p, span, label, a, li, td, th, input, select, textarea, button { font-family: 'Barlow', ui-sans-serif, system-ui; font-weight: 400; }
 
 /* Utilidades de tabla y botones */
 .btn { @apply inline-flex items-center justify-center px-3 py-2 rounded font-medium transition-colors; }
@@ -31,3 +62,19 @@ h3, .h3 { font-family: 'Barlow', ui-sans-serif, system-ui; font-weight: 700; }
 /* Campos de formulario base */
 .input { @apply w-full bg-white text-black placeholder-gray-500 border border-gray-300 rounded-lg px-3 py-2.5 shadow-sm focus:outline-none focus:ring-1 focus:ring-brand-orange focus:border-brand-orange; }
 .select { @apply w-full bg-white text-black border border-gray-300 rounded-lg px-3 py-2.5 shadow-sm focus:outline-none focus:ring-1 focus:ring-brand-orange focus:border-brand-orange; }
+
+/* Animaciones */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.8s ease-out;
+}
