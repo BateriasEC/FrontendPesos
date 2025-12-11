@@ -29,32 +29,49 @@ export default function Pesajes() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const response = await api.get('/weighings')
+      // Usar el endpoint correcto del backend: /pallets
+      const response = await api.get('/pallets')
       // El backend devuelve { data: { data: [...], total, ... } } por el TransformInterceptor
       // O puede devolver directamente { data: [...], total, ... }
       const responseData = response.data?.data || response.data
-      let weighings: any[] = []
+      let pallets: any[] = []
       
       // Si es un objeto paginado, extraer el array de data
       if (responseData && Array.isArray(responseData.data)) {
-        weighings = responseData.data
+        pallets = responseData.data
       } else if (Array.isArray(responseData)) {
-        weighings = responseData
+        pallets = responseData
       }
       
       // Mapear el formato del backend al formato esperado por la web
-      const mappedWeighings = weighings.map((w: any) => ({
-        id: w.id,
-        fecha: w.fecha || w.createdAt || new Date().toISOString(),
-        placa: w.placa || w.vehicle?.placa || w.vehicle?.codigoTrazabilidad || '',
-        codigoPallet: w.codigoPallet || w.pallet?.codigo || '',
-        pesoIngreso: w.pesoIngreso || Number(w.pesoTotal) || 0,
-        pesoSalida: w.pesoSalida ? Number(w.pesoSalida) : (w.pesoDescarga ? Number(w.pesoDescarga) : null),
-        variacion: w.variacion || Number(w.variacionPeso) || 0,
-        productoId: w.productoId || w.product?.id || w.productId || 0,
-        cliente: w.cliente || w.vehicle?.cliente || '',
-        niveles: w.niveles || []
-      }))
+      const mappedWeighings = pallets.map((p: any) => {
+        // Construir niveles desde los campos nivel1Med, nivel1G1, etc.
+        const niveles = []
+        for (let i = 1; i <= 5; i++) {
+          niveles.push({
+            nivel: i,
+            MED: p[`nivel${i}Med`] || 0,
+            G1: p[`nivel${i}G1`] || 0,
+            P1: p[`nivel${i}P1`] || 0,
+            P2: p[`nivel${i}P2`] || 0,
+            P3: p[`nivel${i}P3`] || 0,
+            P4: p[`nivel${i}P4`] || 0,
+          })
+        }
+        
+        return {
+          id: p.id,
+          fecha: p.createdAt || new Date().toISOString(),
+          placa: p.vehicle?.placa || p.vehicle?.codigoTrazabilidad || '',
+          codigoPallet: p.codigo || '',
+          pesoIngreso: Number(p.pesoTotal) || 0,
+          pesoSalida: p.descargado ? (Number(p.pesoDescarga) || null) : null,
+          variacion: p.descargado ? (Number(p.variacionPeso) || 0) : 0,
+          productoId: p.productId || p.product?.id || '',
+          cliente: p.vehicle?.cliente || '',
+          niveles: niveles
+        }
+      })
       setRows(mappedWeighings)
     } catch (error: any) {
       console.error('Error cargando pesajes:', error)
