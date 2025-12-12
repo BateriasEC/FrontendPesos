@@ -1,109 +1,32 @@
 {
   "users": [
     {
+      "id": "1",
+      "name": "Administrador",
+      "email": "admin@rubix.com",
+      "role": "admin",
+      "password": "admin123"
+    },
+    {
       "id": "2",
       "name": "Supervisor",
-      "email": "super@rubix.com",
+      "email": "supervisor@rubix.com",
       "role": "supervisor",
-      "password": "super123"
+      "password": "supervisor123"
     },
     {
       "id": "3",
       "name": "Operador",
-      "email": "oper@rubix.com",
+      "email": "operador@rubix.com",
       "role": "operador",
-      "password": "oper123"
+      "password": "operador123"
     }
   ],
-  "products": [
-    {
-      "id": "1",
-      "codigo": "BAT-G",
-      "nombre": "Batería Grande",
-      "tipo": "Batería",
-      "pesoEsperado": {
-        "G": 31.24,
-        "M": 22.12,
-        "P": 12.55
-      }
-    },
-    {
-      "id": "2",
-      "codigo": "BAT-M",
-      "nombre": "Batería Mediana",
-      "tipo": "Batería",
-      "pesoEsperado": {
-        "G": 28.11,
-        "M": 19.8,
-        "P": 10.12
-      }
-    }
-  ],
-  "weighings": [
-    {
-      "id": "101",
-      "fecha": "2025-10-31T08:15:00Z",
-      "placa": "COD-001",
-      "codigoPallet": "COD-001-PALLET1",
-      "pesoIngreso": 180,
-      "pesoSalida": 175.2,
-      "variacion": -4.8,
-      "productoId": 1,
-      "cliente": "Cliente A"
-    },
-    {
-      "id": "102",
-      "fecha": "2025-10-31T09:05:00Z",
-      "placa": "COD-001",
-      "codigoPallet": "COD-001-PALLET2",
-      "pesoIngreso": 190.4,
-      "pesoSalida": 188,
-      "variacion": -2.4,
-      "productoId": 2,
-      "cliente": "Rubix Energy"
-    }
-  ],
+  "products": [],
+  "weighings": [],
   "deliveries": [],
-  "clients": [
-    {
-      "id": "1",
-      "nombre": "Cliente A",
-      "ruc": "900123456-1",
-      "contacto": "contacto@clientea.com",
-      "estado": "activo"
-    },
-    {
-      "id": "2",
-      "nombre": "Rubix Energy",
-      "ruc": "901234567-2",
-      "contacto": "info@rubix.com",
-      "estado": "activo"
-    }
-  ],
-  "vehicles": [
-    {
-      "id": "1",
-      "placa": "ABC123",
-      "cliente": "Cliente A",
-      "estado": "en_planta",
-      "ingresoAt": "2025-10-31T07:45:00Z"
-    },
-    {
-      "id": "2",
-      "placa": "XYZ789",
-      "cliente": "Rubix Energy",
-      "estado": "salido",
-      "ingresoAt": "2025-10-30T15:10:00Z",
-      "salidaAt": "2025-10-30T18:05:00Z"
-    },
-    {
-      "id": "3",
-      "placa": "JKL456",
-      "cliente": "Cliente A",
-      "estado": "en_planta",
-      "ingresoAt": "2025-10-31T09:20:00Z"
-    }
-  ],
+  "clients": [],
+  "vehicles": [],
   "gestiones": [
     {
       "id": "1",
@@ -124,20 +47,5 @@
       "activo": true
     }
   ],
-  "tolerances": [
-    {
-      "id": "1",
-      "familia": "Baterías",
-      "productoCodigo": "BAT-G",
-      "min": -3,
-      "max": 3
-    },
-    {
-      "id": "2",
-      "familia": "Baterías",
-      "productoCodigo": "BAT-M",
-      "min": -2,
-      "max": 2.5
-    }
-  ]
+  "tolerances": []
 }
