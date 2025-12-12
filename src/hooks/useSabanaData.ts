@@ -3,6 +3,8 @@ import { api } from '../services/api'
 
 type SabanaData = {
   placa: string
+  cliente: string
+  producto: string
   pesoAntes: number
   pesoDespues: number
   diferencia: number
@@ -14,6 +16,7 @@ type SabanaData = {
     pesoEstimado: number
     pesoTolerado: number
     estado: 'ok' | 'error'
+    producto: string
   }>
   trituradora: Array<{
     numero: number
@@ -21,6 +24,7 @@ type SabanaData = {
     pesoTriturado: number
     diferencia: number
     estado: 'ok' | 'error'
+    producto: string
   }>
 }
 
@@ -43,11 +47,21 @@ export function useSabanaData(range: { from: string; to: string }) {
           pallets = responseData
         }
         
+        console.log('[Sabana] Total pallets recibidos:', pallets.length)
+        
         // Debug: Ver qué datos recibimos
         if (pallets.length > 0) {
           console.log('[Sabana] Primer pallet recibido:', {
             id: pallets[0].id,
             codigo: pallets[0].codigo,
+            createdAt: pallets[0].createdAt,
+            vehicle: pallets[0].vehicle ? {
+              placa: pallets[0].vehicle.placa,
+              cliente: pallets[0].vehicle.cliente
+            } : null,
+            product: pallets[0].product ? {
+              nombre: pallets[0].product.nombre
+            } : null,
             pesoTotal: pallets[0].pesoTotal,
             descargado: pallets[0].descargado,
             pesoDescarga: pallets[0].pesoDescarga,
@@ -56,13 +70,68 @@ export function useSabanaData(range: { from: string; to: string }) {
         }
         
         // Filtrar por rango de fechas
-        const startDate = new Date(range.from)
-        const endDate = new Date(range.to + 'T23:59:59')
+        if (!range.from || !range.to) {
+          console.warn('[Sabana] Rango de fechas incompleto:', range)
+          setSabanasData([])
+          setLoading(false)
+          return
+        }
+        
+        // Crear fechas de inicio y fin del día en zona horaria local
+        const startDate = new Date(range.from + 'T00:00:00')
+        startDate.setHours(0, 0, 0, 0)
+        const endDate = new Date(range.to + 'T23:59:59.999')
+        endDate.setHours(23, 59, 59, 999)
+        
+        console.log('[Sabana] Filtrando por rango:', { 
+          from: range.from, 
+          to: range.to, 
+          startDate: startDate.toISOString(), 
+          endDate: endDate.toISOString(),
+          startDateLocal: startDate.toLocaleString('es-CO'),
+          endDateLocal: endDate.toLocaleString('es-CO')
+        })
         
         const filteredPallets = pallets.filter((p: any) => {
-          const fecha = new Date(p.createdAt || p.fecha)
-          return fecha >= startDate && fecha <= endDate
+          if (!p.createdAt && !p.fecha) {
+            console.warn('[Sabana] Pallet sin fecha:', p.codigo)
+            return false
+          }
+          
+          const fechaStr = p.createdAt || p.fecha
+          let fecha: Date
+          
+          try {
+            fecha = new Date(fechaStr)
+            
+            // Verificar que la fecha sea válida
+            if (isNaN(fecha.getTime())) {
+              console.warn('[Sabana] Fecha inválida:', fechaStr, 'para pallet:', p.codigo)
+              return false
+            }
+          } catch (error) {
+            console.warn('[Sabana] Error al parsear fecha:', fechaStr, 'para pallet:', p.codigo)
+            return false
+          }
+          
+          // Comparar fechas directamente
+          const isInRange = fecha >= startDate && fecha <= endDate
+          
+          if (!isInRange && pallets.length < 20) {
+            // Solo loggear si hay pocos pallets para no saturar la consola
+            console.log('[Sabana] Pallet fuera de rango:', {
+              codigo: p.codigo,
+              fecha: fecha.toISOString(),
+              fechaLocal: fecha.toLocaleString('es-CO'),
+              startDate: startDate.toISOString(),
+              endDate: endDate.toISOString()
+            })
+          }
+          
+          return isInRange
         })
+        
+        console.log('[Sabana] Pallets filtrados:', filteredPallets.length, 'de', pallets.length, 'total')
         
         // Agrupar por vehículo
         const vehiclesMap = new Map<string, any[]>()
@@ -95,11 +164,43 @@ export function useSabanaData(range: { from: string; to: string }) {
           
           const diferencia = pesoIngreso - pesoSalida
           
-          const fecha = new Date(firstPallet.createdAt || firstPallet.fecha)
-          const horaIngreso = fecha.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
+          // Obtener fecha en zona horaria local
+          const fechaRaw = firstPallet.createdAt || firstPallet.fecha
+          const fecha = new Date(fechaRaw)
+          
+          // Obtener fecha local usando los componentes de fecha local (no UTC)
+          // Esto asegura que la fecha mostrada sea la del día local, no UTC
+          const year = fecha.getFullYear()
+          const month = fecha.getMonth()
+          const day = fecha.getDate()
+          const fechaLocal = new Date(year, month, day)
+          
+          // Formatear fecha como YYYY-MM-DD usando componentes locales
+          const fechaString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+          
+          const horaIngreso = fecha.toLocaleTimeString('es-CO', { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            timeZone: 'America/Bogota'
+          })
+          
+          // Obtener cliente y producto (usar el del primer pallet o del vehículo)
+          const cliente = vehicle.cliente || 'N/A'
+          const producto = firstPallet.product?.nombre || 'N/A'
+          
+          console.log('[Sabana] Datos del vehículo:', {
+            placa: vehicle.placa,
+            cliente: vehicle.cliente,
+            producto: firstPallet.product?.nombre,
+            fechaRaw: fechaRaw,
+            fechaISO: fecha.toISOString(),
+            fechaLocal: fechaString,
+            fechaLocalString: fecha.toLocaleDateString('es-CO')
+          })
           
           // Mapear pallets a formato de paletes y trituradora
           const paletes = pallets.map((p: any, index: number) => {
+            const productoPallet = p.product?.nombre || producto
             const pesoTotal = Number(p.pesoTotal) || 0
             const descargado = p.descargado === true || p.descargado === 'true' || p.descargado === 1
             
@@ -125,11 +226,13 @@ export function useSabanaData(range: { from: string; to: string }) {
               pesoReal: pesoTotal,
               pesoEstimado: pesoTotal, // Usamos el mismo peso como estimado
               pesoTolerado: pesoTolerado,
-              estado
+              estado,
+              producto: productoPallet
             }
           })
           
           const trituradora = pallets.map((p: any, index: number) => {
+            const productoPallet = p.product?.nombre || producto
             const pesoTotal = Number(p.pesoTotal) || 0
             // pesoDescarga puede venir como string (Decimal) o number
             const pesoDescargaRaw = p.pesoDescarga
@@ -180,17 +283,20 @@ export function useSabanaData(range: { from: string; to: string }) {
               pesoPalet: pesoTotal,
               pesoTriturado: pesoTriturado,
               diferencia: diferenciaTrit,
-              estado
+              estado,
+              producto: productoPallet
             }
           })
           
           data.push({
             placa: vehicle.placa || vehicle.codigoTrazabilidad || 'N/A',
+            cliente: cliente,
+            producto: producto,
             pesoAntes: pesoIngreso,
             pesoDespues: pesoSalida || 0,
             diferencia: diferencia,
             horaIngreso: horaIngreso,
-            fecha: fecha.toISOString().slice(0, 10),
+            fecha: fechaString, // Usar fecha local en lugar de ISO
             paletes,
             trituradora
           })
@@ -208,6 +314,6 @@ export function useSabanaData(range: { from: string; to: string }) {
     loadData()
   }, [range.from, range.to])
 
-  return sabanasData
+  return { sabanasData, loading }
 }
 
