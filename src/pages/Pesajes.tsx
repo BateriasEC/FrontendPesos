@@ -59,14 +59,48 @@ export default function Pesajes() {
           })
         }
         
+        // Debug: Log para ver qué datos vienen del backend
+        if (p.vehicle) {
+          console.log('[Pesajes] Datos del vehículo:', {
+            placa: p.vehicle.placa,
+            pesoIngreso: p.vehicle.pesoIngreso,
+            pesoSalida: p.vehicle.pesoSalida,
+            pesoSalidaType: typeof p.vehicle.pesoSalida,
+            pesoSalidaValue: p.vehicle.pesoSalida
+          });
+        }
+        
+        // Usar pesoIngreso y pesoSalida del vehículo, no del pallet
+        // Convertir Decimal a number si es necesario
+        const pesoIngreso = p.vehicle?.pesoIngreso 
+          ? (typeof p.vehicle.pesoIngreso === 'string' ? parseFloat(p.vehicle.pesoIngreso) : Number(p.vehicle.pesoIngreso))
+          : (Number(p.pesoTotal) || 0);
+        
+        const pesoSalidaRaw = p.vehicle?.pesoSalida;
+        const pesoSalida = pesoSalidaRaw !== null && pesoSalidaRaw !== undefined && pesoSalidaRaw !== ''
+          ? (typeof pesoSalidaRaw === 'string' ? parseFloat(pesoSalidaRaw) : Number(pesoSalidaRaw))
+          : null;
+        
+        const variacion = pesoSalida !== null && pesoIngreso > 0 
+          ? pesoIngreso - pesoSalida 
+          : (p.descargado ? (Number(p.variacionPeso) || 0) : 0);
+        
+        // Debug: Log del resultado final
+        console.log('[Pesajes] Mapeo final:', {
+          placa: p.vehicle?.placa,
+          pesoIngreso,
+          pesoSalida,
+          variacion
+        });
+        
         return {
           id: p.id,
           fecha: p.createdAt || new Date().toISOString(),
           placa: p.vehicle?.placa || p.vehicle?.codigoTrazabilidad || '',
           codigoPallet: p.codigo || '',
-          pesoIngreso: Number(p.pesoTotal) || 0,
-          pesoSalida: p.descargado ? (Number(p.pesoDescarga) || null) : null,
-          variacion: p.descargado ? (Number(p.variacionPeso) || 0) : 0,
+          pesoIngreso: pesoIngreso,
+          pesoSalida: pesoSalida,
+          variacion: variacion,
           productoId: p.productId || p.product?.id || '',
           cliente: p.vehicle?.cliente || '',
           niveles: niveles
