@@ -10,16 +10,16 @@ import { useReportData } from '../hooks/useReportData'
 import { useSabanaData } from '../hooks/useSabanaData'
 import * as XLSX from 'xlsx'
 
-type Row = { id: number; fecha: string; variacion: number; productoId: number; cliente: string }
-
 export default function Reportes() {
   const { rows, loading, load } = useReportData()
   const todayIso = new Date().toISOString().slice(0,10)
   const weekAgoIso = new Date(Date.now() - 6*24*60*60*1000).toISOString().slice(0,10)
   const [range, setRange] = useState({ from: weekAgoIso, to: todayIso })
+  const [reportRange, setReportRange] = useState({ from: weekAgoIso, to: todayIso })
   const [sabanaRange, setSabanaRange] = useState({ from: weekAgoIso, to: todayIso })
   const [sabanaPage, setSabanaPage] = useState(1)
   const [searching, setSearching] = useState(false)
+  const [searchingReports, setSearchingReports] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const { sabanasData, loading: sabanaLoading } = useSabanaData(sabanaRange)
 
@@ -29,10 +29,10 @@ export default function Reportes() {
 
   const filtered = useMemo(() => rows.filter(r => {
     const d = new Date(r.fecha)
-    const okFrom = !range.from || d >= new Date(range.from)
-    const okTo = !range.to || d <= new Date(range.to + 'T23:59:59')
+    const okFrom = !reportRange.from || d >= new Date(reportRange.from + 'T00:00:00')
+    const okTo = !reportRange.to || d <= new Date(reportRange.to + 'T23:59:59')
     return okFrom && okTo
-  }), [rows, range])
+  }), [rows, reportRange])
 
   const byDay = useMemo(() => {
     const map = new Map<string, number>()
@@ -63,30 +63,72 @@ export default function Reportes() {
       .filter(p => p.product !== 'N/A' && p.avg > 0)
   }, [filtered])
 
-  const exportPNG = useCallback(async () => {
-    if (!ref.current) return
-    const canvas = await html2canvas(ref.current)
-    const link = document.createElement('a')
-    link.href = canvas.toDataURL('image/png')
-    link.download = 'tablero.png'
-    link.click()
-  }, [])
 
   const exportPDF = useCallback(async () => {
     if (!ref.current) return
-    const canvas = await html2canvas(ref.current)
-    const img = canvas.toDataURL('image/png')
-    const pdf = new jsPDF({ orientation: 'landscape', unit: 'px', format: [canvas.width, canvas.height] })
-    pdf.addImage(img, 'PNG', 0, 0, canvas.width, canvas.height)
-    pdf.save('tablero.pdf')
-  }, [])
+    try {
+      const canvas = await html2canvas(ref.current, {
+        backgroundColor: '#1a1a1a',
+        scale: 2
+      })
+      const img = canvas.toDataURL('image/png')
+      const pdf = new jsPDF({ 
+        orientation: 'landscape', 
+        unit: 'px', 
+        format: [canvas.width, canvas.height] 
+      })
+      pdf.addImage(img, 'PNG', 0, 0, canvas.width, canvas.height)
+      pdf.save(`reportes_${reportRange.from}_${reportRange.to}.pdf`)
+    } catch (error) {
+      console.error('Error al exportar PDF:', error)
+      alert('Error al exportar PDF. Por favor, intente nuevamente.')
+    }
+  }, [reportRange])
 
   const exportExcel = useCallback(() => {
-    const ws = XLSX.utils.json_to_sheet(filtered)
-    const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, 'Sabana')
-    XLSX.writeFile(wb, 'sabana_pesajes.xlsx')
-  }, [filtered])
+    try {
+      // Preparar datos para Excel con información completa
+      const excelData = filtered.map((r, idx) => {
+        const fecha = new Date(r.fecha)
+        return {
+          'ID': idx + 1,
+          'Fecha': fecha.toLocaleDateString('es-CO', { 
+            year: 'numeric', 
+            month: '2-digit', 
+            day: '2-digit',
+            timeZone: 'America/Bogota'
+          }),
+          'Hora': fecha.toLocaleTimeString('es-CO', { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            timeZone: 'America/Bogota'
+          }),
+          'Variación (kg)': r.variacion,
+          'Producto ID': r.productoId,
+          'Cliente': r.cliente || 'N/A'
+        }
+      })
+      
+      const ws = XLSX.utils.json_to_sheet(excelData)
+      
+      // Ajustar ancho de columnas
+      ws['!cols'] = [
+        { wch: 8 },   // ID
+        { wch: 12 },  // Fecha
+        { wch: 10 },  // Hora
+        { wch: 15 },  // Variación
+        { wch: 12 },  // Producto ID
+        { wch: 20 }   // Cliente
+      ]
+      
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, 'Reportes')
+      XLSX.writeFile(wb, `reportes_${reportRange.from}_${reportRange.to}.xlsx`)
+    } catch (error) {
+      console.error('Error al exportar Excel:', error)
+      alert('Error al exportar Excel. Por favor, intente nuevamente.')
+    }
+  }, [filtered, reportRange])
 
   const exportSabanaExcel = useCallback(() => {
     // Preparar datos para Excel con toda la información
@@ -99,6 +141,7 @@ export default function Reportes() {
         excelData.push({
           'Camión': idx + 1,
           'Placa': camion.placa,
+          'Código Trazabilidad': camion.codigoTrazabilidad || 'N/A',
           'Cliente': camion.cliente || 'N/A',
           'Producto': palet.producto || camion.producto || 'N/A',
           'Fecha': new Date(camion.fecha).toLocaleDateString('es-CO'),
@@ -128,6 +171,7 @@ export default function Reportes() {
     const colWidths = [
       { wch: 8 },   // Camión
       { wch: 12 },  // Placa
+      { wch: 20 },  // Código Trazabilidad
       { wch: 20 },  // Cliente
       { wch: 20 },  // Producto
       { wch: 12 },  // Fecha
@@ -158,16 +202,53 @@ export default function Reportes() {
       <h1 className="text-2xl font-bold mb-4">Reportes</h1>
       <div className="flex items-end gap-3">
         <DateRange from={range.from} to={range.to} onChange={setRange} />
+        <button
+          onClick={async () => {
+            setSearchingReports(true)
+            setReportRange(range)
+            // Recargar datos si es necesario
+            await load()
+            setTimeout(() => setSearchingReports(false), 500)
+          }}
+          disabled={searchingReports || loading}
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white font-medium rounded transition-colors duration-200 whitespace-nowrap flex items-center gap-2"
+        >
+          {searchingReports || loading ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              <span>Buscando...</span>
+            </>
+          ) : (
+            <>
+              <span>🔍</span> Buscar
+            </>
+          )}
+        </button>
       </div>
 
       <section className="flex items-center gap-2">
-        <button onClick={exportPNG} className="btn btn-ghost">Exportar PNG</button>
-        <button onClick={exportPDF} className="btn btn-ghost">Exportar PDF</button>
-        <button onClick={exportExcel} className="btn btn-ghost">Exportar Excel</button>
+        <button 
+          onClick={exportPDF} 
+          disabled={loading || searchingReports}
+          className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-400 disabled:cursor-not-allowed text-white font-medium rounded transition-colors duration-200 whitespace-nowrap flex items-center gap-2"
+        >
+          <span>📄</span> Exportar PDF
+        </button>
+        <button 
+          onClick={exportExcel} 
+          disabled={loading || searchingReports || filtered.length === 0}
+          className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed text-white font-medium rounded transition-colors duration-200 whitespace-nowrap flex items-center gap-2"
+        >
+          <span>📊</span> Exportar Excel
+        </button>
       </section>
 
       <div ref={ref}>
-        <ReportCharts byDay={byDay} deviationByProduct={deviationByProduct} />
+        <ReportCharts 
+          byDay={byDay} 
+          deviationByProduct={deviationByProduct} 
+          loading={loading || searchingReports}
+        />
       </div>
 
       <section className="report-sabanas bg-white/5 border border-white/10 rounded-lg p-6">

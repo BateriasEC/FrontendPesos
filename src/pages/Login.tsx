@@ -6,7 +6,7 @@ import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'
 export default function Login() {
   const { login } = useAuth()
   const navigate = useNavigate()
-  const [email, setEmail] = useState('admin@rubix.com')
+  const [email, setEmail] = useState('admin@bateriasecuador.com')
   const [password, setPassword] = useState('admin123')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)

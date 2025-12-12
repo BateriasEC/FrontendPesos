@@ -175,7 +175,7 @@ export default function EtiquetaPublic() {
       <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-8">
         {/* Header */}
         <div className="text-center border-b-2 border-dashed border-gray-300 pb-6 mb-6">
-          <div className="text-4xl font-bold text-gray-900 mb-2">RUBIX ENERGY</div>
+          <div className="text-4xl font-bold text-gray-900 mb-2">BATERÍAS ECUADOR</div>
           <div className="text-sm text-gray-600">Sistema de Control de Pesajes</div>
           <div className="text-xl font-bold mt-3 text-gray-800">INFORMACIÓN COMPLETA DEL PESAJE</div>
         </div>
@@ -361,7 +361,7 @@ export default function EtiquetaPublic() {
         {/* Footer */}
         <div className="border-t-2 border-dashed border-gray-300 pt-6 text-center text-sm text-gray-500">
           <div>Información generada electrónicamente</div>
-          <div>www.rubixenergy.com</div>
+          <div>www.bateriasecuador.com</div>
         </div>
       </div>
     </div>

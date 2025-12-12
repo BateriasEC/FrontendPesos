@@ -22,6 +22,7 @@ type Row = {
   productNombre?: string
   pesoTotal?: number
   pesoDescarga?: number | null
+  variacionPeso?: number | null
   descargado?: boolean
 }
 
@@ -116,6 +117,7 @@ export default function Pesajes() {
           productNombre: p.product?.nombre || '',
           pesoTotal: Number(p.pesoTotal) || 0,
           pesoDescarga: p.descargado && p.pesoDescarga ? Number(p.pesoDescarga) : null,
+          variacionPeso: p.variacionPeso ? Number(p.variacionPeso) : null,
           descargado: p.descargado === true || p.descargado === 1
         }
       })
@@ -218,7 +220,7 @@ export default function Pesajes() {
                   </tr>
                 ) : (
                   pageRows.map((r, i) => (
-                    <tr key={r.id} className={(i % 2 === 0 ? 'bg-white/5 ' : '') + (Math.abs(r.variacion) > threshold ? 'outline outline-1 outline-red-500/60' : '')}>
+                    <tr key={r.id} className={i % 2 === 0 ? 'bg-white/5' : ''}>
                       <td className="p-2">{new Date(r.fecha).toLocaleString()}</td>
                       <td className="p-2">{r.placa}</td>
                       <td className="p-2">{r.codigoPallet}</td>
@@ -256,9 +258,15 @@ export default function Pesajes() {
           pesoSalida: labelRow.pesoSalida,
           pesoTotal: labelRow.pesoTotal || 0,
           pesoDescarga: labelRow.pesoDescarga || null,
-          variacion: labelRow.variacion,
+          variacionPallet: labelRow.variacionPeso !== null && labelRow.variacionPeso !== undefined 
+            ? labelRow.variacionPeso 
+            : (labelRow.pesoDescarga && labelRow.pesoTotal 
+              ? labelRow.pesoDescarga - labelRow.pesoTotal 
+              : null),
+          variacionVehiculo: labelRow.variacion,
           descargado: labelRow.descargado || false,
-          vehicleId: labelRow.vehicleId || ''
+          vehicleId: labelRow.vehicleId || '',
+          niveles: labelRow.niveles || []
         } : null}
         onClose={() => setLabelRow(null)}
       />

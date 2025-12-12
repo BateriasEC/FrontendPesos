@@ -3,6 +3,7 @@ import { api } from '../services/api'
 
 type SabanaData = {
   placa: string
+  codigoTrazabilidad: string
   cliente: string
   producto: string
   pesoAntes: number
@@ -184,12 +185,14 @@ export function useSabanaData(range: { from: string; to: string }) {
             timeZone: 'America/Bogota'
           })
           
-          // Obtener cliente y producto (usar el del primer pallet o del vehículo)
+          // Obtener cliente, producto y código de trazabilidad (usar el del primer pallet o del vehículo)
           const cliente = vehicle.cliente || 'N/A'
           const producto = firstPallet.product?.nombre || 'N/A'
+          const codigoTrazabilidad = vehicle.codigoTrazabilidad || 'N/A'
           
           console.log('[Sabana] Datos del vehículo:', {
             placa: vehicle.placa,
+            codigoTrazabilidad: vehicle.codigoTrazabilidad,
             cliente: vehicle.cliente,
             producto: firstPallet.product?.nombre,
             fechaRaw: fechaRaw,
@@ -289,7 +292,8 @@ export function useSabanaData(range: { from: string; to: string }) {
           })
           
           data.push({
-            placa: vehicle.placa || vehicle.codigoTrazabilidad || 'N/A',
+            placa: vehicle.placa || 'N/A',
+            codigoTrazabilidad: codigoTrazabilidad,
             cliente: cliente,
             producto: producto,
             pesoAntes: pesoIngreso,

@@ -44,9 +44,19 @@ type LabelData = {
   pesoSalida: number | null
   pesoTotal: number
   pesoDescarga: number | null
-  variacion: number
+  variacionPallet: number | null
+  variacionVehiculo: number
   descargado: boolean
   vehicleId: string
+  niveles?: Array<{
+    nivel: number
+    MED: number
+    G1: number
+    P1: number
+    P2: number
+    P3: number
+    P4: number
+  }>
 }
 
 type LabelModalProps = {
@@ -273,7 +283,7 @@ export function LabelModal({ labelData, onClose }: LabelModalProps) {
             <div className="space-y-6">
               {/* Header */}
               <div className="text-center border-b-2 border-dashed border-gray-300 pb-4">
-                <div className="text-3xl font-bold text-gray-900 mb-2">RUBIX ENERGY</div>
+                <div className="text-3xl font-bold text-gray-900 mb-2">BATERÍAS ECUADOR</div>
                 <div className="text-sm text-gray-600">Sistema de Control de Pesajes</div>
                 <div className="text-lg font-bold mt-2 text-gray-800">TICKET DE PESAJE</div>
               </div>
@@ -344,11 +354,11 @@ export function LabelModal({ labelData, onClose }: LabelModalProps) {
                   </div>
                 )}
 
-                {labelData.variacion !== undefined && labelData.pesoDescarga && (
+                {labelData.variacionPallet !== null && labelData.variacionPallet !== undefined && labelData.pesoDescarga && (
                   <div className="flex justify-between items-center bg-yellow-100 p-4 rounded-lg border-2 border-yellow-300">
                     <span className="font-bold text-base text-gray-900">📊 Variación (Pallet):</span>
-                    <span className={`text-xl font-bold ${labelData.variacion < 0 ? 'text-red-700' : 'text-green-700'}`}>
-                      {labelData.variacion > 0 ? '+' : ''}{labelData.variacion.toFixed(2)} kg
+                    <span className={`text-xl font-bold ${labelData.variacionPallet < 0 ? 'text-red-700' : 'text-green-700'}`}>
+                      {labelData.variacionPallet > 0 ? '+' : ''}{labelData.variacionPallet.toFixed(2)} kg
                     </span>
                   </div>
                 )}
@@ -360,11 +370,11 @@ export function LabelModal({ labelData, onClose }: LabelModalProps) {
                   </div>
                 )}
 
-                {vehicleData?.pesoIngreso && vehicleData?.pesoSalida && (
+                {labelData.variacionVehiculo !== undefined && labelData.variacionVehiculo !== null && (
                   <div className="flex justify-between items-center bg-indigo-100 p-4 rounded-lg border-2 border-indigo-300">
                     <span className="font-bold text-base text-gray-900">📊 Variación (Vehículo):</span>
-                    <span className={`text-xl font-bold ${(vehicleData.pesoIngreso - vehicleData.pesoSalida) < 0 ? 'text-red-700' : 'text-green-700'}`}>
-                      {(vehicleData.pesoIngreso - vehicleData.pesoSalida).toFixed(2)} kg
+                    <span className={`text-xl font-bold ${labelData.variacionVehiculo < 0 ? 'text-red-700' : 'text-green-700'}`}>
+                      {labelData.variacionVehiculo > 0 ? '+' : ''}{labelData.variacionVehiculo.toFixed(2)} kg
                     </span>
                   </div>
                 )}
@@ -423,45 +433,10 @@ export function LabelModal({ labelData, onClose }: LabelModalProps) {
                 </div>
               )}
 
-              {/* Tabla de Niveles del Pallet Actual */}
-              {labelData.niveles && labelData.niveles.length > 0 && (
-                <div className="mt-6 border-t-2 border-gray-400 pt-6">
-                  <h3 className="text-2xl font-bold mb-4 text-center text-gray-900">NIVELES DEL PALLET</h3>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-base border-collapse border-2 border-gray-400">
-                      <thead className="bg-gray-200">
-                        <tr>
-                          <th className="border-2 border-gray-400 p-3 font-bold text-gray-900">NIVEL</th>
-                          <th className="border-2 border-gray-400 p-3 font-bold text-gray-900">MED</th>
-                          <th className="border-2 border-gray-400 p-3 font-bold text-gray-900">G1</th>
-                          <th className="border-2 border-gray-400 p-3 font-bold text-gray-900">P1</th>
-                          <th className="border-2 border-gray-400 p-3 font-bold text-gray-900">P2</th>
-                          <th className="border-2 border-gray-400 p-3 font-bold text-gray-900">P3</th>
-                          <th className="border-2 border-gray-400 p-3 font-bold text-gray-900">P4</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {labelData.niveles.map((n, i) => (
-                          <tr key={i} className={i % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
-                            <td className="border-2 border-gray-400 p-3 text-center font-bold text-gray-900">{n.nivel}</td>
-                            <td className="border-2 border-gray-400 p-3 text-center font-semibold text-gray-800">{n.MED}</td>
-                            <td className="border-2 border-gray-400 p-3 text-center font-semibold text-gray-800">{n.G1}</td>
-                            <td className="border-2 border-gray-400 p-3 text-center font-semibold text-gray-800">{n.P1}</td>
-                            <td className="border-2 border-gray-400 p-3 text-center font-semibold text-gray-800">{n.P2}</td>
-                            <td className="border-2 border-gray-400 p-3 text-center font-semibold text-gray-800">{n.P3}</td>
-                            <td className="border-2 border-gray-400 p-3 text-center font-semibold text-gray-800">{n.P4}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-
               {/* Footer */}
               <div className="border-t-2 border-dashed border-gray-400 pt-4 text-center text-sm text-gray-700 font-semibold">
                 <div>Ticket generado electrónicamente</div>
-                <div>www.rubixenergy.com</div>
+                <div>www.bateriasecuador.com</div>
               </div>
 
               {/* Botones de Acción */}

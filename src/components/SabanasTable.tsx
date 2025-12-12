@@ -1,5 +1,8 @@
 type SabanaData = {
   placa: string
+  codigoTrazabilidad: string
+  cliente: string
+  producto: string
   pesoAntes: number
   pesoDespues: number
   diferencia: number
@@ -11,6 +14,7 @@ type SabanaData = {
     pesoEstimado: number
     pesoTolerado: number
     estado: 'ok' | 'error'
+    producto: string
   }>
   trituradora: Array<{
     numero: number
@@ -18,6 +22,7 @@ type SabanaData = {
     pesoTriturado: number
     diferencia: number
     estado: 'ok' | 'error'
+    producto: string
   }>
 }
 
@@ -51,6 +56,7 @@ export function SabanasTable({ data }: SabanasTableProps) {
                     <div>
                       <h3 className="text-xl font-bold">Camión {idx + 1}</h3>
                       <p className="text-sm text-white/70">Placa: <span className="font-semibold">{camion.placa}</span></p>
+                      <p className="text-sm text-white/70">Código Trazabilidad: <span className="font-semibold">{camion.codigoTrazabilidad || 'N/A'}</span></p>
                       <p className="text-sm text-white/70">Cliente: <span className="font-semibold">{camion.cliente || 'N/A'}</span></p>
                       <p className="text-sm text-white/70">Producto: <span className="font-semibold">{camion.producto || 'N/A'}</span></p>
                     </div>
@@ -115,10 +121,10 @@ export function SabanasTable({ data }: SabanasTableProps) {
                       <div key={pIdx} className="bg-white/5 rounded-lg p-3 border border-white/10 hover:bg-white/10 transition-colors">
                         <div className="flex items-center justify-between mb-2">
                           <span className="font-semibold text-sm">Palet {palet.numero}</span>
-                          <span className={`px-2 py-1 rounded text-xs font-bold ${
+                          <span className={`px-2 py-1 rounded text-xs font-bold border border-white/10 ${
                             palet.estado === 'ok' 
-                              ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
-                              : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                              ? 'bg-white/10 text-white' 
+                              : 'bg-white/10 text-white'
                           }`}>
                             {palet.estado === 'ok' ? '✔ OK' : '✖ Error'}
                           </span>
@@ -138,7 +144,7 @@ export function SabanasTable({ data }: SabanasTableProps) {
                           </div>
                           <div className="col-span-2 bg-white/5 rounded p-2 border border-white/10">
                             <span className="text-white/60 block mb-1">Tolerado</span>
-                            <span className={`font-bold ${Math.abs(palet.pesoTolerado) > 3 ? 'text-red-400' : 'text-green-400'}`}>
+                            <span className="font-bold text-white">
                               {palet.pesoTolerado.toFixed(2)} kg
                             </span>
                           </div>
@@ -158,13 +164,7 @@ export function SabanasTable({ data }: SabanasTableProps) {
                       <div key={tIdx} className="bg-white/5 rounded-lg p-3 border border-white/10 hover:bg-white/10 transition-colors">
                         <div className="flex items-center justify-between mb-2">
                           <span className="font-semibold text-sm">Palet {trit.numero}</span>
-                          <span className={`px-2 py-1 rounded text-xs font-bold ${
-                            trit.pesoTriturado !== null && trit.pesoTriturado > 0
-                              ? (trit.estado === 'ok' 
-                                  ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
-                                  : 'bg-red-500/20 text-red-400 border border-red-500/30')
-                              : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
-                          }`}>
+                          <span className="px-2 py-1 rounded text-xs font-bold border border-white/10 bg-white/10 text-white">
                             {trit.pesoTriturado !== null && trit.pesoTriturado > 0
                               ? (trit.estado === 'ok' ? '✔ OK' : '✖ Error')
                               : '⏳ Pendiente'}
@@ -189,11 +189,7 @@ export function SabanasTable({ data }: SabanasTableProps) {
                           </div>
                           <div className="col-span-2 bg-white/5 rounded p-2 border border-white/10">
                             <span className="text-white/60 block mb-1">Diferencia</span>
-                            <span className={`font-bold ${
-                              trit.pesoTriturado !== null && trit.pesoTriturado > 0
-                                ? (Math.abs(trit.diferencia) > 10 ? 'text-red-400' : 'text-green-400')
-                                : 'text-white/60'
-                            }`}>
+                            <span className="font-bold text-white">
                               {trit.pesoTriturado !== null 
                                 ? `${trit.diferencia.toFixed(2)} kg` 
                                 : 'Pendiente'}
@@ -224,6 +220,7 @@ export function SabanasTable({ data }: SabanasTableProps) {
                   <div>
                     <h3 className="text-lg font-bold">Camión {idx + 1}</h3>
                     <p className="text-sm text-white/70">Placa: <span className="font-semibold">{camion.placa}</span></p>
+                    <p className="text-sm text-white/70">Código Trazabilidad: <span className="font-semibold">{camion.codigoTrazabilidad || 'N/A'}</span></p>
                     <p className="text-sm text-white/70">Cliente: <span className="font-semibold">{camion.cliente || 'N/A'}</span></p>
                     <p className="text-sm text-white/70">Producto: <span className="font-semibold">{camion.producto || 'N/A'}</span></p>
                   </div>
@@ -271,7 +268,7 @@ export function SabanasTable({ data }: SabanasTableProps) {
                     <div className="text-xs text-white/60 mb-1 font-medium">Peso Después</div>
                     <div className="text-base font-bold">{camion.pesoDespues.toLocaleString('es-CO')} kg</div>
                   </div>
-                  <div className="col-span-2 bg-green-600/20 rounded-lg p-3 border border-green-500/30">
+                  <div className="col-span-2 bg-white/5 rounded-lg p-3 border border-white/10">
                     <div className="text-xs text-green-300 mb-1 font-medium">Diferencia</div>
                     <div className="text-lg font-bold text-green-400">{camion.diferencia.toLocaleString('es-CO')} kg</div>
                   </div>
@@ -288,11 +285,7 @@ export function SabanasTable({ data }: SabanasTableProps) {
                     <div key={pIdx} className="bg-white/5 rounded-lg p-3 border border-white/10">
                       <div className="flex items-center justify-between mb-2">
                         <span className="font-semibold text-sm">Palet {palet.numero}</span>
-                        <span className={`px-2 py-1 rounded text-xs font-bold ${
-                          palet.estado === 'ok' 
-                            ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
-                            : 'bg-red-500/20 text-red-400 border border-red-500/30'
-                        }`}>
+                        <span className="px-2 py-1 rounded text-xs font-bold border border-white/10 bg-white/10 text-white">
                           {palet.estado === 'ok' ? '✔ OK' : '✖ Error'}
                         </span>
                       </div>
@@ -311,7 +304,7 @@ export function SabanasTable({ data }: SabanasTableProps) {
                         </div>
                         <div className="col-span-2 bg-white/5 rounded p-2">
                           <span className="text-white/60 block mb-1">Tolerado</span>
-                          <span className={`font-bold ${Math.abs(palet.pesoTolerado) > 3 ? 'text-red-400' : 'text-green-400'}`}>
+                          <span className="font-bold text-white">
                             {palet.pesoTolerado.toFixed(2)} kg
                           </span>
                         </div>
@@ -334,9 +327,9 @@ export function SabanasTable({ data }: SabanasTableProps) {
                         <span className={`px-2 py-1 rounded text-xs font-bold ${
                           trit.pesoTriturado !== null && trit.pesoTriturado > 0
                             ? (trit.estado === 'ok' 
-                                ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
-                                : 'bg-red-500/20 text-red-400 border border-red-500/30')
-                            : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+                                ? 'bg-white/10 text-white border border-white/10' 
+                                : 'bg-white/10 text-white border border-white/10')
+                            : 'bg-white/10 text-white border border-white/10'
                         }`}>
                           {trit.pesoTriturado !== null && trit.pesoTriturado > 0
                             ? (trit.estado === 'ok' ? '✔ OK' : '✖ Error')
@@ -364,7 +357,7 @@ export function SabanasTable({ data }: SabanasTableProps) {
                           <span className="text-white/60 block mb-1">Diferencia</span>
                           <span className={`font-bold ${
                             trit.pesoTriturado !== null && trit.pesoTriturado > 0
-                              ? (Math.abs(trit.diferencia) > 10 ? 'text-red-400' : 'text-green-400')
+                              ? 'text-white'
                               : 'text-white/60'
                           }`}>
                             {trit.pesoTriturado !== null 
