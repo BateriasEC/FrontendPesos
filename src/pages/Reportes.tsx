@@ -36,19 +36,27 @@ export default function Reportes() {
       const k = new Date(r.fecha).toISOString().slice(0,10)
       map.set(k, (map.get(k) || 0) + 1)
     })
-    return Array.from(map.entries()).map(([day, total]) => ({ day, total }))
+    return Array.from(map.entries())
+      .map(([day, total]) => ({ day, total }))
+      .sort((a, b) => a.day.localeCompare(b.day))
   }, [filtered])
 
 
   const deviationByProduct = useMemo(() => {
-    const map = new Map<string, number[]>()
+    const map = new Map<string, { sum: number; count: number }>()
     filtered.forEach(r => {
       const key = String(r.productoId)
-      const arr = map.get(key) || []
-      arr.push(r.variacion)
-      map.set(key, arr)
+      const current = map.get(key) || { sum: 0, count: 0 }
+      current.sum += Math.abs(r.variacion)
+      current.count += 1
+      map.set(key, current)
     })
-    return Array.from(map.entries()).map(([product, arr]) => ({ product, avg: arr.reduce((a,b)=>a+b,0)/arr.length }))
+    return Array.from(map.entries())
+      .map(([product, data]) => ({ 
+        product: product || 'N/A', 
+        avg: data.count > 0 ? Number((data.sum / data.count).toFixed(2)) : 0 
+      }))
+      .filter(p => p.product !== 'N/A' && p.avg > 0)
   }, [filtered])
 
   const exportPNG = useCallback(async () => {

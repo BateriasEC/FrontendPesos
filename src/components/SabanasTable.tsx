@@ -111,11 +111,25 @@ export function SabanasTable({ data }: SabanasTableProps) {
                           <tr key={tIdx} className={tIdx < camion.trituradora.length - 1 ? 'border-b border-white/5' : ''}>
                             <td className="p-2 border-r border-white/10">Palet {trit.numero}</td>
                             <td className="p-2 border-r border-white/10">{trit.pesoPalet}</td>
-                            <td className="p-2 border-r border-white/10">{trit.pesoTriturado.toFixed(1)}</td>
-                            <td className="p-2 border-r border-white/10">{trit.diferencia.toFixed(1)} kg</td>
+                            <td className="p-2 border-r border-white/10">
+                              {trit.pesoTriturado !== null && trit.pesoTriturado > 0 
+                                ? trit.pesoTriturado.toFixed(1) 
+                                : '-'}
+                            </td>
+                            <td className="p-2 border-r border-white/10">
+                              {trit.pesoTriturado !== null 
+                                ? `${trit.diferencia.toFixed(1)} kg` 
+                                : `${trit.pesoPalet.toFixed(1)} kg`}
+                            </td>
                             <td className="p-2 text-center border-r border-white/10">
-                              <span className={trit.estado === 'ok' ? 'text-green-500' : 'text-red-500'}>
-                                {trit.estado === 'ok' ? '✔' : '✖'}
+                              <span className={
+                                trit.pesoTriturado !== null && trit.pesoTriturado > 0
+                                  ? (trit.estado === 'ok' ? 'text-green-500' : 'text-red-500')
+                                  : 'text-yellow-500' // Pendiente
+                              }>
+                                {trit.pesoTriturado !== null && trit.pesoTriturado > 0
+                                  ? (trit.estado === 'ok' ? '✔' : '✖')
+                                  : '⏳'} {/* Pendiente */}
                               </span>
                             </td>
                             <td className="p-2 text-center">
@@ -186,7 +200,7 @@ export function SabanasTable({ data }: SabanasTableProps) {
                     </div>
                     <div className="grid grid-cols-2 gap-2 text-sm">
                       <div><span className="text-white/60">Peso palet:</span> {trit.pesoPalet} kg</div>
-                      <div><span className="text-white/60">Peso triturado:</span> {trit.pesoTriturado.toFixed(1)} kg</div>
+                      <div><span className="text-white/60">Peso triturado:</span> {trit.pesoTriturado > 0 ? `${trit.pesoTriturado.toFixed(1)} kg` : 'Pendiente'}</div>
                       <div className="col-span-2"><span className="text-white/60">Diferencia:</span> {trit.diferencia.toFixed(1)} kg</div>
                     </div>
                   </div>

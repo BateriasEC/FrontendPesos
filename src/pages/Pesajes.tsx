@@ -11,7 +11,7 @@ type Row = {
   placa: string
   codigoPallet: string
   pesoIngreso: number
-  pesoSalida: number
+  pesoSalida: number | null
   variacion: number
   productoId: number
   cliente: string
@@ -144,12 +144,12 @@ export default function Pesajes() {
     <div className="space-y-4 w-full">
       <h1 className="text-2xl font-bold mb-4">Pesajes</h1>
       
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 items-end">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 items-end">
         <div>
           <label className="block text-sm">Buscar</label>
           <input value={q} onChange={e=>setQ(e.target.value)} className="mt-1 input" placeholder="Placa o Código Pallet" />
         </div>
-        <div>
+        {/* <div>
           <label className="block text-sm">Producto</label>
           <input value={producto} onChange={e=>setProducto(e.target.value)} className="mt-1 input" placeholder="ID producto" />
         </div>
@@ -160,12 +160,19 @@ export default function Pesajes() {
         <div>
           <label className="block text-sm">Umbral alerta (kg)</label>
           <input className="mt-1 input" type="number" value={threshold} onChange={e=>setThreshold(Number(e.target.value)||0)} />
-        </div>
+        </div> */}
+        
         <div className="flex gap-2 items-end">
-          <button onClick={exportExcel} className="btn btn-ghost">Exportar Excel</button>
+          <DateRange from={range.from} to={range.to} onChange={setRange} />
+          <button 
+            onClick={exportExcel} 
+            className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded transition-colors duration-200 whitespace-nowrap"
+          >
+            Exportar Excel
+          </button>
         </div>
-        <DateRange from={range.from} to={range.to} onChange={setRange} />
       </div>
+      
 
       {loading ? (
         <div className="flex items-center justify-center min-h-[400px] bg-white/5 rounded border border-white/10">
