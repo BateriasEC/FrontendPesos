@@ -3,19 +3,26 @@ import { api } from '../services/api'
 import * as XLSX from 'xlsx'
 import { Pagination } from '../components/Pagination'
 import { DateRange } from '../components/DateRange'
+import { LabelModal } from '../components/LabelModal'
 
 type Nivel = { nivel: number; MED: number; G1: number; P1: number; P2: number; P3: number; P4: number }
 type Row = {
-  id: number
+  id: number | string
   fecha: string
   placa: string
   codigoPallet: string
   pesoIngreso: number
   pesoSalida: number | null
   variacion: number
-  productoId: number
+  productoId: number | string
   cliente: string
   niveles?: Nivel[]
+  vehicleId?: string
+  codigoTrazabilidad?: string
+  productNombre?: string
+  pesoTotal?: number
+  pesoDescarga?: number | null
+  descargado?: boolean
 }
 
 export default function Pesajes() {
@@ -103,7 +110,13 @@ export default function Pesajes() {
           variacion: variacion,
           productoId: p.productId || p.product?.id || '',
           cliente: p.vehicle?.cliente || '',
-          niveles: niveles
+          niveles: niveles,
+          vehicleId: p.vehicleId || p.vehicle?.id || '',
+          codigoTrazabilidad: p.vehicle?.codigoTrazabilidad || '',
+          productNombre: p.product?.nombre || '',
+          pesoTotal: Number(p.pesoTotal) || 0,
+          pesoDescarga: p.descargado && p.pesoDescarga ? Number(p.pesoDescarga) : null,
+          descargado: p.descargado === true || p.descargado === 1
         }
       })
       setRows(mappedWeighings)
@@ -230,54 +243,25 @@ export default function Pesajes() {
 
       
 
-      {labelRow && (
-        <div className="bg-white/5 border border-white/10 rounded p-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold">Etiqueta del pallet</h3>
-            <button onClick={()=>setLabelRow(null)} className="text-xs px-2 py-1 bg-white/10 rounded">Cerrar</button>
-          </div>
-          <div className="mt-3 grid md:grid-cols-2 gap-4">
-            <div className="border border-dashed border-white/20 rounded p-4">
-              <div className="text-xs text-white/70">Código</div>
-              <div className="text-xl font-semibold">{labelRow.codigoPallet}</div>
-              <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-                <div><span className="text-white/60">Placa: </span>{labelRow.placa}</div>
-                <div><span className="text-white/60">Cliente: </span>{labelRow.cliente}</div>
-                <div><span className="text-white/60">Producto: </span>{String(labelRow.productoId)}</div>
-                <div><span className="text-white/60">Fecha: </span>{new Date(labelRow.fecha).toLocaleString()}</div>
-              </div>
-            </div>
-            <div className="overflow-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-white/10">
-                  <tr>
-                    <th className="p-2">NIVEL</th>
-                    <th className="p-2">MED</th>
-                    <th className="p-2">G1</th>
-                    <th className="p-2">P1</th>
-                    <th className="p-2">P2</th>
-                    <th className="p-2">P3</th>
-                    <th className="p-2">P4</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(labelRow.niveles && labelRow.niveles.length>0 ? labelRow.niveles : Array.from({length:5}, (_,i)=>({nivel:i+1, MED:0,G1:0,P1:0,P2:0,P3:0,P4:0})) ).map((n: any, i: number) => (
-                    <tr key={i} className={i % 2 === 0 ? 'bg-white/5' : ''}>
-                      <td className="p-2">{n.nivel}</td>
-                      <td className="p-2">{n.MED}</td>
-                      <td className="p-2">{n.G1}</td>
-                      <td className="p-2">{n.P1}</td>
-                      <td className="p-2">{n.P2}</td>
-                      <td className="p-2">{n.P3}</td>
-                      <td className="p-2">{n.P4}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
+      <LabelModal 
+        labelData={labelRow ? {
+          id: String(labelRow.id),
+          codigoPallet: labelRow.codigoPallet,
+          placa: labelRow.placa,
+          cliente: labelRow.cliente,
+          codigoTrazabilidad: labelRow.codigoTrazabilidad || '',
+          fecha: labelRow.fecha,
+          productNombre: labelRow.productNombre || '',
+          pesoIngreso: labelRow.pesoIngreso,
+          pesoSalida: labelRow.pesoSalida,
+          pesoTotal: labelRow.pesoTotal || 0,
+          pesoDescarga: labelRow.pesoDescarga || null,
+          variacion: labelRow.variacion,
+          descargado: labelRow.descargado || false,
+          vehicleId: labelRow.vehicleId || ''
+        } : null}
+        onClose={() => setLabelRow(null)}
+      />
     </div>
   )
 }

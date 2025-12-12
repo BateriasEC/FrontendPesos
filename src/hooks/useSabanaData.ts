@@ -116,8 +116,9 @@ export function useSabanaData(range: { from: string; to: string }) {
             
             const variacion = pesoTotal - pesoDescarga
             const pesoTolerado = Math.abs(variacion)
-            // Estado: ok si la variación es <= 3kg O si no está descargado (pendiente)
-            const estado: 'ok' | 'error' = !descargado || pesoTolerado <= 3 ? 'ok' : 'error'
+            // Estado: ok si la variación es <= 5% del peso total O <= 10kg O si no está descargado (pendiente)
+            const porcentajeVariacion = pesoTotal > 0 ? (pesoTolerado / pesoTotal) * 100 : 0
+            const estado: 'ok' | 'error' = !descargado || pesoTolerado <= 10 || porcentajeVariacion <= 5 ? 'ok' : 'error'
             
             return {
               numero: index + 1,
@@ -152,10 +153,11 @@ export function useSabanaData(range: { from: string; to: string }) {
             const pesoTriturado = descargado && pesoDescarga !== null ? pesoDescarga : (descargado ? 0 : null)
             const diferenciaTrit = pesoTriturado !== null ? pesoTotal - pesoTriturado : pesoTotal
             
-            // Estado: ok solo si está descargado Y la diferencia es <= 2kg
+            // Estado: ok si está descargado Y la diferencia es <= 5% del peso total O <= 10kg
             // Si no está descargado, mostrar como pendiente (no error)
+            const porcentajeDiferencia = pesoTotal > 0 ? (Math.abs(diferenciaTrit) / pesoTotal) * 100 : 0
             const estado: 'ok' | 'error' = descargado && pesoDescarga !== null
-              ? (Math.abs(diferenciaTrit) <= 2 ? 'ok' : 'error')
+              ? (Math.abs(diferenciaTrit) <= 10 || porcentajeDiferencia <= 5 ? 'ok' : 'error')
               : 'ok' // Si no está descargado, no es error, es pendiente
             
             // Debug log para ver qué datos tenemos

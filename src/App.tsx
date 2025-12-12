@@ -12,6 +12,7 @@ import Reportes from './pages/Reportes'
 import Recepcion from './pages/Recepcion'
 import Entregas from './pages/Entregas'
 import Etiqueta from './pages/Etiqueta'
+import EtiquetaPublic from './pages/EtiquetaPublic'
 import Clientes from './pages/Clientes'
 import Vehiculos from './pages/Vehiculos'
 import Gestiones from './pages/Gestiones'
@@ -24,6 +25,7 @@ function App() {
     <AuthProvider>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/etiqueta/:id" element={<EtiquetaPublic />} />
         <Route element={<ProtectedRoute />}> 
           <Route element={<Layout />}>
             <Route index element={<Dashboard />} />
