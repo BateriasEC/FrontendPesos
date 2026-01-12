@@ -13,4 +13,14 @@ export default defineConfig({
       },
     },
   },
+
+  // Configuración para el preview en Render
+  preview: {
+    host: '0.0.0.0',
+    port: Number(process.env.PORT) || 4173,
+    allowedHosts: [
+      'reciclaje-baterias-ecuador.onrender.com'
+    ]
+  }
 })
+
