@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
-import { HomeIcon, UsersIcon, Squares2X2Icon, ScaleIcon, ChartBarIcon, InboxArrowDownIcon, TruckIcon, TagIcon, UserGroupIcon, CubeIcon } from '@heroicons/react/24/outline'
+import { HomeIcon, UsersIcon, Squares2X2Icon, ScaleIcon, ChartBarIcon, TruckIcon, TagIcon, UserGroupIcon, CubeIcon } from '@heroicons/react/24/outline'
 
 const linkBase = 'flex items-center gap-2 px-3 py-2 rounded hover:bg-white/10 transition-colors'
 const activeCls = 'cuerpo bg-white/15 text-white'

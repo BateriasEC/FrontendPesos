@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts'
 import { api } from '../services/api'
 
@@ -39,7 +39,7 @@ export default function Dashboard() {
         setStats({
           vehiclesInPlant: data.vehiclesInPlant || 0,
           weighingsToday: data.weighingsToday || 0,
-          avgVariation: Number(data.avgVariation || 0).toFixed(2),
+          avgVariation: parseFloat(Number(data.avgVariation || 0).toFixed(2)),
           alerts: data.alerts || 0,
           weighingsLast24h: data.weighingsLast24h || []
         })
@@ -80,12 +80,6 @@ export default function Dashboard() {
   const weighingsToday = stats.weighingsToday
   const avgVariation = stats.avgVariation
   const alerts = stats.alerts
-  const eficiencia = useMemo(() => [
-    { bascula: 'B1', ef: 92 },
-    { bascula: 'B2', ef: 87 },
-    { bascula: 'B3', ef: 78 },
-    { bascula: 'B4', ef: 95 },
-  ], [])
 
   return (
     <div className=" space-y-6 w-full">

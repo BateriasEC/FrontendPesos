@@ -66,7 +66,7 @@ export function Header({ onMenuClick }: HeaderProps) {
       </div>
       <div className="flex items-center gap-2 sm:gap-3 shrink-0 pr-2 sm:pr-4">
         <span className="text-black text-xs header-text sm:text-sm header-text hidden sm:inline truncate max-w-[150px] md:max-w-none">
-          {user ? user.role : 'Sesión no iniciada'}
+          {user ? (typeof user.role === 'string' ? user.role : user.role?.codigo || user.role?.nombre || 'Sin rol') : 'Sesión no iniciada'}
         </span>
         <button 
           onClick={handleLogout}

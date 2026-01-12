@@ -148,7 +148,7 @@ export function useSabanaData(range: { from: string; to: string }) {
         // Convertir a formato SabanaData
         const data: SabanaData[] = []
         
-        vehiclesMap.forEach((pallets, vehicleId) => {
+        vehiclesMap.forEach((pallets) => {
           if (pallets.length === 0) return
           
           const firstPallet = pallets[0]
@@ -174,7 +174,6 @@ export function useSabanaData(range: { from: string; to: string }) {
           const year = fecha.getFullYear()
           const month = fecha.getMonth()
           const day = fecha.getDate()
-          const fechaLocal = new Date(year, month, day)
           
           // Formatear fecha como YYYY-MM-DD usando componentes locales
           const fechaString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
@@ -256,13 +255,13 @@ export function useSabanaData(range: { from: string; to: string }) {
             }
             
             // Si está descargado pero no hay pesoDescarga, usar 0 temporalmente
-            const pesoTriturado = descargado && pesoDescarga !== null ? pesoDescarga : (descargado ? 0 : null)
-            const diferenciaTrit = pesoTriturado !== null ? pesoTotal - pesoTriturado : pesoTotal
+            const pesoTriturado = descargado && pesoDescarga !== null ? pesoDescarga : (descargado ? 0 : 0)
+            const diferenciaTrit = pesoTotal - pesoTriturado
             
             // Estado: ok si está descargado Y la diferencia es <= 5% del peso total O <= 10kg
             // Si no está descargado, mostrar como pendiente (no error)
             const porcentajeDiferencia = pesoTotal > 0 ? (Math.abs(diferenciaTrit) / pesoTotal) * 100 : 0
-            const estado: 'ok' | 'error' = descargado && pesoDescarga !== null
+            const estado: 'ok' | 'error' = descargado && pesoDescarga !== null && pesoDescarga > 0
               ? (Math.abs(diferenciaTrit) <= 10 || porcentajeDiferencia <= 5 ? 'ok' : 'error')
               : 'ok' // Si no está descargado, no es error, es pendiente
             

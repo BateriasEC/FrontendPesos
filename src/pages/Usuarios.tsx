@@ -47,32 +47,6 @@ export default function Usuarios() {
 
   const [editing, setEditing] = useState<Usuario | null>(null)
   const [form, setForm] = useState<Omit<Usuario, 'id'>>({ name: '', email: '', role: 'operador', password: '' })
-  const [roles, setRoles] = useState<Array<{id: string, codigo: string, nombre: string}>>([])
-
-  // Cargar roles al montar el componente
-  useEffect(() => {
-    const loadRoles = async () => {
-      try {
-        // Buscar roles en la respuesta de usuarios o crear un endpoint
-        // Por ahora, mapeamos los códigos de rol conocidos
-        const roleMap: Record<string, string> = {
-          'admin': 'ADMIN',
-          'supervisor': 'SUPERVISOR',
-          'operador': 'OPERADOR'
-        }
-        // Intentar obtener roles desde el backend (si existe endpoint)
-        // Si no, usar los códigos conocidos
-        setRoles([
-          { id: '', codigo: 'ADMIN', nombre: 'Administrador' },
-          { id: '', codigo: 'SUPERVISOR', nombre: 'Supervisor' },
-          { id: '', codigo: 'OPERADOR', nombre: 'Operador' }
-        ])
-      } catch (err) {
-        console.error('Error cargando roles:', err)
-      }
-    }
-    loadRoles()
-  }, [])
 
   const openNew = () => { setEditing({} as any); setForm({ name: '', email: '', role: 'operador', password: '' }) }
   const openEdit = (u: Usuario) => { setEditing(u); setForm({ name: u.name, email: u.email, role: u.role, password: u.password }) }

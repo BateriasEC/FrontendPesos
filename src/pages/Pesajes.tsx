@@ -29,8 +29,8 @@ type Row = {
 export default function Pesajes() {
   const [rows, setRows] = useState<Row[]>([])
   const [q, setQ] = useState('')
-  const [producto, setProducto] = useState('')
-  const [cliente, setCliente] = useState('')
+  const [producto] = useState('')
+  const [cliente] = useState('')
   const [range, setRange] = useState({ from: '', to: '' })
   const [loading, setLoading] = useState(true)
 
@@ -153,7 +153,6 @@ export default function Pesajes() {
   }
 
   const [labelRow, setLabelRow] = useState<Row | null>(null)
-  const [threshold, setThreshold] = useState(50)
 
   return (
     <div className="space-y-4 w-full">
