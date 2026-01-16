@@ -1,261 +1,262 @@
-import { useEffect, useMemo, useState, useCallback } from 'react'
-import { api } from '../services/api'
-import { Modal } from '../components/Modal'
-import { Pagination } from '../components/Pagination'
+import { useEffect, useMemo, useState, useCallback } from "react";
+import { api } from "../services/api";
+import { Modal } from "../components/Modal";
+import { Pagination } from "../components/Pagination";
 
-type Usuario = { id: number; name: string; email: string; role: 'admin' | 'supervisor' | 'operador'; password: string }
+type Usuario = {
+  id: string;
+  name: string;
+  email: string;
+  role: "admin" | "supervisor" | "operador";
+  roleId: string;
+  password: string;
+};
 
 export default function Usuarios() {
-  const [rows, setRows] = useState<Usuario[]>([])
-  const [q, setQ] = useState('')
-  const [role, setRole] = useState<Usuario['role'] | ''>('')
-  const [loading, setLoading] = useState(true)
+  const [rows, setRows] = useState<Usuario[]>([]);
+  const [q, setQ] = useState("");
+  const [role, setRole] = useState<Usuario["role"] | "">("");
+  const [loading, setLoading] = useState(true);
 
+  // ================== CARGAR USUARIOS ==================
   const load = useCallback(async () => {
-    setLoading(true)
+    setLoading(true);
     try {
-      const response = await api.get('/users')
-      // El backend devuelve { data: [...] } por el TransformInterceptor
-      const users = response.data?.data || response.data || []
-      // Mapear el formato del backend al formato esperado por la web
-      const mappedUsers = users.map((u: any) => ({
+      const response = await api.get("/users");
+      const users = response.data?.data || response.data || [];
+
+      const mappedUsers: Usuario[] = users.map((u: any) => ({
         id: u.id,
-        name: u.fullName || u.name || u.username || '',
-        email: u.email || '',
-        role: (u.role?.codigo || u.role || 'OPERADOR').toLowerCase() as 'admin' | 'supervisor' | 'operador',
-        password: '' // No se envía la contraseña desde el backend
-      }))
-      setRows(mappedUsers)
+        name: u.fullName || u.username || "",
+        email: u.email || "",
+        role: (u.role?.codigo || "OPERADOR").toLowerCase(),
+        roleId: u.role?.id,
+        password: "",
+      }));
+
+      setRows(mappedUsers);
     } catch (error: any) {
-      console.error('Error cargando usuarios:', error)
-      alert(error.response?.data?.message || error.message || 'Error al cargar usuarios')
-      setRows([])
+      console.error("Error cargando usuarios:", error);
+      alert(error.response?.data?.message || "Error al cargar usuarios");
+      setRows([]);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [])
-  useEffect(() => { load() }, [load])
+  }, []);
 
-  const filtered = useMemo(() => rows.filter(r => (
-    (!q || r.name.toLowerCase().includes(q.toLowerCase()) || r.email.toLowerCase().includes(q.toLowerCase())) &&
-    (!role || r.role === role)
-  )), [rows, q, role])
+  useEffect(() => {
+    load();
+  }, [load]);
 
-  const [page, setPage] = useState(1)
-  const pageSize = 10
-  const pageRows = useMemo(() => filtered.slice((page-1)*pageSize, page*pageSize), [filtered, page])
+  // ================== FILTROS ==================
+  const filtered = useMemo(() => {
+    return rows.filter(
+      (r) =>
+        (!q ||
+          r.name.toLowerCase().includes(q.toLowerCase()) ||
+          r.email.toLowerCase().includes(q.toLowerCase())) &&
+        (!role || r.role === role)
+    );
+  }, [rows, q, role]);
 
-  const [editing, setEditing] = useState<Usuario | null>(null)
-  const [form, setForm] = useState<Omit<Usuario, 'id'>>({ name: '', email: '', role: 'operador', password: '' })
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+  const pageRows = useMemo(
+    () => filtered.slice((page - 1) * pageSize, page * pageSize),
+    [filtered, page]
+  );
 
-  const openNew = () => { setEditing({} as any); setForm({ name: '', email: '', role: 'operador', password: '' }) }
-  const openEdit = (u: Usuario) => { setEditing(u); setForm({ name: u.name, email: u.email, role: u.role, password: u.password }) }
+  // ================== MODAL ==================
+  const [editing, setEditing] = useState<Usuario | null>(null);
+  const [form, setForm] = useState<Omit<Usuario, "id" | "roleId">>({
+    name: "",
+    email: "",
+    role: "operador",
+    password: "",
+  });
 
+  const openNew = () => {
+    setEditing(null);
+    setForm({ name: "", email: "", role: "operador", password: "" });
+  };
+
+  const openEdit = (u: Usuario) => {
+    setEditing(u);
+    setForm({
+      name: u.name,
+      email: u.email,
+      role: u.role,
+      password: "",
+    });
+  };
+
+  // ================== GUARDAR ==================
   const save = async () => {
     try {
-      // Mapear el formato de la web al formato del backend
       const roleCodeMap: Record<string, string> = {
-        'admin': 'ADMIN',
-        'supervisor': 'SUPERVISOR',
-        'operador': 'OPERADOR'
-      }
-      
-      // Convertir el rol a código
-      const roleCode = roleCodeMap[form.role] || 'OPERADOR'
+        admin: "ADMIN",
+        supervisor: "SUPERVISOR",
+        operador: "OPERADOR",
+      };
 
-      // Generar username desde el email (parte antes del @)
-      const username = form.email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '')
+      const username = form.email
+        .split("@")[0]
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, "");
 
-      const backendData = {
-        username: username,
+      const backendData: any = {
+        username,
         email: form.email,
         fullName: form.name,
-        password: form.password,
-        roleCode: roleCode  // El backend ahora acepta roleCode y lo convierte a roleId
+      };
+
+      // 👉 Password SOLO si se escribió algo
+      if (form.password && form.password.trim() !== "") {
+        backendData.password = form.password;
       }
 
       if (editing) {
-        if ((editing as any).id) {
-          await api.patch(`/users/${(editing as any).id}`, backendData)
-        } else {
-          await api.post(`/users`, backendData)
-        }
+        // 🔥 UPDATE → usar roleId
+        backendData.roleId = editing.roleId;
+        await api.patch(`/users/${editing.id}`, backendData);
       } else {
-        await api.post(`/users`, backendData)
+        // 🔥 CREATE → usar roleCode
+        backendData.roleCode = roleCodeMap[form.role];
+        await api.post("/users", backendData);
       }
-      await load()
-      setEditing(null)
-    } catch (err: any) {
-      alert(err.response?.data?.message || err.message || 'Error al guardar usuario')
-      console.error('Error guardando usuario:', err)
-    }
-  }
-  const remove = async (id: number) => { await api.delete(`/users/${id}`); await load() }
 
+      await load();
+      setEditing(null);
+    } catch (err: any) {
+      console.error("Error guardando usuario:", err);
+      alert(err.response?.data?.message || "Error al guardar usuario");
+    }
+  };
+
+  const remove = async (id: string) => {
+    await api.delete(`/users/${id}`);
+    await load();
+  };
+
+  // ================== UI ==================
   return (
     <div className="space-y-4 w-full">
-      <h1 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4">Usuarios</h1>
-      
-      <div className="flex flex-col gap-3">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          <div className="flex-1">
-            <label className="block text-sm mb-1">Buscar</label>
-            <input 
-              value={q} 
-              onChange={e=>setQ(e.target.value)} 
-              className="w-full input text-sm" 
-              placeholder="Nombre o correo" 
-            />
-          </div>
-          <div className="flex-1">
-            <label className="block text-sm mb-1">Rol</label>
-            <select 
-              value={role} 
-              onChange={e=>setRole(e.target.value as any)} 
-              className="w-full select text-sm"
-            >
-              <option value="">Todos</option>
-              <option value="admin">Admin</option>
-              <option value="supervisor">Supervisor</option>
-              <option value="operador">Operador</option>
-            </select>
-          </div>
-          <div className="flex items-end sm:col-span-2 lg:col-span-1">
-            <button onClick={openNew} className="w-full sm:w-auto btn btn-primary">Nuevo Usuario</button>
-          </div>
-        </div>
+      <h1 className="text-xl font-bold">Usuarios</h1>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          className="input"
+          placeholder="Buscar por nombre o correo"
+        />
+
+        <select
+          value={role}
+          onChange={(e) => setRole(e.target.value as any)}
+          className="select"
+        >
+          <option value="">Todos</option>
+          <option value="admin">Admin</option>
+          <option value="supervisor">Supervisor</option>
+          <option value="operador">Operador</option>
+        </select>
+
+        <button onClick={openNew} className="btn btn-primary">
+          Nuevo Usuario
+        </button>
       </div>
 
-      {/* Vista de tabla para desktop */}
       {loading ? (
-        <div className="hidden md:flex items-center justify-center min-h-[400px] bg-white/5 rounded border border-white/10">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-orange mx-auto mb-4"></div>
-            <p className="text-gray-400">Cargando usuarios...</p>
-          </div>
-        </div>
+        <p>Cargando usuarios...</p>
       ) : (
-        <div className="hidden md:block overflow-x-auto rounded border border-white/10">
-          <table className="table table-zebra w-full">
-            <thead className="bg-white/10">
-              <tr>
-                <th className="text-left p-2 text-sm">Nombre</th>
-                <th className="text-left p-2 text-sm">Correo</th>
-                <th className="text-left p-2 text-sm">Rol</th>
-                <th className="p-2 text-center text-sm w-48">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pageRows.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="p-4 text-center text-gray-400">
-                    No hay usuarios registrados
-                  </td>
-                </tr>
-              ) : (
-                pageRows.map((u, i) => (
-                  <tr key={u.id} className={i % 2 === 0 ? 'bg-white/5' : ''}>
-                    <td className="p-2 text-sm">{u.name}</td>
-                    <td className="p-2 text-sm">{u.email}</td>
-                    <td className="p-2 text-sm capitalize">{u.role}</td>
-                    <td className="p-2">
-                      <div className="w-full flex justify-center items-center gap-2">
-                        <button onClick={()=>openEdit(u)} className="text-xs btn btn-ghost w-20">Editar</button>
-                        <button onClick={()=>remove(u.id)} className="text-xs btn w-20 bg-red-500/20 text-red-300 hover:bg-red-500/30">Eliminar</button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* Vista de cards para móvil */}
-      {loading ? (
-        <div className="md:hidden flex items-center justify-center min-h-[400px] bg-white/5 rounded border border-white/10">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-orange mx-auto mb-4"></div>
-            <p className="text-gray-400">Cargando usuarios...</p>
-          </div>
-        </div>
-      ) : (
-        <div className="md:hidden space-y-3">
-          {pageRows.length === 0 ? (
-            <div className="p-6 text-center text-gray-400 bg-white/5 rounded border border-white/10">
-              No hay usuarios registrados
-            </div>
-          ) : (
-            pageRows.map((u) => (
-              <div key={u.id} className="bg-white/5 rounded border border-white/10 p-4 space-y-2">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <h3 className="font-semibold text-white text-base">{u.name}</h3>
-                  <p className="text-sm text-gray-300 mt-1">{u.email}</p>
-                </div>
-                <span className="px-2 py-1 rounded text-xs capitalize bg-blue-500/20 text-blue-300">
-                  {u.role}
-                </span>
-              </div>
-              <div className="pt-2 border-t border-white/10">
-                <div className="flex gap-2">
-                  <button 
-                    onClick={()=>openEdit(u)} 
-                    className="flex-1 btn btn-ghost text-sm py-2"
-                  >
+        <table className="table w-full">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Correo</th>
+              <th>Rol</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pageRows.map((u) => (
+              <tr key={u.id}>
+                <td>{u.name}</td>
+                <td>{u.email}</td>
+                <td className="capitalize">{u.role}</td>
+                <td className="flex gap-2">
+                  <button onClick={() => openEdit(u)} className="btn btn-sm">
                     Editar
                   </button>
-                  <button 
-                    onClick={()=>remove(u.id)} 
-                    className="flex-1 btn bg-red-500/20 text-red-300 hover:bg-red-500/30 text-sm py-2"
+                  <button
+                    onClick={() => remove(u.id)}
+                    className="btn btn-sm bg-red-500 text-white"
                   >
                     Eliminar
                   </button>
-                </div>
-              </div>
-            </div>
-          ))
-        )}
-        </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
 
-      {!loading && (
-        <div className="flex justify-end">
-          <Pagination page={page} pageSize={pageSize} total={filtered.length} onChange={setPage} />
-        </div>
-      )}
+      <Pagination
+        page={page}
+        pageSize={pageSize}
+        total={filtered.length}
+        onChange={setPage}
+      />
 
-      <Modal open={!!editing} title={(editing && (editing as any).id) ? 'Editar usuario' : 'Crear usuario'} onClose={()=>setEditing(null)}>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm">Nombre</label>
-            <input value={form.name} onChange={e=>setForm({...form, name:e.target.value})} className="mt-1 input" />
+      <Modal
+        open={editing !== null}
+        title={editing && editing.id ? "Editar usuario" : "Crear usuario"}
+        onClose={() => setEditing(null)}
+      >
+        <div className="space-y-3">
+          <input
+            className="input"
+            placeholder="Nombre"
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+          />
+
+          <input
+            className="input"
+            placeholder="Correo"
+            value={form.email}
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
+          />
+
+          <select
+            className="select"
+            value={form.role}
+            onChange={(e) => setForm({ ...form, role: e.target.value as any })}
+          >
+            <option value="admin">Admin</option>
+            <option value="supervisor">Supervisor</option>
+            <option value="operador">Operador</option>
+          </select>
+
+          <input
+            className="input"
+            type="password"
+            placeholder="Contraseña (solo si desea cambiarla)"
+            value={form.password}
+            onChange={(e) => setForm({ ...form, password: e.target.value })}
+          />
+
+          <div className="flex justify-end gap-2">
+            <button className="btn btn-ghost" onClick={() => setEditing(null)}>
+              Cancelar
+            </button>
+            <button className="btn btn-primary" onClick={save}>
+              Guardar
+            </button>
           </div>
-          <div>
-            <label className="block text-sm">Correo</label>
-            <input type="email" value={form.email} onChange={e=>setForm({...form, email:e.target.value})} className="mt-1 input" />
-          </div>
-          <div>
-            <label className="block text-sm">Rol</label>
-            <select value={form.role} onChange={e=>setForm({...form, role:e.target.value as any})} className="mt-1 select">
-              <option value="admin">Admin</option>
-              <option value="supervisor">Supervisor</option>
-              <option value="operador">Operador</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm">Contraseña</label>
-            <input type="password" value={form.password} onChange={e=>setForm({...form, password:e.target.value})} className="mt-1 input" />
-          </div>
-        </div>
-        <div className="mt-4 flex justify-end gap-2">
-          <button onClick={()=>setEditing(null)} className="btn btn-ghost">Cancelar</button>
-          <button onClick={save} className="btn btn-primary">Guardar</button>
         </div>
       </Modal>
     </div>
-  )
+  );
 }
-
-
