@@ -55,6 +55,9 @@ export default function Clientes() {
     [filtered, page]
   )
 
+  // =========================
+  // MODAL CREAR / EDITAR
+  // =========================
   const [editing, setEditing] = useState<Cliente | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [form, setForm] = useState({
@@ -83,11 +86,10 @@ export default function Clientes() {
 
   const save = async () => {
     try {
-      // 🔥 PAYLOAD LIMPIO (solo lo que acepta el backend)
       const payload = {
         nombre: form.nombre,
         ruc: form.ruc || undefined,
-        contacto: form.contacto || undefined,
+        contacto: form.contacto || undefined
       }
 
       if (editing) {
@@ -104,20 +106,39 @@ export default function Clientes() {
     }
   }
 
-  const remove = async (id: string) => {
-    if (window.confirm('¿Está seguro de eliminar este cliente?')) {
-      try {
-        await api.delete(`/clients/${id}`)
-        await load()
-      } catch (error) {
-        console.error('Error eliminando cliente:', error)
-      }
-    }
-  }
-
   const closeModal = () => {
     setIsModalOpen(false)
     setEditing(null)
+  }
+
+  // =========================
+  // MODAL CONFIRMAR ELIMINAR
+  // =========================
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [clientToDelete, setClientToDelete] = useState<Cliente | null>(null)
+
+  const openDelete = (cliente: Cliente) => {
+    setClientToDelete(cliente)
+    setIsDeleteModalOpen(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!clientToDelete) return
+
+    try {
+      await api.delete(`/clients/${clientToDelete.id}`)
+      await load()
+    } catch (error) {
+      console.error('Error eliminando cliente:', error)
+    } finally {
+      setIsDeleteModalOpen(false)
+      setClientToDelete(null)
+    }
+  }
+
+  const closeDeleteModal = () => {
+    setIsDeleteModalOpen(false)
+    setClientToDelete(null)
   }
 
   return (
@@ -126,13 +147,26 @@ export default function Clientes() {
 
       <div className="flex flex-col gap-3">
         <div className="grid sm:grid-cols-3 gap-3">
-          <input className="input" placeholder="Buscar" value={q} onChange={e => setQ(e.target.value)} />
-          <select className="select" value={estado} onChange={e => setEstado(e.target.value as any)}>
+          <input
+            className="input"
+            placeholder="Buscar"
+            value={q}
+            onChange={e => setQ(e.target.value)}
+          />
+
+          <select
+            className="select"
+            value={estado}
+            onChange={e => setEstado(e.target.value as any)}
+          >
             <option value="">Todos</option>
             <option value="activo">Activo</option>
             <option value="inactivo">Inactivo</option>
           </select>
-          <button onClick={openNew} className="btn btn-primary">Nuevo Cliente</button>
+
+          <button onClick={openNew} className="btn btn-primary">
+            Nuevo Cliente
+          </button>
         </div>
       </div>
 
@@ -154,30 +188,89 @@ export default function Clientes() {
               <td>{c.contacto}</td>
               <td className="capitalize">{c.estado}</td>
               <td className="flex gap-2 justify-center">
-                <button onClick={() => openEdit(c)} className="btn btn-ghost btn-sm">Editar</button>
-                <button onClick={() => remove(c.id)} className="btn btn-sm bg-red-500/20 text-red-300">Eliminar</button>
+                <button
+                  onClick={() => openEdit(c)}
+                  className="btn btn-ghost btn-sm"
+                >
+                  Editar
+                </button>
+
+                <button
+                  onClick={() => openDelete(c)}
+                  className="btn btn-sm bg-red-500/20 text-red-300"
+                >
+                  Eliminar
+                </button>
               </td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      <Pagination page={page} pageSize={pageSize} total={filtered.length} onChange={setPage} />
+      <Pagination
+        page={page}
+        pageSize={pageSize}
+        total={filtered.length}
+        onChange={setPage}
+      />
 
-      <Modal open={isModalOpen} title={editing ? 'Editar cliente' : 'Crear cliente'} onClose={closeModal}>
+      {/* ===== MODAL CREAR / EDITAR ===== */}
+      <Modal
+        open={isModalOpen}
+        title={editing ? 'Editar cliente' : 'Crear cliente'}
+        onClose={closeModal}
+      >
         <div className="grid grid-cols-2 gap-3">
-          <input className="input" placeholder="Nombre" value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} />
-          <input className="input" placeholder="RUC" value={form.ruc} onChange={e => setForm({ ...form, ruc: e.target.value })} />
-          <input className="input col-span-2" placeholder="Contacto" value={form.contacto} onChange={e => setForm({ ...form, contacto: e.target.value })} />
+          <input
+            className="input"
+            placeholder="Nombre"
+            value={form.nombre}
+            onChange={e => setForm({ ...form, nombre: e.target.value })}
+          />
+          <input
+            className="input"
+            placeholder="RUC"
+            value={form.ruc}
+            onChange={e => setForm({ ...form, ruc: e.target.value })}
+          />
+          <input
+            className="input col-span-2"
+            placeholder="Contacto"
+            value={form.contacto}
+            onChange={e => setForm({ ...form, contacto: e.target.value })}
+          />
         </div>
 
         <div className="mt-4 flex justify-end gap-2">
-          <button onClick={closeModal} className="btn btn-ghost">Cancelar</button>
-          <button onClick={save} className="btn btn-primary">Guardar</button>
+          <button onClick={closeModal} className="btn btn-ghost">
+            Cancelar
+          </button>
+          <button onClick={save} className="btn btn-primary">
+            Guardar
+          </button>
+        </div>
+      </Modal>
+
+      {/* ===== MODAL CONFIRMAR ELIMINAR ===== */}
+      <Modal
+        open={isDeleteModalOpen}
+        title="Confirmar eliminación"
+        onClose={closeDeleteModal}
+      >
+        <p>
+          ¿Está seguro que desea eliminar al cliente{' '}
+          <strong>{clientToDelete?.nombre}</strong>?
+        </p>
+
+        <div className="mt-4 flex justify-end gap-2">
+          <button onClick={closeDeleteModal} className="btn btn-ghost">
+            Cancelar
+          </button>
+          <button onClick={confirmDelete} className="btn btn-error">
+            Eliminar
+          </button>
         </div>
       </Modal>
     </div>
   )
 }
-
-

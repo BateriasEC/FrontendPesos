@@ -36,7 +36,6 @@ export default function Usuarios() {
 
       setRows(mappedUsers);
     } catch (error: any) {
-      console.error("Error cargando usuarios:", error);
       alert(error.response?.data?.message || "Error al cargar usuarios");
       setRows([]);
     } finally {
@@ -61,6 +60,7 @@ export default function Usuarios() {
 
   const [page, setPage] = useState(1);
   const pageSize = 10;
+
   const pageRows = useMemo(
     () => filtered.slice((page - 1) * pageSize, page * pageSize),
     [filtered, page]
@@ -76,7 +76,7 @@ export default function Usuarios() {
   });
 
   const openNew = () => {
-    setEditing(null);
+    setEditing({} as Usuario);
     setForm({ name: "", email: "", role: "operador", password: "" });
   };
 
@@ -93,49 +93,66 @@ export default function Usuarios() {
   // ================== GUARDAR ==================
   const save = async () => {
     try {
+      if (!form.name || !form.email) {
+        return alert("Nombre y correo son obligatorios");
+      }
+
       const roleCodeMap: Record<string, string> = {
         admin: "ADMIN",
         supervisor: "SUPERVISOR",
         operador: "OPERADOR",
       };
 
-      const username = form.email
-        .split("@")[0]
-        .toLowerCase()
-        .replace(/[^a-z0-9]/g, "");
+      if (editing && editing.id) {
+        const updateData: any = {
+          fullName: form.name,
+          email: form.email,
+        };
 
-      const backendData: any = {
-        username,
-        email: form.email,
-        fullName: form.name,
-      };
+        if (form.password) {
+          updateData.password = form.password;
+        }
 
-      // 👉 Password SOLO si se escribió algo
-      if (form.password && form.password.trim() !== "") {
-        backendData.password = form.password;
-      }
-
-      if (editing) {
-        // 🔥 UPDATE → usar roleId
-        backendData.roleId = editing.roleId;
-        await api.patch(`/users/${editing.id}`, backendData);
+        await api.patch(`/users/${editing.id}`, updateData);
       } else {
-        // 🔥 CREATE → usar roleCode
-        backendData.roleCode = roleCodeMap[form.role];
-        await api.post("/users", backendData);
+        if (form.password.length < 6) {
+          return alert("La contraseña debe tener al menos 6 caracteres");
+        }
+
+        const username = form.email
+          .split("@")[0]
+          .toLowerCase()
+          .replace(/[^a-z0-9]/g, "");
+
+        await api.post("/users", {
+          username,
+          email: form.email,
+          fullName: form.name,
+          password: form.password,
+          roleCode: roleCodeMap[form.role],
+        });
       }
 
       await load();
       setEditing(null);
     } catch (err: any) {
-      console.error("Error guardando usuario:", err);
       alert(err.response?.data?.message || "Error al guardar usuario");
     }
   };
 
-  const remove = async (id: string) => {
-    await api.delete(`/users/${id}`);
+  // ================== ELIMINAR ==================
+  const [deleteUser, setDeleteUser] = useState<Usuario | null>(null);
+
+  const confirmDelete = async () => {
+    if (!deleteUser) return;
+
+    if (deleteUser.role === "admin") {
+      return alert("No se puede eliminar un administrador");
+    }
+
+    await api.delete(`/users/${deleteUser.id}`);
     await load();
+    setDeleteUser(null);
   };
 
   // ================== UI ==================
@@ -167,40 +184,42 @@ export default function Usuarios() {
         </button>
       </div>
 
-      {loading ? (
-        <p>Cargando usuarios...</p>
-      ) : (
-        <table className="table w-full">
-          <thead>
-            <tr>
-              <th>Nombre</th>
-              <th>Correo</th>
-              <th>Rol</th>
-              <th>Acciones</th>
+      <table className="table w-full">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Correo</th>
+            <th>Rol</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {pageRows.map((u) => (
+            <tr key={u.id}>
+              <td>{u.name}</td>
+              <td>{u.email}</td>
+              <td className="capitalize">{u.role}</td>
+              <td className="flex gap-2">
+                <button onClick={() => openEdit(u)} className="btn btn-sm">
+                  Editar
+                </button>
+
+                <button
+                  disabled={u.role === "admin"}
+                  onClick={() => setDeleteUser(u)}
+                  className={`btn btn-sm ${
+                    u.role === "admin"
+                      ? "opacity-40 cursor-not-allowed"
+                      : "bg-red-500 text-white"
+                  }`}
+                >
+                  Eliminar
+                </button>
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            {pageRows.map((u) => (
-              <tr key={u.id}>
-                <td>{u.name}</td>
-                <td>{u.email}</td>
-                <td className="capitalize">{u.role}</td>
-                <td className="flex gap-2">
-                  <button onClick={() => openEdit(u)} className="btn btn-sm">
-                    Editar
-                  </button>
-                  <button
-                    onClick={() => remove(u.id)}
-                    className="btn btn-sm bg-red-500 text-white"
-                  >
-                    Eliminar
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+          ))}
+        </tbody>
+      </table>
 
       <Pagination
         page={page}
@@ -209,9 +228,10 @@ export default function Usuarios() {
         onChange={setPage}
       />
 
+      {/* MODAL CREAR / EDITAR */}
       <Modal
         open={editing !== null}
-        title={editing && editing.id ? "Editar usuario" : "Crear usuario"}
+        title={editing?.id ? "Editar usuario" : "Crear usuario"}
         onClose={() => setEditing(null)}
       >
         <div className="space-y-3">
@@ -229,20 +249,35 @@ export default function Usuarios() {
             onChange={(e) => setForm({ ...form, email: e.target.value })}
           />
 
-          <select
-            className="select"
-            value={form.role}
-            onChange={(e) => setForm({ ...form, role: e.target.value as any })}
-          >
-            <option value="admin">Admin</option>
-            <option value="supervisor">Supervisor</option>
-            <option value="operador">Operador</option>
-          </select>
+          {/* ROL */}
+          {editing?.id ? (
+            <input
+              className="input opacity-70 cursor-not-allowed"
+              disabled
+              value={form.role.toUpperCase()}
+            />
+          ) : (
+            <select
+              className="select"
+              value={form.role}
+              onChange={(e) =>
+                setForm({ ...form, role: e.target.value as any })
+              }
+            >
+              <option value="admin">Admin</option>
+              <option value="supervisor">Supervisor</option>
+              <option value="operador">Operador</option>
+            </select>
+          )}
 
           <input
             className="input"
             type="password"
-            placeholder="Contraseña (solo si desea cambiarla)"
+            placeholder={
+              editing?.id
+                ? "Contraseña (opcional)"
+                : "Ingresar contraseña (mínimo 6 caracteres)"
+            }
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
           />
@@ -255,6 +290,27 @@ export default function Usuarios() {
               Guardar
             </button>
           </div>
+        </div>
+      </Modal>
+
+      {/* MODAL ELIMINAR */}
+      <Modal
+        open={deleteUser !== null}
+        title="Confirmar eliminación"
+        onClose={() => setDeleteUser(null)}
+      >
+        <p>
+          ¿Seguro que deseas eliminar a{" "}
+          <strong>{deleteUser?.name}</strong>?
+        </p>
+
+        <div className="flex justify-end gap-2 mt-4">
+          <button className="btn btn-ghost" onClick={() => setDeleteUser(null)}>
+            Cancelar
+          </button>
+          <button className="btn bg-red-500 text-white" onClick={confirmDelete}>
+            Eliminar
+          </button>
         </div>
       </Modal>
     </div>

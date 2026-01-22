@@ -1,5 +1,13 @@
 import { useEffect, useState } from 'react'
-import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts'
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid
+} from 'recharts'
 import { api } from '../services/api'
 
 type Weighing = {
@@ -19,7 +27,7 @@ type DashboardStats = {
 export default function Dashboard() {
   const [weighings, setWeighings] = useState<Weighing[]>([])
   const [loading, setLoading] = useState(true)
-  const [threshold, setThreshold] = useState(50)
+  const [threshold, setThreshold] = useState<number | ''>('')
   const [stats, setStats] = useState<DashboardStats>({
     vehiclesInPlant: 0,
     weighingsToday: 0,
@@ -28,14 +36,13 @@ export default function Dashboard() {
     weighingsLast24h: []
   })
 
-  // Cargar datos reales del backend
   useEffect(() => {
     const loadStats = async () => {
       setLoading(true)
       try {
         const response = await api.get('/dashboard/stats')
         const data = response.data?.data || response.data || {}
-        
+
         setStats({
           vehiclesInPlant: data.vehiclesInPlant || 0,
           weighingsToday: data.weighingsToday || 0,
@@ -44,17 +51,17 @@ export default function Dashboard() {
           weighingsLast24h: data.weighingsLast24h || []
         })
 
-        // Mapear datos de las últimas 24h para la gráfica
-        const mappedWeighings = (data.weighingsLast24h || []).map((w: any, index: number) => ({
-          id: index + 1,
-          fecha: w.fecha || w.updatedAt || new Date().toISOString(),
-          variacion: Number(w.variacion || w.variacionPeso || 0)
-        }))
-        
+        const mappedWeighings = (data.weighingsLast24h || []).map(
+          (w: any, index: number) => ({
+            id: index + 1,
+            fecha: w.fecha || w.updatedAt || new Date().toISOString(),
+            variacion: Number(w.variacion || w.variacionPeso || 0)
+          })
+        )
+
         setWeighings(mappedWeighings)
-      } catch (error: any) {
+      } catch (error) {
         console.error('Error cargando estadísticas del dashboard:', error)
-        // Si falla, usar valores por defecto
         setStats({
           vehiclesInPlant: 0,
           weighingsToday: 0,
@@ -69,45 +76,54 @@ export default function Dashboard() {
     }
 
     loadStats()
-    // Actualización automática deshabilitada - los datos se cargan solo al entrar
-    // Si necesitas actualizar, recarga la página o agrega un botón de refresh
-    // Para habilitar auto-refresh, descomenta la siguiente línea:
-    // const interval = setInterval(loadStats, 120000) // 2 minutos
-    // return () => clearInterval(interval)
   }, [])
 
-  const vehiclesInPlant = stats.vehiclesInPlant
-  const weighingsToday = stats.weighingsToday
-  const avgVariation = stats.avgVariation
-  const alerts = stats.alerts
-
   return (
-    <div className=" space-y-6 w-full">
+    <div className="space-y-6 w-full">
       <h1 className="text-2xl font-bold mb-4">Dashboard</h1>
+
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4">
-        <Card title=" Vehículos en planta" value={vehiclesInPlant} />
-        <Card title="Pesajes hoy" value={weighingsToday} />
-        <Card title="Variación promedio" value={`${avgVariation} kg`} />
-        <Card title="Alertas de desviación" value={alerts} />
+        <Card title="Vehículos en planta" value={stats.vehiclesInPlant} />
+        <Card title="Pesajes hoy" value={stats.weighingsToday} />
+        <Card title="Variación promedio" value={`${stats.avgVariation} kg`} />
+        <Card title="Alertas de desviación" value={stats.alerts} />
+
         <div className="rounded p-4 bg-white/5 border border-white/10 flex flex-col">
-          <div className="text-sm text-gray-300 mb-2">Umbral alerta (kg)</div>
+          <div className="text-sm text-gray-300 mb-2">
+            Umbral de alerta (kg)
+          </div>
           <input
             type="number"
-            className=" input w-full"
+            className="input w-full"
+            placeholder="Ingresa el umbral en kg (ej: 50)"
             value={threshold}
-            onChange={e=>setThreshold(Number(e.target.value)||0)}
+            min={0}
+            onChange={(e) =>
+              setThreshold(
+                e.target.value === '' ? '' : Number(e.target.value)
+              )
+            }
           />
         </div>
       </div>
 
       <section className="bg-white/5 border border-white/10 rounded p-3 sm:p-4">
-        <h2 className=" font-semibold mb-2 text-base sm:text-lg">Mapa de básculas</h2>
+        <h2 className="font-semibold mb-2 text-base sm:text-lg">
+          Mapa de básculas
+        </h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3">
-          {[1,2,3,4].map(i => (
-            <div key={i} className="rounded p-4 bg-black/30 border border-white/10">
+          {[1, 2, 3, 4].map((i) => (
+            <div
+              key={i}
+              className="rounded p-4 bg-black/30 border border-white/10"
+            >
               <div className="text-sm">Báscula {i}</div>
               <div className="mt-2 inline-flex items-center gap-2 text-sm">
-                <span className={`inline-block w-2.5 h-2.5 rounded-full ${i % 2 === 0 ? 'bg-green-400' : 'bg-red-400'}`} />
+                <span
+                  className={`inline-block w-2.5 h-2.5 rounded-full ${
+                    i % 2 === 0 ? 'bg-green-400' : 'bg-red-400'
+                  }`}
+                />
                 {i % 2 === 0 ? 'Activa' : 'Inactiva'}
               </div>
             </div>
@@ -116,7 +132,10 @@ export default function Dashboard() {
       </section>
 
       <section className="bg-white/5 border border-white/10 rounded p-3 sm:p-4">
-        <h2 className="font-semibold mb-2 text-base sm:text-lg">Gráfica de Variaciones (Últimas 24h)</h2>
+        <h2 className="font-semibold mb-2 text-base sm:text-lg">
+          Gráfica de Variaciones (Últimas 24h)
+        </h2>
+
         {loading ? (
           <div className="text-sm text-gray-400 flex items-center justify-center h-64">
             <div className="text-center">
@@ -135,29 +154,47 @@ export default function Dashboard() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#ffffff22" />
                 <XAxis
                   dataKey="fecha"
-                  tickFormatter={(v: string) => new Date(v).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  tickFormatter={(v: string) =>
+                    new Date(v).toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })
+                  }
                   tick={{ fill: '#D1D5DB', fontSize: 12 }}
                 />
                 <YAxis />
-                <Tooltip 
-                  labelFormatter={(v) => new Date(v as string).toLocaleString()}
-                  formatter={(value: number) => [`${value.toFixed(2)} kg`, 'Variación']}
+                <Tooltip
+                  labelFormatter={(v) =>
+                    new Date(v as string).toLocaleString()
+                  }
+                  formatter={(value: number) => [
+                    `${value.toFixed(2)} kg`,
+                    'Variación'
+                  ]}
                 />
-                <Line type="monotone" dataKey="variacion" stroke="#F15A29" dot={false} strokeWidth={2} />
+                <Line
+                  type="monotone"
+                  dataKey="variacion"
+                  stroke="#F15A29"
+                  dot={false}
+                  strokeWidth={2}
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>
         )}
       </section>
-
-      {/* Se ocultó la sección de Eficiencia por báscula (simulada) a solicitud del usuario */}
-
-      {/* Mapa de básculas movido arriba; sección original eliminada */}
     </div>
   )
 }
 
-function Card({ title, value }: { title: string; value: number | string }) {
+function Card({
+  title,
+  value
+}: {
+  title: string
+  value: number | string
+}) {
   return (
     <div className="rounded p-4 bg-white/5 border border-white/10">
       <div className="text-sm text-gray-300">{title}</div>
@@ -165,5 +202,3 @@ function Card({ title, value }: { title: string; value: number | string }) {
     </div>
   )
 }
-
-
