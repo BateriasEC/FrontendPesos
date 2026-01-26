@@ -61,21 +61,40 @@ export default function Reportes() {
   }, [filtered]);
 
   const deviationByProduct = useMemo(() => {
-    const map = new Map<string, { sum: number; count: number }>();
-    filtered.forEach((r) => {
-      const key = String(r.productoId);
-      const current = map.get(key) || { sum: 0, count: 0 };
-      current.sum += Math.abs(r.variacion);
-      current.count += 1;
-      map.set(key, current);
-    });
-    return Array.from(map.entries())
-      .map(([product, data]) => ({
-        product: product || "N/A",
-        avg: data.count > 0 ? Number((data.sum / data.count).toFixed(2)) : 0,
-      }))
-      .filter((p) => p.product !== "N/A" && p.avg > 0);
-  }, [filtered]);
+  const map = new Map<string, number[]>();
+
+  filtered.forEach((r) => {
+    const key = String(r.productoId);
+    const arr = map.get(key) || [];
+    arr.push(r.variacion);
+    map.set(key, arr);
+  });
+
+  return Array.from(map.entries())
+    .map(([product, values]) => {
+      const avg =
+        values.reduce((a, b) => a + b, 0) / values.length;
+
+      const deviation =
+        values.reduce(
+          (acc, v) => acc + Math.abs(v - avg),
+          0
+        ) / values.length;
+
+      return {
+        product,
+
+        /** 🔴 CLAVE que el gráfico YA usa */
+        avg: Number(deviation.toFixed(2)),
+
+        /** 🟢 NUEVOS DATOS */
+        promedioModelo: Number(avg.toFixed(2)),
+        registros: values.length,
+      };
+    })
+    .filter((p) => p.avg > 0);
+}, [filtered]);
+
 
   const exportPDF = useCallback(() => {
     try {
