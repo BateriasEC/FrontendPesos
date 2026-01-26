@@ -51,24 +51,15 @@ export default function Dashboard() {
           weighingsLast24h: data.weighingsLast24h || []
         })
 
-        const mappedWeighings = (data.weighingsLast24h || []).map(
-          (w: any, index: number) => ({
-            id: index + 1,
-            fecha: w.fecha || w.updatedAt || new Date().toISOString(),
-            variacion: Number(w.variacion || w.variacionPeso || 0)
-          })
+        setWeighings(
+          (data.weighingsLast24h || []).map((w: any, i: number) => ({
+            id: i + 1,
+            fecha: w.fecha || w.updatedAt,
+            variacion: Number(w.variacion || 0)
+          }))
         )
-
-        setWeighings(mappedWeighings)
       } catch (error) {
-        console.error('Error cargando estadísticas del dashboard:', error)
-        setStats({
-          vehiclesInPlant: 0,
-          weighingsToday: 0,
-          avgVariation: 0,
-          alerts: 0,
-          weighingsLast24h: []
-        })
+        console.error('Error cargando dashboard:', error)
         setWeighings([])
       } finally {
         setLoading(false)
@@ -80,47 +71,74 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6 w-full">
-      <h1 className="text-2xl font-bold mb-4">Dashboard</h1>
+      <h1 className="text-2xl font-bold">DASHBOARD GENERAL</h1>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4">
-        <Card title="Vehículos en planta" value={stats.vehiclesInPlant} />
-        <Card title="Pesajes hoy" value={stats.weighingsToday} />
-        <Card title="Variación promedio" value={`${stats.avgVariation} kg`} />
-        <Card title="Alertas de desviación" value={stats.alerts} />
+      {/* Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+        <StatCard title="Vehículos en planta" value={stats.vehiclesInPlant} />
+        <StatCard title="Pesajes hoy" value={stats.weighingsToday} />
+        <StatCard title="Variación promedio" value={`${stats.avgVariation} kg`} />
+        <StatCard title="Alertas" value={stats.alerts} />
 
-        <div className="rounded p-4 bg-white/5 border border-white/10 flex flex-col">
+        {/* Umbral */}
+        <div className="rounded-xl p-4 bg-white/5 border border-white/10 shadow-sm hover:shadow-md transition">
           <div className="text-sm text-gray-300 mb-2">
-            Umbral de alerta (kg)
+            Umbral de alerta
           </div>
-          <input
-            type="number"
-            className="input w-full"
-            placeholder="Ingresa el umbral en kg (ej: 50)"
-            value={threshold}
-            min={0}
-            onChange={(e) =>
-              setThreshold(
-                e.target.value === '' ? '' : Number(e.target.value)
-              )
-            }
-          />
+
+          <div className="relative">
+            <input
+              type="number"
+              min={0}
+              value={threshold}
+              onChange={(e) =>
+                setThreshold(e.target.value === '' ? '' : Number(e.target.value))
+              }
+              placeholder="Ej: 50 kg"
+              className="
+                w-full rounded-lg px-3 py-2
+                bg-black/30
+                border border-white/10
+                text-gray-100
+                placeholder:text-gray-500
+                focus:outline-none
+                focus:ring-1 focus:ring-brand-orange/60
+                focus:border-brand-orange/60
+                transition
+              "
+            />
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">
+              kg
+            </span>
+          </div>
+
+          {threshold !== '' && (
+            <div className="mt-2 text-xs text-gray-400">
+              Alertas sobre{' '}
+              <span className="text-brand-orange font-medium">
+                {threshold} kg
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
-      <section className="bg-white/5 border border-white/10 rounded p-3 sm:p-4">
-        <h2 className="font-semibold mb-2 text-base sm:text-lg">
-          Mapa de básculas
+      {/* Básculas */}
+      <section className="bg-white/5 border border-white/10 rounded-xl p-4">
+        <h2 className="font-semibold mb-3 text-lg">
+          Estado de Básculas
         </h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3">
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
           {[1, 2, 3, 4].map((i) => (
             <div
               key={i}
-              className="rounded p-4 bg-black/30 border border-white/10"
+              className="rounded-lg p-4 bg-black/30 border border-white/10 hover:bg-black/40 transition"
             >
-              <div className="text-sm">Báscula {i}</div>
-              <div className="mt-2 inline-flex items-center gap-2 text-sm">
+              <div className="text-sm font-medium">Báscula {i}</div>
+              <div className="mt-2 flex items-center gap-2 text-sm">
                 <span
-                  className={`inline-block w-2.5 h-2.5 rounded-full ${
+                  className={`w-2.5 h-2.5 rounded-full ${
                     i % 2 === 0 ? 'bg-green-400' : 'bg-red-400'
                   }`}
                 />
@@ -131,30 +149,37 @@ export default function Dashboard() {
         </div>
       </section>
 
-      <section className="bg-white/5 border border-white/10 rounded p-3 sm:p-4">
-        <h2 className="font-semibold mb-2 text-base sm:text-lg">
-          Gráfica de Variaciones (Últimas 24h)
+      {/* Gráfica */}
+      <section className="bg-white/5 border border-white/10 rounded-xl p-4">
+        <h2 className="font-semibold mb-3 text-lg">
+          Variaciones últimas 24 horas
         </h2>
 
         {loading ? (
-          <div className="text-sm text-gray-400 flex items-center justify-center h-64">
+          <div className="flex items-center justify-center h-64 text-gray-400">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-orange mx-auto mb-2"></div>
-              <p>Cargando datos...</p>
+              <div className="animate-spin h-8 w-8 border-b-2 border-brand-orange rounded-full mx-auto mb-2" />
+              Cargando datos...
             </div>
           </div>
         ) : weighings.length === 0 ? (
-          <div className="text-sm text-gray-400 flex items-center justify-center h-64">
-            No hay datos de pesajes en las últimas 24 horas
+          <div className="flex flex-col items-center justify-center h-64 text-gray-400">
+            <div className="text-lg mb-2">📉</div>
+            <p className="text-sm">
+              No se registraron variaciones en las últimas 24 horas
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              Las básculas no reportaron cambios de peso
+            </p>
           </div>
         ) : (
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={weighings.slice(-20)}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#ffffff22" />
+                <CartesianGrid stroke="#ffffff22" strokeDasharray="3 3" />
                 <XAxis
                   dataKey="fecha"
-                  tickFormatter={(v: string) =>
+                  tickFormatter={(v) =>
                     new Date(v).toLocaleTimeString([], {
                       hour: '2-digit',
                       minute: '2-digit'
@@ -176,8 +201,8 @@ export default function Dashboard() {
                   type="monotone"
                   dataKey="variacion"
                   stroke="#F15A29"
-                  dot={false}
                   strokeWidth={2}
+                  dot={false}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -188,7 +213,7 @@ export default function Dashboard() {
   )
 }
 
-function Card({
+function StatCard({
   title,
   value
 }: {
@@ -196,9 +221,10 @@ function Card({
   value: number | string
 }) {
   return (
-    <div className="rounded p-4 bg-white/5 border border-white/10">
+    <div className="rounded-xl p-4 bg-white/5 border border-white/10 shadow-sm hover:shadow-md transition">
       <div className="text-sm text-gray-300">{title}</div>
-      <div className="text-2xl font-semibold">{value}</div>
+      <div className="text-2xl font-bold mt-1">{value}</div>
+      <div className="mt-3 h-1 w-full bg-brand-orange/70 rounded-full" />
     </div>
   )
 }

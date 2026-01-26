@@ -7,7 +7,7 @@ type HeaderProps = {
   onMenuClick?: () => void
 }
 
-/* Reloj */
+/* ⏰ Reloj */
 const Clock = memo(() => {
   const [now, setNow] = useState(new Date())
 
@@ -33,13 +33,26 @@ export function Header({ onMenuClick }: HeaderProps) {
     navigate('/login')
   }
 
+  const rawRole =
+    user
+      ? typeof user.role === 'string'
+        ? user.role
+        : user.role?.codigo || user.role?.nombre || ''
+      : ''
+
+  const formattedRole =
+    rawRole.toLowerCase() === 'admin'
+      ? 'ADMINISTRADOR GENERAL'
+      : rawRole
+        ? rawRole.toUpperCase()
+        : 'SIN ROL'
+
   return (
     <>
       {/* HEADER */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-[#FDB71A] shadow-xl">
-        
         <div className="h-[80px] max-w-[1700px] mx-auto px-6 flex items-center justify-between">
-          
+
           {/* IZQUIERDA */}
           <div className="flex items-center gap-4">
             {onMenuClick && (
@@ -63,25 +76,16 @@ export function Header({ onMenuClick }: HeaderProps) {
 
           {/* DERECHA */}
           <div className="flex items-center gap-4 px-2">
-            
-            {/* Usuario */}
-            <div className="hidden sm:flex flex-col leading-tight text-right">
-              <span className="text-[11px] text-black/50 uppercase tracking-wide">
-                Usuario
-              </span>
+
+            {/* Usuario + Rol */}
+            <div className="hidden sm:flex flex-col text-right leading-tight">
               <span className="text-sm font-semibold text-black">
                 {user?.name || user?.nombre || user?.email || 'Invitado'}
               </span>
+              <span className="text-[11px] font-semibold text-black/60 tracking-widest">
+                {formattedRole}
+              </span>
             </div>
-
-            {/* Rol */}
-            <span className="hidden md:inline text-xs font-medium text-black bg-black/10 px-3 py-1 rounded-full">
-              {user
-                ? typeof user.role === 'string'
-                  ? user.role
-                  : user.role?.codigo || user.role?.nombre || 'Sin rol'
-                : '—'}
-            </span>
 
             {/* Separador */}
             <div className="h-7 w-px bg-black/30 hidden sm:block" />
@@ -89,7 +93,16 @@ export function Header({ onMenuClick }: HeaderProps) {
             {/* Logout */}
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#EE3626] text-white font-semibold shadow-md hover:brightness-110 hover:scale-105 transition"
+              className="
+                flex items-center gap-2
+                px-3 py-2
+                rounded-xl
+                bg-black/5
+                text-black/80
+                font-medium
+                hover:bg-black/10
+                transition
+              "
             >
               <ArrowRightOnRectangleIcon className="w-5 h-5" />
               <span className="hidden sm:inline">
@@ -103,7 +116,7 @@ export function Header({ onMenuClick }: HeaderProps) {
         <div className="h-[3px] bg-[#EE3626]" />
       </header>
 
-      {/* ESPACIO ENTRE HEADER Y CONTENIDO */}
+      {/* Espacio para el contenido */}
       <div className="h-[90px]" />
     </>
   )

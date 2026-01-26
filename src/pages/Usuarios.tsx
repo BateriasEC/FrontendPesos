@@ -12,6 +12,12 @@ type Usuario = {
   password: string;
 };
 
+const ROLE_LABELS: Record<Usuario["role"], string> = {
+  admin: "ADMINISTRADOR",
+  supervisor: "SUPERVISOR",
+  operador: "OPERADOR",
+};
+
 export default function Usuarios() {
   const [rows, setRows] = useState<Usuario[]>([]);
   const [q, setQ] = useState("");
@@ -66,7 +72,7 @@ export default function Usuarios() {
     [filtered, page]
   );
 
-  // ================== MODAL ==================
+  // ================== MODAL CREAR / EDITAR ==================
   const [editing, setEditing] = useState<Usuario | null>(null);
   const [form, setForm] = useState<Omit<Usuario, "id" | "roleId">>({
     name: "",
@@ -93,10 +99,6 @@ export default function Usuarios() {
   // ================== GUARDAR ==================
   const save = async () => {
     try {
-      if (!form.name || !form.email) {
-        return alert("Nombre y correo son obligatorios");
-      }
-
       const roleCodeMap: Record<string, string> = {
         admin: "ADMIN",
         supervisor: "SUPERVISOR",
@@ -157,61 +159,72 @@ export default function Usuarios() {
 
   // ================== UI ==================
   return (
-    <div className="space-y-4 w-full">
-      <h1 className="text-xl font-bold">Usuarios</h1>
+    <div className="space-y-6 w-full">
+      <h1 className="text-2xl font-bold">USUARIOS</h1>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid sm:grid-cols-3 gap-3">
         <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
           className="input"
           placeholder="Buscar por nombre o correo"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
         />
 
         <select
+          className="select"
           value={role}
           onChange={(e) => setRole(e.target.value as any)}
-          className="select"
         >
-          <option value="">Todos</option>
-          <option value="admin">Admin</option>
-          <option value="supervisor">Supervisor</option>
-          <option value="operador">Operador</option>
+          <option value="">TODOS</option>
+          <option value="admin">ADMINISTRADOR</option>
+          <option value="supervisor">SUPERVISOR</option>
+          <option value="operador">OPERADOR</option>
         </select>
 
         <button onClick={openNew} className="btn btn-primary">
-          Nuevo Usuario
+          NUEVO USUARIO
         </button>
       </div>
 
-      <table className="table w-full">
+      {/* ================== TABLA ================== */}
+      <table className="table table-zebra w-full">
         <thead>
           <tr>
-            <th>Nombre</th>
-            <th>Correo</th>
-            <th>Rol</th>
-            <th>Acciones</th>
+            <th className="uppercase font-bold align-middle">Nombre</th>
+            <th className="uppercase font-bold align-middle">Correo</th>
+            <th className="uppercase font-bold align-middle">Rol</th>
+            <th className="uppercase font-bold text-center align-middle">
+              Acciones
+            </th>
           </tr>
         </thead>
+
         <tbody>
           {pageRows.map((u) => (
             <tr key={u.id}>
-              <td>{u.name}</td>
-              <td>{u.email}</td>
-              <td className="capitalize">{u.role}</td>
-              <td className="flex gap-2">
-                <button onClick={() => openEdit(u)} className="btn btn-sm">
+              <td className="align-middle">{u.name}</td>
+              <td className="align-middle">{u.email}</td>
+              <td className="align-middle font-semibold">
+                {ROLE_LABELS[u.role]}
+              </td>
+
+              {/* ✅ PERFECTAMENTE ALINEADO */}
+              <td className="text-center align-middle space-x-2">
+                <button
+                  onClick={() => openEdit(u)}
+                  className="btn btn-ghost btn-sm"
+                >
                   Editar
                 </button>
 
                 <button
                   disabled={u.role === "admin"}
                   onClick={() => setDeleteUser(u)}
-                  className={`btn btn-sm ${
+                  className={
                     u.role === "admin"
-                      ? "opacity-40 cursor-not-allowed"
-                      : "bg-red-500 text-white"
-                  }`}
+                      ? "btn btn-sm bg-red-500/10 text-red-300 opacity-40 cursor-not-allowed"
+                      : "btn btn-sm bg-red-500/20 text-red-300"
+                  }
                 >
                   Eliminar
                 </button>
@@ -228,7 +241,7 @@ export default function Usuarios() {
         onChange={setPage}
       />
 
-      {/* MODAL CREAR / EDITAR */}
+      {/* ================== MODAL CREAR / EDITAR ================== */}
       <Modal
         open={editing !== null}
         title={editing?.id ? "Editar usuario" : "Crear usuario"}
@@ -249,12 +262,11 @@ export default function Usuarios() {
             onChange={(e) => setForm({ ...form, email: e.target.value })}
           />
 
-          {/* ROL */}
           {editing?.id ? (
             <input
-              className="input opacity-70 cursor-not-allowed"
+              className="input opacity-70 cursor-not-allowed font-semibold"
               disabled
-              value={form.role.toUpperCase()}
+              value={ROLE_LABELS[form.role]}
             />
           ) : (
             <select
@@ -264,9 +276,9 @@ export default function Usuarios() {
                 setForm({ ...form, role: e.target.value as any })
               }
             >
-              <option value="admin">Admin</option>
-              <option value="supervisor">Supervisor</option>
-              <option value="operador">Operador</option>
+              <option value="admin">ADMINISTRADOR</option>
+              <option value="supervisor">SUPERVISOR</option>
+              <option value="operador">OPERADOR</option>
             </select>
           )}
 
@@ -293,7 +305,7 @@ export default function Usuarios() {
         </div>
       </Modal>
 
-      {/* MODAL ELIMINAR */}
+      {/* ================== MODAL ELIMINAR ================== */}
       <Modal
         open={deleteUser !== null}
         title="Confirmar eliminación"
@@ -304,11 +316,11 @@ export default function Usuarios() {
           <strong>{deleteUser?.name}</strong>?
         </p>
 
-        <div className="flex justify-end gap-2 mt-4">
+        <div className="mt-4 flex justify-end gap-2">
           <button className="btn btn-ghost" onClick={() => setDeleteUser(null)}>
             Cancelar
           </button>
-          <button className="btn bg-red-500 text-white" onClick={confirmDelete}>
+          <button className="btn btn-error" onClick={confirmDelete}>
             Eliminar
           </button>
         </div>
