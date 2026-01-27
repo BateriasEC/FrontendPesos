@@ -2,14 +2,14 @@ import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import "../styles/report-sabanas.css";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import * as XLSX from "xlsx";
 import { DateRange } from "../components/DateRange";
 import { ReportCharts } from "../components/ReportCharts";
 import { SabanasTable } from "../components/SabanasTable";
 import { Pagination } from "../components/Pagination";
 import { useReportData } from "../hooks/useReportData";
 import { useSabanaData } from "../hooks/useSabanaData";
-import * as XLSX from "xlsx";
-import autoTable from "jspdf-autotable";
 
 export default function Reportes() {
   const { rows, loading, load } = useReportData();
@@ -37,24 +37,21 @@ export default function Reportes() {
     load();
   }, [load]);
 
-  const filtered = useMemo(
-    () =>
-      rows.filter((r) => {
-        const d = new Date(r.fecha);
-        const okFrom =
-          !reportRange.from || d >= new Date(reportRange.from + "T00:00:00");
-        const okTo =
-          !reportRange.to || d <= new Date(reportRange.to + "T23:59:59");
-        return okFrom && okTo;
-      }),
-    [rows, reportRange],
-  );
+  const filtered = useMemo(() => {
+    return rows.filter((r) => {
+      const d = new Date(r.fecha);
+      return (
+        (!reportRange.from || d >= new Date(reportRange.from + "T00:00:00")) &&
+        (!reportRange.to || d <= new Date(reportRange.to + "T23:59:59"))
+      );
+    });
+  }, [rows, reportRange]);
 
   const byDay = useMemo(() => {
     const map = new Map<string, number>();
     filtered.forEach((r) => {
-      const k = new Date(r.fecha).toISOString().slice(0, 10);
-      map.set(k, (map.get(k) || 0) + 1);
+      const day = new Date(r.fecha).toISOString().slice(0, 10);
+      map.set(day, (map.get(day) || 0) + 1);
     });
     return Array.from(map.entries())
       .map(([day, total]) => ({ day, total }))
@@ -75,7 +72,6 @@ export default function Reportes() {
         const avg = values.reduce((a, b) => a + b, 0) / values.length;
         const deviation =
           values.reduce((acc, v) => acc + Math.abs(v - avg), 0) / values.length;
-
         return {
           product,
           avg: Number(deviation.toFixed(2)),
@@ -86,6 +82,7 @@ export default function Reportes() {
       .filter((p) => p.avg > 0);
   }, [filtered]);
 
+  // PDF de Reportes
   const exportPDF = useCallback(() => {
     try {
       const pdf = new jsPDF({
@@ -93,7 +90,6 @@ export default function Reportes() {
         unit: "mm",
         format: "a4",
       });
-
       pdf.setFontSize(18);
       pdf.setTextColor(183, 28, 28);
       pdf.text("Reporte de Pesajes", 14, 15);
@@ -160,6 +156,7 @@ export default function Reportes() {
     }
   }, [filtered, reportRange]);
 
+  // Excel de Reportes
   const exportExcel = useCallback(() => {
     try {
       const excelData = filtered.map((r, idx) => {
@@ -175,56 +172,23 @@ export default function Reportes() {
       });
 
       const ws = XLSX.utils.json_to_sheet(excelData, { cellDates: true });
-      const range = XLSX.utils.decode_range(ws["!ref"] as string);
-
-      for (let R = range.s.r + 1; R <= range.e.r; R++) {
-        ws[XLSX.utils.encode_cell({ r: R, c: 1 })].z = "dd/mm/yyyy";
-        ws[XLSX.utils.encode_cell({ r: R, c: 2 })].z = "hh:mm";
-        ws[XLSX.utils.encode_cell({ r: R, c: 3 })].t = "n";
-      }
-
-      const totalRow = range.e.r + 1;
-      ws[XLSX.utils.encode_cell({ r: totalRow, c: 2 })] = {
-        t: "s",
-        v: "TOTAL",
-      };
-      ws[XLSX.utils.encode_cell({ r: totalRow, c: 3 })] = {
-        t: "n",
-        f: `SUM(D2:D${range.e.r + 1})`,
-      };
-      ws["!ref"] = XLSX.utils.encode_range({
-        s: range.s,
-        e: { r: totalRow, c: range.e.c },
-      });
-      ws["!cols"] = [
-        { wch: 6 },
-        { wch: 12 },
-        { wch: 10 },
-        { wch: 16 },
-        { wch: 14 },
-        { wch: 22 },
-      ];
-      ws["!autofilter"] = { ref: ws["!ref"] };
-      ws["!freeze"] = { xSplit: 0, ySplit: 1 };
-
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Reportes");
       XLSX.writeFile(wb, `reportes_${reportRange.from}_${reportRange.to}.xlsx`);
     } catch (error) {
       console.error("Error al exportar Excel:", error);
-      alert("Error al exportar Excel. Por favor, intente nuevamente.");
+      alert("Error al exportar Excel");
     }
   }, [filtered, reportRange]);
 
+  // Excel Sábanas
   const exportSabanaExcel = useCallback(() => {
     try {
       const excelData: any[] = [];
-
       sabanasData.forEach((camion, idx) => {
         camion.paletes.forEach((palet, pIdx) => {
           const trit = camion.trituradora[pIdx] || {};
           const fecha = new Date(camion.fecha);
-
           excelData.push({
             Camión: idx + 1,
             Placa: camion.placa,
@@ -258,62 +222,6 @@ export default function Reportes() {
       });
 
       const ws = XLSX.utils.json_to_sheet(excelData, { cellDates: true });
-      const range = XLSX.utils.decode_range(ws["!ref"] as string);
-
-      for (let R = range.s.r + 1; R <= range.e.r; R++) {
-        ws[XLSX.utils.encode_cell({ r: R, c: 5 })].z = "dd/mm/yyyy";
-        ws[XLSX.utils.encode_cell({ r: R, c: 6 })].z = "hh:mm";
-      }
-
-      const totalRow = range.e.r + 1;
-      ws[XLSX.utils.encode_cell({ r: totalRow, c: 4 })] = {
-        t: "s",
-        v: "TOTALES",
-      };
-      ws[XLSX.utils.encode_cell({ r: totalRow, c: 7 })] = {
-        t: "n",
-        f: `SUM(H2:H${range.e.r + 1})`,
-      };
-      ws[XLSX.utils.encode_cell({ r: totalRow, c: 8 })] = {
-        t: "n",
-        f: `SUM(I2:I${range.e.r + 1})`,
-      };
-      ws[XLSX.utils.encode_cell({ r: totalRow, c: 9 })] = {
-        t: "n",
-        f: `SUM(J2:J${range.e.r + 1})`,
-      };
-
-      ws["!ref"] = XLSX.utils.encode_range({
-        s: range.s,
-        e: { r: totalRow, c: range.e.c },
-      });
-
-      ws["!cols"] = [
-        { wch: 8 },
-        { wch: 12 },
-        { wch: 22 },
-        { wch: 20 },
-        { wch: 20 },
-        { wch: 12 },
-        { wch: 12 },
-        { wch: 16 },
-        { wch: 16 },
-        { wch: 18 },
-        { wch: 10 },
-        { wch: 18 },
-        { wch: 20 },
-        { wch: 20 },
-        { wch: 16 },
-        { wch: 20 },
-        { wch: 18 },
-        { wch: 20 },
-        { wch: 18 },
-        { wch: 22 },
-      ];
-
-      ws["!autofilter"] = { ref: ws["!ref"] };
-      ws["!freeze"] = { xSplit: 0, ySplit: 1 };
-
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Sábanas de Pesajes");
       XLSX.writeFile(
@@ -328,9 +236,10 @@ export default function Reportes() {
 
   return (
     <div className="space-y-6 w-full">
-      <h1 className="text-3xl font-bold mb-6 text-gray-100">Reportes</h1>
+      <h1 className="text-2xl font-bold text-gray-100">Reportes</h1>
 
-      <div className="flex flex-wrap items-end gap-3 mb-4">
+      {/* FILTROS */}
+      <div className="flex flex-wrap gap-3 items-end">
         <DateRange from={range.from} to={range.to} onChange={setRange} />
         <button
           onClick={async () => {
@@ -340,34 +249,31 @@ export default function Reportes() {
             setTimeout(() => setSearchingReports(false), 500);
           }}
           disabled={searchingReports || loading}
-          className="px-5 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium rounded transition-all flex items-center gap-2"
+          className="h-10 px-4 bg-gray-600 hover:bg-gray-700 disabled:bg-gray-500 text-white rounded transition font-medium"
+
         >
           {searchingReports || loading ? (
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+            <div className="animate-spin h-4 w-4 border-b-2 border-white rounded-full" />
           ) : (
             "Buscar"
           )}
         </button>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2 mb-6">
         <button
           onClick={exportPDF}
-          disabled={loading || searchingReports}
-          className="px-5 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white font-medium rounded transition-all"
+          className="h-10 px-4 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white rounded transition font-medium"
         >
           Exportar PDF
         </button>
         <button
           onClick={exportExcel}
-          disabled={loading || searchingReports || filtered.length === 0}
-          className="px-5 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-medium rounded transition-all"
+          className="h-10 px-4 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white rounded transition font-medium"
         >
           Exportar Excel
         </button>
       </div>
 
-      <div ref={ref}>
+      {/* GRÁFICOS */}
+      <div className="rounded-xl border border-white/10 bg-white/5 p-4 mt-4">
         <ReportCharts
           byDay={byDay}
           deviationByProduct={deviationByProduct}
@@ -375,61 +281,68 @@ export default function Reportes() {
         />
       </div>
 
-      <section className="report-sabanas bg-gray-800/20 border border-gray-700 rounded-lg p-6">
-        <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
-          <h2 className="text-2xl font-bold text-gray-100">
+      {/* SÁBANAS */}
+      <section className="rounded-xl border border-white/10 bg-white/5 p-6 mt-4">
+        {/* Encabezado */}
+        <div className="flex flex-wrap justify-between gap-4 mb-5">
+          {/* Título más arriba */}
+          <h2 className="text-xl font-semibold text-gray-100 pt-1">
             Sábanas de Pesajes
           </h2>
-          <div className="flex flex-wrap items-end gap-3">
+
+          {/* Controles */}
+          <div className="flex flex-wrap gap-2 items-end">
             <DateRange from={range.from} to={range.to} onChange={setRange} />
-            <button
-              onClick={async () => {
-                setSearching(true);
-                setSabanaRange(range);
-                setSabanaPage(1);
-                setTimeout(() => setSearching(false), 500);
-              }}
-              disabled={searching || sabanaLoading}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium rounded transition-all"
-            >
-              {searching || sabanaLoading ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-              ) : (
-                "Buscar"
-              )}
-            </button>
-            <button
-              onClick={exportSabanaExcel}
-              className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded transition-all"
-            >
-              Exportar Excel
-            </button>
+
+            <div className="flex gap-2 mt-5">
+              <button
+                onClick={async () => {
+                  setSearching(true);
+                  setSabanaRange(range);
+                  setSabanaPage(1);
+                  setTimeout(() => setSearching(false), 500);
+                }}
+                disabled={searching || sabanaLoading}
+                className="h-10 px-5 bg-gray-600 hover:bg-gray-700 disabled:bg-gray-500 text-white rounded-lg transition font-medium flex items-center justify-center"
+              >
+                {searching || sabanaLoading ? (
+                  <div className="animate-spin h-4 w-4 border-b-2 border-white rounded-full" />
+                ) : (
+                  "Buscar"
+                )}
+              </button>
+
+              <button
+                onClick={exportSabanaExcel}
+                className="h-10 px-5 bg-green-600 hover:bg-green-700 text-white rounded-lg transition font-medium flex items-center justify-center"
+              >
+                Exportar Excel
+              </button>
+            </div>
           </div>
         </div>
 
+        {/* Contenido */}
         {sabanaLoading || searching ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-              <p className="text-gray-400">Cargando datos...</p>
-            </div>
+          <div className="flex justify-center py-12">
+            <div className="h-10 w-10 animate-spin border-b-2 border-gray-400 rounded-full" />
           </div>
         ) : sabanasData.length === 0 ? (
-          <div className="text-center py-12 text-gray-400">
-            <div className="text-5xl mb-4">📋</div>
-            <p className="text-lg">
-              No hay datos para el rango de fechas seleccionado
-            </p>
-            <p className="text-sm mt-2 text-gray-500">
+          <div className="text-center py-12 text-gray-500">
+            <p>No hay datos para el rango de fechas seleccionado</p>
+            <p className="text-sm mt-1 text-gray-500">
               Rango: {sabanaRange.from} a {sabanaRange.to}
             </p>
           </div>
         ) : (
           <>
-            <SabanasTable
-              data={sabanasData.slice((sabanaPage - 1) * 10, sabanaPage * 10)}
-            />
-            <div className="mt-6 flex justify-end">
+            <div className="overflow-x-auto rounded-lg border border-white/5">
+              <SabanasTable
+                data={sabanasData.slice((sabanaPage - 1) * 10, sabanaPage * 10)}
+              />
+            </div>
+
+            <div className="flex justify-end mt-4">
               <Pagination
                 page={sabanaPage}
                 pageSize={10}
