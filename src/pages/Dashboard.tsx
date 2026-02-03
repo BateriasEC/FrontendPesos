@@ -24,10 +24,20 @@ type DashboardStats = {
   weighingsLast24h: Array<{ fecha: string; variacion: number }>
 }
 
+type BalanzaEstado = 'ONLINE' | 'IDLE' | 'OFFLINE'
+
+type BalanzaInfo = {
+  estado: BalanzaEstado
+  peso: number
+  unidad: string
+  lastUpdate: string | null
+}
+
 export default function Dashboard() {
   const [weighings, setWeighings] = useState<Weighing[]>([])
   const [loading, setLoading] = useState(true)
   const [threshold, setThreshold] = useState<number | ''>('')
+  const [balanzasEstados, setBalanzasEstados] = useState<Map<number, BalanzaInfo>>(new Map())
   const [stats, setStats] = useState<DashboardStats>({
     vehiclesInPlant: 0,
     weighingsToday: 0,
@@ -66,7 +76,30 @@ export default function Dashboard() {
       }
     }
 
+    const loadBalanzasEstados = async () => {
+      try {
+        const response = await api.get('/balanzas/estados')
+        const estados = response.data || {}
+        const estadosMap = new Map<number, BalanzaInfo>()
+        
+        Object.keys(estados).forEach((key) => {
+          const balanzaId = parseInt(key)
+          estadosMap.set(balanzaId, estados[balanzaId])
+        })
+        
+        setBalanzasEstados(estadosMap)
+      } catch (error) {
+        console.error('Error cargando estados de balanzas:', error)
+      }
+    }
+
     loadStats()
+    loadBalanzasEstados()
+    
+    // Actualizar estados de balanzas cada 5 segundos
+    const interval = setInterval(loadBalanzasEstados, 5000)
+    
+    return () => clearInterval(interval)
   }, [])
 
   return (
@@ -129,23 +162,65 @@ export default function Dashboard() {
           Estado de Básculas
         </h2>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-          {[1, 2, 3, 4].map((i) => (
-            <div
-              key={i}
-              className="rounded-lg p-4 bg-black/30 border border-white/10 hover:bg-black/40 transition"
-            >
-              <div className="text-sm font-medium">Báscula {i}</div>
-              <div className="mt-2 flex items-center gap-2 text-sm">
-                <span
-                  className={`w-2.5 h-2.5 rounded-full ${
-                    i % 2 === 0 ? 'bg-green-400' : 'bg-red-400'
-                  }`}
-                />
-                {i % 2 === 0 ? 'Activa' : 'Inactiva'}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {[1, 2, 3].map((i) => {
+            const balanzaInfo = balanzasEstados.get(i)
+            const estado = balanzaInfo?.estado || 'OFFLINE'
+            const peso = balanzaInfo?.peso || 0
+            const unidad = balanzaInfo?.unidad || 'kg'
+            const lastUpdate = balanzaInfo?.lastUpdate
+            
+            const getEstadoColor = (estado: BalanzaEstado) => {
+              switch (estado) {
+                case 'ONLINE':
+                  return 'bg-green-400'
+                case 'IDLE':
+                  return 'bg-yellow-400'
+                case 'OFFLINE':
+                  return 'bg-red-400'
+                default:
+                  return 'bg-gray-400'
+              }
+            }
+
+            const getEstadoLabel = (estado: BalanzaEstado) => {
+              switch (estado) {
+                case 'ONLINE':
+                  return 'En línea'
+                case 'IDLE':
+                  return 'Inactiva'
+                case 'OFFLINE':
+                  return 'Desconectada'
+                default:
+                  return 'Desconocido'
+              }
+            }
+
+            return (
+              <div
+                key={i}
+                className="rounded-lg p-4 bg-black/30 border border-white/10 hover:bg-black/40 transition"
+              >
+                <div className="text-sm font-medium mb-2">Báscula {i}</div>
+                <div className="mt-2 flex items-center gap-2 text-sm mb-2">
+                  <span
+                    className={`w-2.5 h-2.5 rounded-full ${getEstadoColor(estado)}`}
+                  />
+                  {getEstadoLabel(estado)}
+                </div>
+                {peso > 0 && (
+                  <div className="text-xs text-gray-400 mt-1">
+                    Último peso: {peso.toLocaleString()} {unidad}
+                  </div>
+                )}
+                {lastUpdate && (
+                  <div className="text-xs text-gray-500 mt-1">
+                    {new Date(lastUpdate).toLocaleTimeString()}
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </section>
 
