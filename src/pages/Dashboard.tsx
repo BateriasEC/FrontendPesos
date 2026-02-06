@@ -24,20 +24,18 @@ type DashboardStats = {
   weighingsLast24h: Array<{ fecha: string; variacion: number }>
 }
 
-type BalanzaEstado = 'ONLINE' | 'IDLE' | 'OFFLINE'
-
 type BalanzaInfo = {
-  estado: BalanzaEstado
-  peso: number
-  unidad: string
-  lastUpdate: string | null
+  operacionesHoy?: number
+  kilosHoy?: number
+  lastUpdate?: string | null
 }
 
 export default function Dashboard() {
   const [weighings, setWeighings] = useState<Weighing[]>([])
   const [loading, setLoading] = useState(true)
-  const [threshold, setThreshold] = useState<number | ''>('')
-  const [balanzasEstados, setBalanzasEstados] = useState<Map<number, BalanzaInfo>>(new Map())
+  const [balanzas, setBalanzas] =
+    useState<Map<number, BalanzaInfo>>(new Map())
+
   const [stats, setStats] = useState<DashboardStats>({
     vehiclesInPlant: 0,
     weighingsToday: 0,
@@ -50,13 +48,13 @@ export default function Dashboard() {
     const loadStats = async () => {
       setLoading(true)
       try {
-        const response = await api.get('/dashboard/stats')
-        const data = response.data?.data || response.data || {}
+        const res = await api.get('/dashboard/stats')
+        const data = res.data?.data || res.data || {}
 
         setStats({
           vehiclesInPlant: data.vehiclesInPlant || 0,
           weighingsToday: data.weighingsToday || 0,
-          avgVariation: parseFloat(Number(data.avgVariation || 0).toFixed(2)),
+          avgVariation: Number(data.avgVariation || 0).toFixed(2),
           alerts: data.alerts || 0,
           weighingsLast24h: data.weighingsLast24h || []
         })
@@ -68,37 +66,33 @@ export default function Dashboard() {
             variacion: Number(w.variacion || 0)
           }))
         )
-      } catch (error) {
-        console.error('Error cargando dashboard:', error)
-        setWeighings([])
+      } catch (e) {
+        console.error('Error dashboard:', e)
       } finally {
         setLoading(false)
       }
     }
 
-    const loadBalanzasEstados = async () => {
+    const loadBalanzas = async () => {
       try {
-        const response = await api.get('/balanzas/estados')
-        const estados = response.data || {}
-        const estadosMap = new Map<number, BalanzaInfo>()
-        
-        Object.keys(estados).forEach((key) => {
-          const balanzaId = parseInt(key)
-          estadosMap.set(balanzaId, estados[balanzaId])
+        const res = await api.get('/balanzas/estados')
+        const data = res.data || {}
+        const map = new Map<number, BalanzaInfo>()
+
+        Object.keys(data).forEach((k) => {
+          map.set(Number(k), data[k])
         })
-        
-        setBalanzasEstados(estadosMap)
-      } catch (error) {
-        console.error('Error cargando estados de balanzas:', error)
+
+        setBalanzas(map)
+      } catch (e) {
+        console.error('Error balanzas:', e)
       }
     }
 
     loadStats()
-    loadBalanzasEstados()
-    
-    // Actualizar estados de balanzas cada 5 segundos
-    const interval = setInterval(loadBalanzasEstados, 5000)
-    
+    loadBalanzas()
+
+    const interval = setInterval(loadBalanzas, 5000)
     return () => clearInterval(interval)
   }, [])
 
@@ -107,115 +101,70 @@ export default function Dashboard() {
       <h1 className="text-2xl font-bold">DASHBOARD GENERAL</h1>
 
       {/* Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <StatCard title="Vehículos en planta" value={stats.vehiclesInPlant} />
         <StatCard title="Pesajes hoy" value={stats.weighingsToday} />
         <StatCard title="Variación promedio" value={`${stats.avgVariation} kg`} />
         <StatCard title="Alertas" value={stats.alerts} />
-
-        {/* Umbral */}
-        <div className="rounded-xl p-4 bg-white/5 border border-white/10 shadow-sm hover:shadow-md transition">
-          <div className="text-sm text-gray-300 mb-2">
-            Umbral de alerta
-          </div>
-
-          <div className="relative">
-            <input
-              type="number"
-              min={0}
-              value={threshold}
-              onChange={(e) =>
-                setThreshold(e.target.value === '' ? '' : Number(e.target.value))
-              }
-              placeholder="Ej: 50 kg"
-              className="
-                w-full rounded-lg px-3 py-2
-                bg-black/30
-                border border-white/10
-                text-gray-100
-                placeholder:text-gray-500
-                focus:outline-none
-                focus:ring-1 focus:ring-brand-orange/60
-                focus:border-brand-orange/60
-                transition
-              "
-            />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">
-              kg
-            </span>
-          </div>
-
-          {threshold !== '' && (
-            <div className="mt-2 text-xs text-gray-400">
-              Alertas sobre{' '}
-              <span className="text-brand-orange font-medium">
-                {threshold} kg
-              </span>
-            </div>
-          )}
-        </div>
       </div>
 
-      {/* Básculas */}
+      {/* Básculas / Despacho */}
       <section className="bg-white/5 border border-white/10 rounded-xl p-4">
         <h2 className="font-semibold mb-3 text-lg">
-          Estado de Básculas
+          Producción por báscula
         </h2>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[1, 2, 3].map((i) => {
-            const balanzaInfo = balanzasEstados.get(i)
-            const estado = balanzaInfo?.estado || 'OFFLINE'
-            const peso = balanzaInfo?.peso || 0
-            const unidad = balanzaInfo?.unidad || 'kg'
-            const lastUpdate = balanzaInfo?.lastUpdate
-            
-            const getEstadoColor = (estado: BalanzaEstado) => {
-              switch (estado) {
-                case 'ONLINE':
-                  return 'bg-green-400'
-                case 'IDLE':
-                  return 'bg-yellow-400'
-                case 'OFFLINE':
-                  return 'bg-red-400'
-                default:
-                  return 'bg-gray-400'
-              }
-            }
-
-            const getEstadoLabel = (estado: BalanzaEstado) => {
-              switch (estado) {
-                case 'ONLINE':
-                  return 'En línea'
-                case 'IDLE':
-                  return 'Inactiva'
-                case 'OFFLINE':
-                  return 'Desconectada'
-                default:
-                  return 'Desconocido'
-              }
-            }
+            const b = balanzas.get(i)
 
             return (
               <div
                 key={i}
-                className="rounded-lg p-4 bg-black/30 border border-white/10 hover:bg-black/40 transition"
+                className="rounded-lg p-4 bg-black/30 border border-white/10"
               >
-                <div className="text-sm font-medium mb-2">Báscula {i}</div>
-                <div className="mt-2 flex items-center gap-2 text-sm mb-2">
-                  <span
-                    className={`w-2.5 h-2.5 rounded-full ${getEstadoColor(estado)}`}
-                  />
-                  {getEstadoLabel(estado)}
+                <div className="text-sm font-semibold mb-2">
+                  {i === 3 ? 'Despacho' : `Báscula ${i}`}
                 </div>
-                {peso > 0 && (
-                  <div className="text-xs text-gray-400 mt-1">
-                    Último peso: {peso.toLocaleString()} {unidad}
-                  </div>
+
+                {i !== 3 ? (
+                  <>
+                    <div className="text-sm text-gray-300">
+                      Pesajes hoy
+                    </div>
+                    <div className="text-xl font-bold">
+                      {b?.operacionesHoy || 0}
+                    </div>
+
+                    <div className="mt-2 text-xs text-gray-400">
+                      Total procesado
+                    </div>
+                    <div className="text-sm">
+                      {(b?.kilosHoy || 0).toLocaleString()} kg
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="text-sm text-gray-300">
+                      Despachos hoy
+                    </div>
+                    <div className="text-xl font-bold">
+                      {b?.operacionesHoy || 0}
+                    </div>
+
+                    <div className="mt-2 text-xs text-gray-400">
+                      Kg despachados
+                    </div>
+                    <div className="text-sm">
+                      {(b?.kilosHoy || 0).toLocaleString()} kg
+                    </div>
+                  </>
                 )}
-                {lastUpdate && (
-                  <div className="text-xs text-gray-500 mt-1">
-                    {new Date(lastUpdate).toLocaleTimeString()}
+
+                {b?.lastUpdate && (
+                  <div className="text-[10px] text-gray-500 mt-2">
+                    Última actualización:{' '}
+                    {new Date(b.lastUpdate).toLocaleTimeString()}
                   </div>
                 )}
               </div>
@@ -231,21 +180,12 @@ export default function Dashboard() {
         </h2>
 
         {loading ? (
-          <div className="flex items-center justify-center h-64 text-gray-400">
-            <div className="text-center">
-              <div className="animate-spin h-8 w-8 border-b-2 border-brand-orange rounded-full mx-auto mb-2" />
-              Cargando datos...
-            </div>
+          <div className="h-64 flex items-center justify-center text-gray-400">
+            Cargando datos...
           </div>
         ) : weighings.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64 text-gray-400">
-            <div className="text-lg mb-2">📉</div>
-            <p className="text-sm">
-              No se registraron variaciones en las últimas 24 horas
-            </p>
-            <p className="text-xs text-gray-500 mt-1">
-              Las básculas no reportaron cambios de peso
-            </p>
+          <div className="h-64 flex items-center justify-center text-gray-400">
+            Sin datos registrados
           </div>
         ) : (
           <div className="h-64">
@@ -264,13 +204,7 @@ export default function Dashboard() {
                 />
                 <YAxis />
                 <Tooltip
-                  labelFormatter={(v) =>
-                    new Date(v as string).toLocaleString()
-                  }
-                  formatter={(value: number) => [
-                    `${value.toFixed(2)} kg`,
-                    'Variación'
-                  ]}
+                  formatter={(v: number) => [`${v.toFixed(2)} kg`, 'Variación']}
                 />
                 <Line
                   type="monotone"
@@ -296,10 +230,10 @@ function StatCard({
   value: number | string
 }) {
   return (
-    <div className="rounded-xl p-4 bg-white/5 border border-white/10 shadow-sm hover:shadow-md transition">
+    <div className="rounded-xl p-4 bg-white/5 border border-white/10">
       <div className="text-sm text-gray-300">{title}</div>
       <div className="text-2xl font-bold mt-1">{value}</div>
-      <div className="mt-3 h-1 w-full bg-brand-orange/70 rounded-full" />
+      <div className="mt-3 h-1 w-full bg-brand-orange rounded-full" />
     </div>
   )
 }
