@@ -4,8 +4,6 @@ import { Header } from './Header'
 import { Sidebar } from './Sidebar'
 import { XMarkIcon } from '@heroicons/react/24/outline'
 
-const HEADER_HEIGHT = '83px'
-
 export function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
@@ -15,13 +13,14 @@ export function Layout() {
       {/* HEADER */}
       <Header onMenuClick={() => setSidebarOpen(true)} />
 
-      <div className="flex relative min-h-screen">
+      <div className="flex relative">
         
         {/* OVERLAY MOBILE */}
         {sidebarOpen && (
           <div
             className="fixed inset-0 bg-black/50 z-30 md:hidden"
             onClick={() => setSidebarOpen(false)}
+            style={{ top: '83px' }}
           />
         )}
 
@@ -30,16 +29,16 @@ export function Layout() {
           className={`
             fixed left-0 z-40
             w-64 md:w-60
-            top-[${HEADER_HEIGHT}]
             bottom-0
             transform
             ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
             transition-transform duration-300 ease-in-out
             bg-black/20 border-r border-white/10
           `}
+          style={{ top: '83px' }}
         >
           {/* CONTENEDOR INTERNO */}
-          <div className="h-full flex flex-col p-3 overflow-y-auto">
+          <div className="h-full flex flex-col p-4 overflow-y-auto">
             
             {/* HEADER MOBILE */}
             <div className="flex items-center justify-between mb-4 md:hidden">
@@ -61,11 +60,10 @@ export function Layout() {
         <main
           className="
             flex-1 w-full
-            min-h-screen
+            min-h-[calc(100vh-83px)]
             overflow-y-auto
-            pt-[calc(83px+12px)]
             md:ml-60
-            p-3 sm:p-4 md:p-6
+            p-4 sm:p-6 md:p-8
           "
         >
           <Outlet />

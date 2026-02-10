@@ -1,174 +1,252 @@
-import { useEffect, useMemo, useState, useCallback } from 'react'
-import { api } from '../services/api'
-import * as XLSX from 'xlsx'
-import { Modal } from '../components/Modal'
-import { Pagination } from '../components/Pagination'
+import { useEffect, useMemo, useState, useCallback } from "react";
+import { api } from "../services/api";
+import { Modal } from "../components/Modal";
+import { Pagination } from "../components/Pagination";
 
-type Producto = { id: number; codigo: string; nombre: string; tipo: string; pesoEsperado: { G: number; M: number; P: number }; peso?: number; unidadPeso?: string }
+type Producto = {
+  id: number;
+  codigo: string;
+  nombre: string;
+  descripcion?: string;
+};
 
 export default function Catalogo() {
-  const [rows, setRows] = useState<Producto[]>([])
-  const [q, setQ] = useState('')
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [rows, setRows] = useState<Producto[]>([]);
+  const [q, setQ] = useState("");
+  const [loading, setLoading] = useState(true);
 
+  // ================== CARGAR ==================
   const load = useCallback(async () => {
-    setLoading(true)
-    setError(null)
+    setLoading(true);
     try {
-      const response = await api.get('/products')
-      const products = response.data?.data || response.data || []
-      // Mapear campos si es necesario
-      setRows(products)
-    } catch (error: any) {
-      console.error('Error cargando productos:', error)
-      setError('Error al cargar productos')
-      setRows([])
+      const response = await api.get("/products");
+      setRows(response.data?.data || response.data || []);
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Error al cargar productos");
+      setRows([]);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [])
+  }, []);
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    load();
+  }, [load]);
 
-  const filtered = useMemo(() => rows.filter(r => !q || r.nombre.toLowerCase().includes(q.toLowerCase()) || r.codigo.toLowerCase().includes(q.toLowerCase())), [rows, q])
-  const [page, setPage] = useState(1)
-  const pageSize = 10
-  const pageRows = useMemo(() => filtered.slice((page - 1) * pageSize, page * pageSize), [filtered, page])
+  // ================== FILTRO ==================
+  const filtered = useMemo(() => {
+    return rows.filter(
+      (r) =>
+        !q ||
+        r.codigo.toLowerCase().includes(q.toLowerCase()) ||
+        r.nombre.toLowerCase().includes(q.toLowerCase())
+    );
+  }, [rows, q]);
 
-  const [editing, setEditing] = useState<Producto | null>(null)
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
-  // Formulario con campos pedidos
-  const [form, setForm] = useState<{ codigo: string; nombre: string; descripcion: string }>({ codigo: '', nombre: '', descripcion: '' })
+  const pageRows = useMemo(
+    () => filtered.slice((page - 1) * pageSize, page * pageSize),
+    [filtered, page]
+  );
+
+  // ================== MODAL ==================
+  const [editing, setEditing] = useState<Producto | null>(null);
+  const [form, setForm] = useState({
+    codigo: "",
+    nombre: "",
+    descripcion: "",
+  });
 
   const openNew = () => {
-    setEditing({} as any)
-    setForm({ codigo: '', nombre: '', descripcion: '' })
-  }
+    setEditing({} as Producto);
+    setForm({ codigo: "", nombre: "", descripcion: "" });
+  };
 
   const openEdit = (p: Producto) => {
     setEditing(p);
     setForm({
       codigo: p.codigo,
       nombre: p.nombre,
-      descripcion: p.descripcion || ''
-    })
-  }
+      descripcion: p.descripcion || "",
+    });
+  };
 
+  // ================== GUARDAR ==================
   const save = async () => {
     try {
-      if (editing && (editing as any).id) {
-        // En edición, solo se envía descripcion
-        await api.patch(`/products/${(editing as any).id}`, { descripcion: form.descripcion })
+      if (editing?.id) {
+        await api.patch(`/products/${editing.id}`, {
+          descripcion: form.descripcion,
+        });
       } else {
-        // En creación, se envía todo
-        await api.post(`/products`, form)
+        await api.post("/products", form);
       }
-      await load()
-      setEditing(null)
-    } catch (e: any) {
-      alert(e.response?.data?.message || 'Error al guardar')
+
+      await load();
+      setEditing(null);
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Error al guardar");
     }
-  }
+  };
 
-  const remove = async (id: number) => {
-    if (confirm('¿Eliminar producto?')) {
-      await api.delete(`/products/${id}`)
-      await load()
-    }
-  }
+  // ================== ELIMINAR ==================
+  const [deleteProduct, setDeleteProduct] = useState<Producto | null>(null);
 
-  // Excel removed or simplified as logic changed significantly. Keeping simple export if useful?
-  // User didn't verify excel retention, so skipping complex excel logic to avoid breaking with old fields.
+  const confirmDelete = async () => {
+    if (!deleteProduct) return;
 
+    await api.delete(`/products/${deleteProduct.id}`);
+    await load();
+    setDeleteProduct(null);
+  };
+
+  // ================== UI ==================
   return (
-    <div className="space-y-4 w-full">
-      <h1 className="text-2xl font-bold mb-4">Catálogo de Productos</h1>
-      <div className="flex flex-wrap items-end gap-3">
-        <div>
-          <label className="block text-sm">Buscar</label>
-          <input value={q} onChange={e => setQ(e.target.value)} className="mt-1 input" placeholder="Código o nombre" />
-        </div>
-        <button onClick={openNew} className="ml-auto btn btn-primary">Nuevo</button>
+    <div className="space-y-6 w-full">
+      <h1 className="text-2xl font-bold">CATÁLOGO DE PRODUCTOS</h1>
+
+      {/* ================== FILTROS ================== */}
+      <div className="grid sm:grid-cols-3 gap-3">
+        <input
+          className="input"
+          placeholder="Buscar por código (BAT-001) o nombre (Batería)"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+        />
+
+        <div />
+
+        <button onClick={openNew} className="btn btn-primary">
+          NUEVO PRODUCTO
+        </button>
       </div>
 
+      {/* ================== TABLA ================== */}
       {loading ? (
-        <div className="flex items-center justify-center min-h-[400px] bg-white/5 rounded border border-white/10">
-          <p className="text-gray-400">Cargando catálogo...</p>
+        <div className="flex justify-center py-20 text-gray-400">
+          Cargando productos...
         </div>
       ) : (
-        <div className="overflow-x-auto rounded border border-white/10">
-          <table className="table table-zebra w-full min-w-[700px]">
-            <thead className="bg-white/10">
-              <tr>
-                <th className="text-left p-2">Código</th>
-                <th className="text-left p-2">Nombre</th>
-                <th className="text-left p-2">Descripción</th>
-                <th className="p-2 text-center w-48">Acciones</th>
+        <table className="table table-zebra w-full">
+          <thead>
+            <tr>
+              <th className="uppercase font-bold">Código</th>
+              <th className="uppercase font-bold">Nombre</th>
+              <th className="uppercase font-bold">Descripción</th>
+              <th className="uppercase font-bold text-center">Acciones</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {pageRows.map((p) => (
+              <tr key={p.id}>
+                <td>{p.codigo}</td>
+                <td>{p.nombre}</td>
+                <td>{p.descripcion}</td>
+
+                <td className="text-center space-x-2">
+                  <button
+                    onClick={() => openEdit(p)}
+                    className="btn btn-ghost btn-sm"
+                  >
+                    Editar
+                  </button>
+
+                  <button
+                    onClick={() => setDeleteProduct(p)}
+                    className="btn btn-sm bg-red-500/20 text-red-300"
+                  >
+                    Eliminar
+                  </button>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {pageRows.map((p, i) => (
-                <tr key={p.id} className={i % 2 === 0 ? 'bg-white/5' : ''}>
-                  <td className="p-2">{p.codigo}</td>
-                  <td className="p-2">{p.nombre}</td>
-                  <td className="p-2">{p.descripcion}</td>
-                  <td className="p-2">
-                    <div className="flex justify-center items-center gap-2">
-                      <button onClick={() => openEdit(p)} className="text-xs btn btn-ghost w-24">Editar</button>
-                      <button onClick={() => remove(p.id)} className="text-xs btn w-24 bg-red-500/20 text-red-300 hover:bg-red-500/30">Eliminar</button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+            ))}
+          </tbody>
+        </table>
       )}
 
-      <div className="flex justify-end">
-        <Pagination page={page} pageSize={pageSize} total={filtered.length} onChange={setPage} />
-      </div>
+      <Pagination
+        page={page}
+        pageSize={pageSize}
+        total={filtered.length}
+        onChange={setPage}
+      />
 
-      <Modal open={!!editing} title={(editing && (editing as any).id) ? 'Editar producto' : 'Crear producto'} onClose={() => setEditing(null)}>
-        <div className="grid md:grid-cols-1 gap-3">
-          <div>
-            <label className="block text-sm">Código</label>
-            <input
-              value={form.codigo}
-              onChange={e => setForm({ ...form, codigo: e.target.value.toUpperCase() })}
-              className="mt-1 input w-full"
-              placeholder="Ej: BAT-001"
-              disabled={!!(editing && (editing as any).id)} // Disabled on edit
-            />
-          </div>
-          <div>
-            <label className="block text-sm">Nombre</label>
-            <input
-              value={form.nombre}
-              onChange={e => setForm({ ...form, nombre: e.target.value })}
-              className="mt-1 input w-full"
-              placeholder="Nombre del producto"
-              disabled={!!(editing && (editing as any).id)} // Disabled on edit
-            />
-          </div>
-          <div>
-            <label className="block text-sm">Descripción</label>
-            <input
-              value={form.descripcion}
-              onChange={e => setForm({ ...form, descripcion: e.target.value })}
-              className="mt-1 input w-full"
-              placeholder="Descripción corta"
-            />
+      {/* ================== MODAL CREAR / EDITAR ================== */}
+      <Modal
+        open={editing !== null}
+        title={editing?.id ? "Editar producto" : "Crear producto"}
+        onClose={() => setEditing(null)}
+      >
+        <div className="space-y-3">
+          <input
+            className="input"
+            placeholder="Código del producto (Ej: BAT-001, AZU-500)"
+            value={form.codigo}
+            disabled={!!editing?.id}
+            onChange={(e) =>
+              setForm({ ...form, codigo: e.target.value.toUpperCase() })
+            }
+          />
+
+          <input
+            className="input"
+            placeholder="Nombre del producto (Ej: Batería 12V)"
+            value={form.nombre}
+            disabled={!!editing?.id}
+            onChange={(e) =>
+              setForm({ ...form, nombre: e.target.value })
+            }
+          />
+
+          <input
+            className="input"
+            placeholder="Descripción breve (Ej: Batería sellada de larga duración)"
+            value={form.descripcion}
+            onChange={(e) =>
+              setForm({ ...form, descripcion: e.target.value })
+            }
+          />
+
+          <div className="flex justify-end gap-2">
+            <button
+              className="btn btn-ghost"
+              onClick={() => setEditing(null)}
+            >
+              Cancelar
+            </button>
+            <button className="btn btn-primary" onClick={save}>
+              Guardar
+            </button>
           </div>
         </div>
+      </Modal>
+
+      {/* ================== MODAL ELIMINAR ================== */}
+      <Modal
+        open={deleteProduct !== null}
+        title="Confirmar eliminación"
+        onClose={() => setDeleteProduct(null)}
+      >
+        <p>
+          ¿Eliminar el producto{" "}
+          <strong>{deleteProduct?.nombre}</strong>?
+        </p>
+
         <div className="mt-4 flex justify-end gap-2">
-          <button onClick={() => setEditing(null)} className="btn btn-ghost">Cancelar</button>
-          <button onClick={save} className="btn btn-primary">Guardar</button>
+          <button
+            className="btn btn-ghost"
+            onClick={() => setDeleteProduct(null)}
+          >
+            Cancelar
+          </button>
+          <button className="btn btn-error" onClick={confirmDelete}>
+            Eliminar
+          </button>
         </div>
       </Modal>
     </div>
-  )
+  );
 }
-
-

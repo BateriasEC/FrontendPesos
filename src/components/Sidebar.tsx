@@ -7,8 +7,7 @@ import {
   ScaleIcon,
   ChartBarIcon,
   TruckIcon,
-  UserGroupIcon,
-  CubeIcon
+  UserGroupIcon
 } from '@heroicons/react/24/outline'
 
 const baseLink =
@@ -24,12 +23,12 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const { hasRole } = useAuth()
 
   return (
-    <aside className="flex flex-col h-full text-sm space-y-30 ">
+    <div className="flex flex-col h-full text-sm">
       
-      {/* CONTENIDO SUPERIOR */}
-      <div className="flex-1 space-y-6">
-        
-        {/* PRINCIPAL */}
+      {/* ================= CONTENIDO ================= */}
+      <div className="flex-1 space-y-6 overflow-y-auto">
+
+        {/* ===== PRINCIPAL ===== */}
         <nav className="space-y-1">
           <SidebarLink to="/" icon={HomeIcon} label="Dashboard" onNavigate={onNavigate} />
 
@@ -42,32 +41,58 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
             />
           )}
 
-          <SidebarLink to="/clientes" icon={UserGroupIcon} label="Clientes" onNavigate={onNavigate} />
-          <SidebarLink to="/catalogo" icon={Squares2X2Icon} label="Catálogo" onNavigate={onNavigate} />
+          <SidebarLink
+            to="/clientes"
+            icon={UserGroupIcon}
+            label="Clientes"
+            onNavigate={onNavigate}
+          />
+
+          <SidebarLink
+            to="/catalogo"
+            icon={Squares2X2Icon}
+            label="Catálogo"
+            onNavigate={onNavigate}
+          />
         </nav>
 
         <div className="h-px bg-white/10 mx-2" />
 
-        {/* OPERACIONES */}
+        {/* ===== OPERACIONES ===== */}
         <nav className="space-y-1">
-          <SidebarLink to="/pesajes" icon={ScaleIcon} label="Pesajes" onNavigate={onNavigate} />
-          <SidebarLink to="/vehiculos" icon={TruckIcon} label="Vehículos" onNavigate={onNavigate} />
-          <SidebarLink to="/productos" icon={CubeIcon} label="Volumen" onNavigate={onNavigate} />
+          <SidebarLink
+            to="/pesajes"
+            icon={ScaleIcon}
+            label="Pesajes"
+            onNavigate={onNavigate}
+          />
+
+          <SidebarLink
+            to="/vehiculos"
+            icon={TruckIcon}
+            label="Vehículos"
+            onNavigate={onNavigate}
+          />
         </nav>
 
         <div className="h-px bg-white/10 mx-2" />
 
-        {/* REPORTES */}
+        {/* ===== REPORTES ===== */}
         <nav className="space-y-1">
-          <SidebarLink to="/reportes" icon={ChartBarIcon} label="Reportes" onNavigate={onNavigate} />
+          <SidebarLink
+            to="/reportes"
+            icon={ChartBarIcon}
+            label="Reportes"
+            onNavigate={onNavigate}
+          />
         </nav>
       </div>
 
-      {/* ESPACIADOR INFERIOR (para que llegue hasta abajo visualmente) */}
-      <div className="mt-6 pt-4 border-t border-white/10 text-xs text-white/40 text-center">
-        © Baterias Ecuador
+      {/* ================= FOOTER ================= */}
+      <div className="mt-auto pt-4 border-t border-white/10 text-xs text-white/40 text-center flex-shrink-0">
+        © Baterías Ecuador
       </div>
-    </aside>
+    </div>
   )
 }
 
