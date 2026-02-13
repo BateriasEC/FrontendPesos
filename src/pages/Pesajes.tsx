@@ -123,21 +123,17 @@ export default function Pesajes() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="rounded-xl border border-white/10 bg-white/5 p-5">
           <p className="text-xs text-gray-400 uppercase">
-            Peso total ingresado
+            Total Pallets Registrados
           </p>
           <p className="mt-1 text-2xl font-semibold">
-            {totalIngreso.toLocaleString()} kg
+            {filtered.length}
           </p>
         </div>
 
         <div className="rounded-xl border border-white/10 bg-white/5 p-5">
-          <p className="text-xs text-gray-400 uppercase">Variación acumulada</p>
-          <p
-            className={`mt-1 text-2xl font-semibold ${
-              totalVariacion > 0 ? "text-red-400" : "text-green-400"
-            }`}
-          >
-            {totalVariacion.toLocaleString()} kg
+          <p className="text-xs text-gray-400 uppercase">Peso Total Pallets</p>
+          <p className="mt-1 text-2xl font-semibold">
+            {filtered.reduce((a, b) => a + (b.pesoTotal || 0), 0).toLocaleString()} kg
           </p>
         </div>
       </div>
@@ -188,17 +184,16 @@ export default function Pesajes() {
               <tr>
                 <th>Fecha</th>
                 <th>Placa</th>
-                <th>Pallet</th>
-                <th className="text-right">Ingreso</th>
-                <th className="text-right">Salida</th>
-                <th className="text-right">Variación</th>
+                <th>Número de Pallet</th>
+                <th className="text-right">Peso del Pallet</th>
+                <th className="text-right">Peso de Despacho</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
               {pageRows.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-10 text-gray-400">
+                  <td colSpan={6} className="text-center py-10 text-gray-400">
                     No existen registros de pesaje
                   </td>
                 </tr>
@@ -207,30 +202,25 @@ export default function Pesajes() {
                   <tr key={r.id} className="hover:bg-white/5 transition">
                     <td>{new Date(r.fecha).toLocaleString()}</td>
                     <td className="font-medium">{r.placa}</td>
-                    <td>{r.codigoPallet}</td>
-                    <td className="text-right">
-                      {r.pesoIngreso.toLocaleString()} kg
+                    <td className="font-mono">{r.codigoPallet}</td>
+                    <td className="text-right font-semibold">
+                      {(r.pesoTotal || 0).toLocaleString()} kg
                     </td>
                     <td className="text-right">
-                      {r.pesoSalida ? `${r.pesoSalida} kg` : "-"}
-                    </td>
-                    <td className="text-right">
-                      <span
-                        className={`px-2 py-1 rounded text-xs font-semibold ${
-                          r.variacion > 0
-                            ? "bg-red-500/20 text-red-400"
-                            : "bg-green-500/20 text-green-400"
-                        }`}
-                      >
-                        {r.variacion.toLocaleString()} kg
-                      </span>
+                      {r.pesoDescarga ? (
+                        <span className="font-semibold text-blue-400">
+                          {r.pesoDescarga.toLocaleString()} kg
+                        </span>
+                      ) : (
+                        <span className="text-gray-500">-</span>
+                      )}
                     </td>
                     <td>
                       <button
                         onClick={() => setLabelRow(r)}
                         className="btn btn-ghost btn-xs"
                       >
-                        Etiqueta
+                        Ver Reporte
                       </button>
                     </td>
                   </tr>
@@ -257,19 +247,13 @@ export default function Pesajes() {
                 id: String(labelRow.id),
                 codigoPallet: labelRow.codigoPallet,
                 placa: labelRow.placa,
-                cliente: labelRow.cliente,
                 codigoTrazabilidad: labelRow.codigoTrazabilidad || "",
                 fecha: labelRow.fecha,
                 productNombre: labelRow.productNombre || "",
-                pesoIngreso: labelRow.pesoIngreso,
-                pesoSalida: labelRow.pesoSalida,
                 pesoTotal: labelRow.pesoTotal || 0,
                 pesoDescarga: labelRow.pesoDescarga,
                 variacionPallet: labelRow.variacionPeso,
-                variacionVehiculo: labelRow.variacion,
                 descargado: labelRow.descargado || false,
-                vehicleId: labelRow.vehicleId || "",
-                niveles: labelRow.niveles || [],
               }
             : null
         }

@@ -6,7 +6,8 @@ import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 import { DateRange } from "../components/DateRange";
 import { ReportCharts } from "../components/ReportCharts";
-import { SabanasTable } from "../components/SabanasTable";
+import { SabanaPesajes } from "../components/SabanaPesajes";
+import { SabanaDespacho } from "../components/SabanaDespacho";
 import { Pagination } from "../components/Pagination";
 import { useReportData } from "../hooks/useReportData";
 import { useSabanaData } from "../hooks/useSabanaData";
@@ -28,10 +29,13 @@ export default function Reportes() {
     to: todayIso,
   });
   const [sabanaPage, setSabanaPage] = useState(1);
+  const [despachoPage, setDespachoPage] = useState(1);
+  const [searchPesajes, setSearchPesajes] = useState('');
+  const [searchDespacho, setSearchDespacho] = useState('');
   const [searching, setSearching] = useState(false);
   const [searchingReports, setSearchingReports] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const { sabanasData, loading: sabanaLoading } = useSabanaData(sabanaRange);
+  const { sabanaPesajesData, sabanaDespachoData, loading: sabanaLoading } = useSabanaData(sabanaRange);
 
   useEffect(() => {
     load();
@@ -181,58 +185,206 @@ export default function Reportes() {
     }
   }, [filtered, reportRange]);
 
-  // Excel Sábanas
-  const exportSabanaExcel = useCallback(() => {
+  // Excel Sábana de Pesajes
+  const exportSabanaPesajesExcel = useCallback(() => {
     try {
       const excelData: any[] = [];
-      sabanasData.forEach((camion, idx) => {
-        camion.paletes.forEach((palet, pIdx) => {
-          const trit = camion.trituradora[pIdx] || {};
-          const fecha = new Date(camion.fecha);
+      sabanaPesajesData.forEach((vehiculo, idx) => {
+        vehiculo.pallets.forEach((pallet) => {
           excelData.push({
-            Camión: idx + 1,
-            Placa: camion.placa,
-            "Código Trazabilidad": camion.codigoTrazabilidad || "N/A",
-            Cliente: camion.cliente || "N/A",
-            Producto: palet.producto || camion.producto || "N/A",
-            Fecha: fecha,
-            "Hora Ingreso": camion.horaIngreso,
-            "Peso Antes (kg)": camion.pesoAntes ?? null,
-            "Peso Después (kg)": camion.pesoDespues ?? null,
-            "Diferencia Camión (kg)": camion.diferencia ?? null,
-            Pallet: palet.numero,
-            "Peso Real Pallet (kg)": palet.pesoReal ?? null,
-            "Peso Estimado Pallet (kg)": palet.pesoEstimado ?? null,
-            "Peso Tolerado Pallet (kg)": palet.pesoTolerado ?? null,
-            "Estado Pallet": palet.estado === "ok" ? "OK" : "Error",
-            "Peso Pallet Triturado (kg)": trit.pesoPalet ?? null,
-            "Peso Triturado (kg)":
-              trit.pesoTriturado > 0 ? trit.pesoTriturado : null,
-            "Diferencia Triturado (kg)":
-              trit.pesoTriturado > 0 ? trit.diferencia : null,
-            "Estado Triturado":
-              trit.pesoTriturado > 0
-                ? trit.estado === "ok"
-                  ? "OK"
-                  : "Error"
-                : "Pendiente",
-            "Producto Triturado": trit.producto || camion.producto || "N/A",
+            'Vehículo': idx + 1,
+            'Placa': vehiculo.placa,
+            'Código Trazabilidad': vehiculo.codigoTrazabilidad,
+            'Cliente': vehiculo.cliente,
+            'Producto Vehículo': vehiculo.producto,
+            'Fecha': vehiculo.fecha,
+            'Hora Ingreso': vehiculo.horaIngreso,
+            'Operador': vehiculo.operador || 'N/A',
+            'Peso Ingreso (kg)': vehiculo.pesoIngreso,
+            'Peso Salida (kg)': vehiculo.pesoSalida,
+            'Diferencia Vehículo (kg)': vehiculo.diferencia,
+            'Código Pallet': pallet.codigoIndependiente,
+            'Producto Pallet': pallet.producto,
+            'Peso Real (kg)': pallet.pesoReal,
+            'Peso Estimado (kg)': pallet.pesoEstimado,
+            'Peso Tolerado (kg)': pallet.pesoTolerado,
+            'Estado Despacho': pallet.estadoDespacho === 'despachado' ? 'Despachado' : 'Pendiente de Despacho',
           });
         });
       });
 
-      const ws = XLSX.utils.json_to_sheet(excelData, { cellDates: true });
+      const ws = XLSX.utils.json_to_sheet(excelData);
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Sábanas de Pesajes");
-      XLSX.writeFile(
-        wb,
-        `sabanas_pesajes_${sabanaRange.from}_${sabanaRange.to}.xlsx`,
-      );
+      XLSX.utils.book_append_sheet(wb, ws, "Sábana de Pesajes");
+      XLSX.writeFile(wb, `sabana_pesajes_${sabanaRange.from}_${sabanaRange.to}.xlsx`);
     } catch (error) {
       console.error("Error al exportar Excel:", error);
       alert("Error al exportar Excel");
     }
-  }, [sabanasData, sabanaRange]);
+  }, [sabanaPesajesData, sabanaRange]);
+
+  // PDF Sábana de Pesajes
+  const exportSabanaPesajesPDF = useCallback(() => {
+    try {
+      const pdf = new jsPDF({
+        orientation: "landscape",
+        unit: "mm",
+        format: "a4",
+      });
+      
+      pdf.setFontSize(18);
+      pdf.setTextColor(183, 28, 28);
+      pdf.text("Sábana de Pesajes", 14, 15);
+
+      pdf.setFontSize(11);
+      pdf.setTextColor(60, 60, 60);
+      pdf.text(
+        `Rango de fechas: ${sabanaRange.from} al ${sabanaRange.to}`,
+        14,
+        23,
+      );
+
+      const tableData: any[] = [];
+      sabanaPesajesData.forEach((vehiculo, idx) => {
+        vehiculo.pallets.forEach((pallet, pIdx) => {
+          tableData.push([
+            idx + 1,
+            vehiculo.placa,
+            vehiculo.cliente,
+            vehiculo.fecha,
+            vehiculo.pesoIngreso,
+            vehiculo.pesoSalida,
+            vehiculo.diferencia,
+            pallet.codigoIndependiente,
+            pallet.pesoReal.toFixed(2),
+            pallet.estadoDespacho === 'despachado' ? 'Despachado' : 'Pendiente',
+          ]);
+        });
+      });
+
+      autoTable(pdf, {
+        startY: 30,
+        head: [["Veh.", "Placa", "Cliente", "Fecha", "Peso Ing.", "Peso Sal.", "Dif.", "Código Pallet", "Peso", "Estado"]],
+        body: tableData,
+        styles: { fontSize: 8, cellPadding: 2, textColor: [40, 40, 40] },
+        headStyles: {
+          fillColor: [183, 28, 28],
+          textColor: 255,
+          halign: "center",
+        },
+        alternateRowStyles: { fillColor: [255, 243, 205] },
+      });
+
+      const pageCount = pdf.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        pdf.setPage(i);
+        pdf.setFontSize(9);
+        pdf.setTextColor(120);
+        pdf.text(
+          `Página ${i} de ${pageCount}`,
+          pdf.internal.pageSize.width - 30,
+          pdf.internal.pageSize.height - 10,
+        );
+      }
+
+      pdf.save(`sabana_pesajes_${sabanaRange.from}_${sabanaRange.to}.pdf`);
+    } catch (error) {
+      console.error("Error al exportar PDF:", error);
+      alert("Error al exportar PDF");
+    }
+  }, [sabanaPesajesData, sabanaRange]);
+
+  // Excel Sábana de Despacho
+  const exportSabanaDespachoExcel = useCallback(() => {
+    try {
+      const excelData = sabanaDespachoData.map((item, idx) => ({
+        'ID': idx + 1,
+        'Código Pallet': item.codigoIndependiente,
+        'Placa': item.placa,
+        'Cliente': item.cliente,
+        'Producto': item.producto,
+        'Peso Original (kg)': item.pesoOriginal,
+        'Peso Despacho (kg)': item.estadoDespacho === 'completado' ? item.pesoDespacho : 'Pendiente',
+        'Variación (kg)': item.estadoDespacho === 'completado' ? item.variacion : 'Pendiente',
+        'Fecha Despacho': item.estadoDespacho === 'completado' ? item.fechaDespacho : 'Pendiente',
+        'Hora Despacho': item.estadoDespacho === 'completado' ? item.horaDespacho : 'Pendiente',
+        'Estado': item.estadoDespacho === 'completado' ? 'Completado' : 'Pendiente',
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(excelData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Sábana de Despacho");
+      XLSX.writeFile(wb, `sabana_despacho_${sabanaRange.from}_${sabanaRange.to}.xlsx`);
+    } catch (error) {
+      console.error("Error al exportar Excel:", error);
+      alert("Error al exportar Excel");
+    }
+  }, [sabanaDespachoData, sabanaRange]);
+
+  // PDF Sábana de Despacho
+  const exportSabanaDespachoPDF = useCallback(() => {
+    try {
+      const pdf = new jsPDF({
+        orientation: "landscape",
+        unit: "mm",
+        format: "a4",
+      });
+      
+      pdf.setFontSize(18);
+      pdf.setTextColor(183, 28, 28);
+      pdf.text("Sábana de Despacho", 14, 15);
+
+      pdf.setFontSize(11);
+      pdf.setTextColor(60, 60, 60);
+      pdf.text(
+        `Rango de fechas: ${sabanaRange.from} al ${sabanaRange.to}`,
+        14,
+        23,
+      );
+
+      const tableData = sabanaDespachoData.map((item, idx) => [
+        idx + 1,
+        item.codigoIndependiente,
+        item.placa,
+        item.cliente,
+        item.pesoOriginal.toFixed(2),
+        item.estadoDespacho === 'completado' ? item.pesoDespacho.toFixed(2) : 'Pendiente',
+        item.estadoDespacho === 'completado' ? item.variacion.toFixed(2) : '-',
+        item.estadoDespacho === 'completado' ? item.fechaDespacho : 'Pendiente',
+        item.estadoDespacho === 'completado' ? 'Completado' : 'Pendiente',
+      ]);
+
+      autoTable(pdf, {
+        startY: 30,
+        head: [["ID", "Código Pallet", "Placa", "Cliente", "Peso Orig.", "Peso Desp.", "Var.", "Fecha", "Estado"]],
+        body: tableData,
+        styles: { fontSize: 8, cellPadding: 2, textColor: [40, 40, 40] },
+        headStyles: {
+          fillColor: [183, 28, 28],
+          textColor: 255,
+          halign: "center",
+        },
+        alternateRowStyles: { fillColor: [255, 243, 205] },
+      });
+
+      const pageCount = pdf.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        pdf.setPage(i);
+        pdf.setFontSize(9);
+        pdf.setTextColor(120);
+        pdf.text(
+          `Página ${i} de ${pageCount}`,
+          pdf.internal.pageSize.width - 30,
+          pdf.internal.pageSize.height - 10,
+        );
+      }
+
+      pdf.save(`sabana_despacho_${sabanaRange.from}_${sabanaRange.to}.pdf`);
+    } catch (error) {
+      console.error("Error al exportar PDF:", error);
+      alert("Error al exportar PDF");
+    }
+  }, [sabanaDespachoData, sabanaRange]);
 
   return (
     <div className="space-y-6 w-full">
@@ -281,16 +433,13 @@ export default function Reportes() {
         />
       </div>
 
-      {/* SÁBANAS */}
+      {/* SÁBANA DE PESAJES */}
       <section className="rounded-xl border border-white/10 bg-white/5 p-6 mt-4">
-        {/* Encabezado */}
         <div className="flex flex-wrap justify-between gap-4 mb-5">
-          {/* Título más arriba */}
           <h2 className="text-xl font-semibold text-gray-100 pt-1">
-            Sábanas de Pesajes
+            Sábana de Pesajes
           </h2>
 
-          {/* Controles */}
           <div className="flex flex-wrap gap-2 items-end">
             <DateRange from={range.from} to={range.to} onChange={setRange} />
 
@@ -313,21 +462,38 @@ export default function Reportes() {
               </button>
 
               <button
-                onClick={exportSabanaExcel}
+                onClick={exportSabanaPesajesExcel}
                 className="h-10 px-5 bg-green-600 hover:bg-green-700 text-white rounded-lg transition font-medium flex items-center justify-center"
               >
-                Exportar Excel
+                Excel
+              </button>
+
+              <button
+                onClick={exportSabanaPesajesPDF}
+                className="h-10 px-5 bg-red-600 hover:bg-red-700 text-white rounded-lg transition font-medium flex items-center justify-center"
+              >
+                PDF
               </button>
             </div>
           </div>
         </div>
 
-        {/* Contenido */}
+        {/* Búsqueda */}
+        <div className="mb-4">
+          <input
+            type="text"
+            placeholder="Buscar por placa, cliente, código de trazabilidad o número de pallet..."
+            value={searchPesajes}
+            onChange={(e) => setSearchPesajes(e.target.value)}
+            className="w-full px-4 py-2 bg-black/30 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-brand-orange"
+          />
+        </div>
+
         {sabanaLoading || searching ? (
           <div className="flex justify-center py-12">
             <div className="h-10 w-10 animate-spin border-b-2 border-gray-400 rounded-full" />
           </div>
-        ) : sabanasData.length === 0 ? (
+        ) : sabanaPesajesData.length === 0 ? (
           <div className="text-center py-12 text-gray-500">
             <p>No hay datos para el rango de fechas seleccionado</p>
             <p className="text-sm mt-1 text-gray-500">
@@ -337,8 +503,9 @@ export default function Reportes() {
         ) : (
           <>
             <div className="overflow-x-auto rounded-lg border border-white/5">
-              <SabanasTable
-                data={sabanasData.slice((sabanaPage - 1) * 10, sabanaPage * 10)}
+              <SabanaPesajes
+                data={sabanaPesajesData.slice((sabanaPage - 1) * 10, sabanaPage * 10)}
+                searchTerm={searchPesajes}
               />
             </div>
 
@@ -346,8 +513,73 @@ export default function Reportes() {
               <Pagination
                 page={sabanaPage}
                 pageSize={10}
-                total={sabanasData.length}
+                total={sabanaPesajesData.length}
                 onChange={setSabanaPage}
+              />
+            </div>
+          </>
+        )}
+      </section>
+
+      {/* SÁBANA DE DESPACHO */}
+      <section className="rounded-xl border border-white/10 bg-white/5 p-6 mt-4">
+        <div className="flex flex-wrap justify-between gap-4 mb-5">
+          <h2 className="text-xl font-semibold text-gray-100 pt-1">
+            Sábana de Despacho
+          </h2>
+
+          <div className="flex gap-2">
+            <button
+              onClick={exportSabanaDespachoExcel}
+              className="h-10 px-5 bg-green-600 hover:bg-green-700 text-white rounded-lg transition font-medium flex items-center justify-center"
+            >
+              Excel
+            </button>
+
+            <button
+              onClick={exportSabanaDespachoPDF}
+              className="h-10 px-5 bg-red-600 hover:bg-red-700 text-white rounded-lg transition font-medium flex items-center justify-center"
+            >
+              PDF
+            </button>
+          </div>
+        </div>
+
+        {/* Búsqueda */}
+        <div className="mb-4">
+          <input
+            type="text"
+            placeholder="Buscar por placa, cliente o número de pallet..."
+            value={searchDespacho}
+            onChange={(e) => setSearchDespacho(e.target.value)}
+            className="w-full px-4 py-2 bg-black/30 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-brand-orange"
+          />
+        </div>
+
+        {sabanaLoading || searching ? (
+          <div className="flex justify-center py-12">
+            <div className="h-10 w-10 animate-spin border-b-2 border-gray-400 rounded-full" />
+          </div>
+        ) : sabanaDespachoData.length === 0 ? (
+          <div className="text-center py-12 text-gray-500">
+            <p>No hay datos para el rango de fechas seleccionado</p>
+            <p className="text-sm mt-1 text-gray-500">
+              Rango: {sabanaRange.from} a {sabanaRange.to}
+            </p>
+          </div>
+        ) : (
+          <>
+            <SabanaDespacho
+              data={sabanaDespachoData.slice((despachoPage - 1) * 20, despachoPage * 20)}
+              searchTerm={searchDespacho}
+            />
+
+            <div className="flex justify-end mt-4">
+              <Pagination
+                page={despachoPage}
+                pageSize={20}
+                total={sabanaDespachoData.length}
+                onChange={setDespachoPage}
               />
             </div>
           </>

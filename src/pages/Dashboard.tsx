@@ -9,6 +9,7 @@ import {
   CartesianGrid
 } from 'recharts'
 import { api } from '../services/api'
+import HistorialAlertas from '../components/HistorialAlertas'
 
 type Weighing = {
   id: number
@@ -54,7 +55,7 @@ export default function Dashboard() {
         setStats({
           vehiclesInPlant: data.vehiclesInPlant || 0,
           weighingsToday: data.weighingsToday || 0,
-          avgVariation: Number(data.avgVariation || 0).toFixed(2),
+          avgVariation: Number(data.avgVariation || 0),
           alerts: data.alerts || 0,
           weighingsLast24h: data.weighingsLast24h || []
         })
@@ -104,19 +105,22 @@ export default function Dashboard() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <StatCard title="Vehículos en planta" value={stats.vehiclesInPlant} />
         <StatCard title="Pesajes hoy" value={stats.weighingsToday} />
-        <StatCard title="Variación promedio" value={`${stats.avgVariation} kg`} />
+        <StatCard title="Variación promedio" value={`${Number(stats.avgVariation).toFixed(2)} kg`} />
         <StatCard title="Alertas" value={stats.alerts} />
       </div>
 
       {/* Básculas / Despacho */}
       <section className="bg-white/5 border border-white/10 rounded-xl p-4">
         <h2 className="font-semibold mb-3 text-lg">
-          Producción por báscula
+          Producción de Pesajes
         </h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[1, 2, 3].map((i) => {
             const b = balanzas.get(i)
+            
+            // Nombres descriptivos para cada sección
+            const sectionName = i === 1 ? 'Pesaje de Vehículos' : i === 2 ? 'Pesaje de Pallets' : 'Despacho'
 
             return (
               <div
@@ -124,7 +128,7 @@ export default function Dashboard() {
                 className="rounded-lg p-4 bg-black/30 border border-white/10"
               >
                 <div className="text-sm font-semibold mb-2">
-                  {i === 3 ? 'Despacho' : `Báscula ${i}`}
+                  {sectionName}
                 </div>
 
                 {i !== 3 ? (
@@ -188,7 +192,7 @@ export default function Dashboard() {
             Sin datos registrados
           </div>
         ) : (
-          <div className="h-64">
+          <div className="w-full h-80">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={weighings.slice(-20)}>
                 <CartesianGrid stroke="#ffffff22" strokeDasharray="3 3" />
@@ -202,9 +206,14 @@ export default function Dashboard() {
                   }
                   tick={{ fill: '#D1D5DB', fontSize: 12 }}
                 />
-                <YAxis />
+                <YAxis tick={{ fill: '#D1D5DB', fontSize: 12 }} />
                 <Tooltip
                   formatter={(v: number) => [`${v.toFixed(2)} kg`, 'Variación']}
+                  contentStyle={{
+                    backgroundColor: '#1f2937',
+                    border: '1px solid #374151',
+                    borderRadius: '8px'
+                  }}
                 />
                 <Line
                   type="monotone"
@@ -218,6 +227,9 @@ export default function Dashboard() {
           </div>
         )}
       </section>
+
+      {/* Historial de Alertas */}
+      <HistorialAlertas />
     </div>
   )
 }
