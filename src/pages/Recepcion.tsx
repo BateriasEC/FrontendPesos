@@ -8,7 +8,7 @@ export default function Recepcion() {
   const [niveles, setNiveles] = useState<Nivel[]>([
     { nivel: 1, MED: 2, G1: 13, P1: 8, P2: 14, P3: 20, P4: 6 },
   ])
-  const [guia, setGuia] = useState<File | null>(null)
+  const [, setGuia] = useState<File | null>(null)
 
   const addNivel = () => setNiveles(prev => [...prev, { nivel: prev.length + 1, MED: 0, G1: 0, P1: 0, P2: 0, P3: 0, P4: 0 }])
 
