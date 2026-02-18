@@ -9,6 +9,7 @@ import Usuarios from './pages/Usuarios'
 import Catalogo from './pages/Catalogo'
 import Pesajes from './pages/Pesajes'
 import Reportes from './pages/Reportes'
+import ReportesAlertas from './pages/ReportesAlertas'
 import Recepcion from './pages/Recepcion'
 import Entregas from './pages/Entregas'
 import Etiqueta from './pages/Etiqueta'
@@ -35,6 +36,7 @@ function App() {
             <Route path="catalogo" element={<Catalogo />} />
             <Route path="pesajes" element={<Pesajes />} />
             <Route path="reportes" element={<Reportes />} />
+            <Route path="reportes-alertas" element={<ReportesAlertas />} />
             <Route path="recepcion" element={<Recepcion />} />
             <Route path="entregas" element={<Entregas />} />
             <Route path="etiqueta" element={<Etiqueta />} />

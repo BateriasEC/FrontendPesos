@@ -1,36 +1,45 @@
 import { useEffect, useState } from 'react'
 import { api } from '../services/api'
 
-type SabanaData = {
+type SabanaPesajesData = {
   placa: string
   codigoTrazabilidad: string
   cliente: string
   producto: string
-  pesoAntes: number
-  pesoDespues: number
+  tipoVehiculo?: string
+  pesoIngreso: number
+  pesoSalida: number
   diferencia: number
   horaIngreso: string
   fecha: string
-  paletes: Array<{
+  operador?: string
+  pallets: Array<{
+    codigoIndependiente: string
     numero: number
     pesoReal: number
     pesoEstimado: number
     pesoTolerado: number
-    estado: 'ok' | 'error'
-    producto: string
-  }>
-  trituradora: Array<{
-    numero: number
-    pesoPalet: number
-    pesoTriturado: number
-    diferencia: number
-    estado: 'ok' | 'error'
+    estadoDespacho: 'despachado' | 'pendiente'
     producto: string
   }>
 }
 
+type SabanaDespachoData = {
+  codigoIndependiente: string
+  placa: string
+  cliente: string
+  producto: string
+  pesoDespacho: number
+  fechaDespacho: string
+  horaDespacho: string
+  variacion: number
+  estadoDespacho: 'completado' | 'pendiente'
+  pesoOriginal: number
+}
+
 export function useSabanaData(range: { from: string; to: string }) {
-  const [sabanasData, setSabanasData] = useState<SabanaData[]>([])
+  const [sabanaPesajesData, setSabanaPesajesData] = useState<SabanaPesajesData[]>([])
+  const [sabanaDespachoData, setSabanaDespachoData] = useState<SabanaDespachoData[]>([])
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -145,8 +154,9 @@ export function useSabanaData(range: { from: string; to: string }) {
           }
         })
         
-        // Convertir a formato SabanaData
-        const data: SabanaData[] = []
+        // Convertir a formato SabanaPesajesData y SabanaDespachoData
+        const dataPesajes: SabanaPesajesData[] = []
+        const dataDespacho: SabanaDespachoData[] = []
         
         vehiclesMap.forEach((pallets) => {
           if (pallets.length === 0) return
@@ -169,13 +179,10 @@ export function useSabanaData(range: { from: string; to: string }) {
           const fechaRaw = firstPallet.createdAt || firstPallet.fecha
           const fecha = new Date(fechaRaw)
           
-          // Obtener fecha local usando los componentes de fecha local (no UTC)
-          // Esto asegura que la fecha mostrada sea la del día local, no UTC
           const year = fecha.getFullYear()
           const month = fecha.getMonth()
           const day = fecha.getDate()
           
-          // Formatear fecha como YYYY-MM-DD usando componentes locales
           const fechaString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
           
           const horaIngreso = fecha.toLocaleTimeString('es-CO', { 
@@ -184,29 +191,17 @@ export function useSabanaData(range: { from: string; to: string }) {
             timeZone: 'America/Bogota'
           })
           
-          // Obtener cliente, producto y código de trazabilidad (usar el del primer pallet o del vehículo)
           const cliente = vehicle.cliente || 'N/A'
           const producto = firstPallet.product?.nombre || 'N/A'
           const codigoTrazabilidad = vehicle.codigoTrazabilidad || 'N/A'
+          const operador = vehicle.operador || undefined
           
-          console.log('[Sabana] Datos del vehículo:', {
-            placa: vehicle.placa,
-            codigoTrazabilidad: vehicle.codigoTrazabilidad,
-            cliente: vehicle.cliente,
-            producto: firstPallet.product?.nombre,
-            fechaRaw: fechaRaw,
-            fechaISO: fecha.toISOString(),
-            fechaLocal: fechaString,
-            fechaLocalString: fecha.toLocaleDateString('es-CO')
-          })
-          
-          // Mapear pallets a formato de paletes y trituradora
-          const paletes = pallets.map((p: any, index: number) => {
+          // Mapear pallets para Sábana de Pesajes
+          const palletsData = pallets.map((p: any, index: number) => {
             const productoPallet = p.product?.nombre || producto
             const pesoTotal = Number(p.pesoTotal) || 0
             const descargado = p.descargado === true || p.descargado === 'true' || p.descargado === 1
             
-            // Convertir pesoDescarga
             let pesoDescarga: number = 0
             if (descargado && p.pesoDescarga) {
               if (typeof p.pesoDescarga === 'string') {
@@ -219,96 +214,82 @@ export function useSabanaData(range: { from: string; to: string }) {
             
             const variacion = pesoTotal - pesoDescarga
             const pesoTolerado = Math.abs(variacion)
-            // Estado: ok si la variación es <= 5% del peso total O <= 10kg O si no está descargado (pendiente)
-            const porcentajeVariacion = pesoTotal > 0 ? (pesoTolerado / pesoTotal) * 100 : 0
-            const estado: 'ok' | 'error' = !descargado || pesoTolerado <= 10 || porcentajeVariacion <= 5 ? 'ok' : 'error'
+            const estadoDespacho: 'despachado' | 'pendiente' = descargado ? 'despachado' : 'pendiente'
             
-            return {
-              numero: index + 1,
-              pesoReal: pesoTotal,
-              pesoEstimado: pesoTotal, // Usamos el mismo peso como estimado
-              pesoTolerado: pesoTolerado,
-              estado,
-              producto: productoPallet
-            }
-          })
-          
-          const trituradora = pallets.map((p: any, index: number) => {
-            const productoPallet = p.product?.nombre || producto
-            const pesoTotal = Number(p.pesoTotal) || 0
-            // pesoDescarga puede venir como string (Decimal) o number
-            const pesoDescargaRaw = p.pesoDescarga
-            const descargado = p.descargado === true || p.descargado === 'true' || p.descargado === 1
+            // Obtener código independiente
+            const codigoIndependiente = p.codigoIndependiente || p.codigo || `PALL-${index + 1}`
             
-            // Convertir pesoDescarga correctamente
-            let pesoDescarga: number | null = null
-            if (pesoDescargaRaw !== null && pesoDescargaRaw !== undefined && pesoDescargaRaw !== '') {
-              if (typeof pesoDescargaRaw === 'string') {
-                pesoDescarga = parseFloat(pesoDescargaRaw)
-              } else {
-                pesoDescarga = Number(pesoDescargaRaw)
-              }
-              // Si la conversión falla, mantener como null
-              if (isNaN(pesoDescarga)) {
-                pesoDescarga = null
-              }
-            }
-            
-            // Si está descargado pero no hay pesoDescarga, usar 0 temporalmente
-            const pesoTriturado = descargado && pesoDescarga !== null ? pesoDescarga : (descargado ? 0 : 0)
-            const diferenciaTrit = pesoTotal - pesoTriturado
-            
-            // Estado: ok si está descargado Y la diferencia es <= 5% del peso total O <= 10kg
-            // Si no está descargado, mostrar como pendiente (no error)
-            const porcentajeDiferencia = pesoTotal > 0 ? (Math.abs(diferenciaTrit) / pesoTotal) * 100 : 0
-            const estado: 'ok' | 'error' = descargado && pesoDescarga !== null && pesoDescarga > 0
-              ? (Math.abs(diferenciaTrit) <= 10 || porcentajeDiferencia <= 5 ? 'ok' : 'error')
-              : 'ok' // Si no está descargado, no es error, es pendiente
-            
-            // Debug log para ver qué datos tenemos
-            if (index === 0) {
-              console.log('[Sabana] Datos del pallet para trituradora:', {
-                codigo: p.codigo,
-                pesoTotal,
-                descargado: p.descargado,
-                descargadoBoolean: descargado,
-                pesoDescargaRaw,
-                pesoDescarga,
-                pesoTriturado,
-                diferenciaTrit,
-                estado
+            // Agregar a datos de despacho
+            if (descargado && pesoDescarga > 0) {
+              const fechaDespacho = p.fechaDescarga ? new Date(p.fechaDescarga) : fecha
+              const fechaDespachoString = `${fechaDespacho.getFullYear()}-${String(fechaDespacho.getMonth() + 1).padStart(2, '0')}-${String(fechaDespacho.getDate()).padStart(2, '0')}`
+              const horaDespacho = fechaDespacho.toLocaleTimeString('es-CO', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                timeZone: 'America/Bogota'
+              })
+              
+              dataDespacho.push({
+                codigoIndependiente,
+                placa: vehicle.placa || 'N/A',
+                cliente,
+                producto: productoPallet,
+                pesoDespacho: pesoDescarga,
+                fechaDespacho: fechaDespachoString,
+                horaDespacho,
+                variacion: Math.abs(variacion),
+                estadoDespacho: 'completado',
+                pesoOriginal: pesoTotal
+              })
+            } else {
+              // Agregar como pendiente
+              dataDespacho.push({
+                codigoIndependiente,
+                placa: vehicle.placa || 'N/A',
+                cliente,
+                producto: productoPallet,
+                pesoDespacho: 0,
+                fechaDespacho: '',
+                horaDespacho: '',
+                variacion: 0,
+                estadoDespacho: 'pendiente',
+                pesoOriginal: pesoTotal
               })
             }
             
             return {
+              codigoIndependiente,
               numero: index + 1,
-              pesoPalet: pesoTotal,
-              pesoTriturado: pesoTriturado,
-              diferencia: diferenciaTrit,
-              estado,
+              pesoReal: pesoTotal,
+              pesoEstimado: pesoTotal,
+              pesoTolerado: pesoTolerado,
+              estadoDespacho,
               producto: productoPallet
             }
           })
           
-          data.push({
+          dataPesajes.push({
             placa: vehicle.placa || 'N/A',
             codigoTrazabilidad: codigoTrazabilidad,
             cliente: cliente,
             producto: producto,
-            pesoAntes: pesoIngreso,
-            pesoDespues: pesoSalida || 0,
+            tipoVehiculo: vehicle.tipoVehiculo,
+            pesoIngreso: pesoIngreso,
+            pesoSalida: pesoSalida || 0,
             diferencia: diferencia,
             horaIngreso: horaIngreso,
-            fecha: fechaString, // Usar fecha local en lugar de ISO
-            paletes,
-            trituradora
+            fecha: fechaString,
+            operador: operador,
+            pallets: palletsData
           })
         })
         
-        setSabanasData(data)
+        setSabanaPesajesData(dataPesajes)
+        setSabanaDespachoData(dataDespacho)
       } catch (error: any) {
         console.error('Error cargando datos de sábanas:', error)
-        setSabanasData([])
+        setSabanaPesajesData([])
+        setSabanaDespachoData([])
       } finally {
         setLoading(false)
       }
@@ -317,6 +298,6 @@ export function useSabanaData(range: { from: string; to: string }) {
     loadData()
   }, [range.from, range.to])
 
-  return { sabanasData, loading }
+  return { sabanaPesajesData, sabanaDespachoData, loading }
 }
 

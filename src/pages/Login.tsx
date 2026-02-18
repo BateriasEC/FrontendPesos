@@ -6,6 +6,7 @@ import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'
 export default function Login() {
   const { login } = useAuth()
   const navigate = useNavigate()
+
   const [email, setEmail] = useState('admin@bateriasecuador.com')
   const [password, setPassword] = useState('admin123')
   const [error, setError] = useState<string | null>(null)
@@ -27,108 +28,149 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 md:p-8" style={{ backgroundColor: '#FDB71A' }}>
-      <div className="w-full max-w-4xl grid grid-cols-1 lg:grid-cols-2 gap-0 bg-white rounded-2xl overflow-hidden shadow-2xl" style={{ border: '3px solid #EE3626' }}>
-        {/* Sección izquierda - Imagen */}
-        <div className="hidden lg:flex items-center justify-center bg-[#FDB71A] p-8 order-1 lg:order-1">
-          <div className="w-full h-full flex items-center justify-center">
-            <img 
-              src="src/images/login.png" 
-              alt="Login visual" 
-              className="w-full h-full object-contain  max-h-[550px] animate-fade-in"
-            />
-          </div>
+    <div
+      className="min-h-screen flex items-center justify-center px-4"
+      style={{ backgroundColor: '#FDB71A' }}
+    >
+      <div
+        className="w-full max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-2"
+        style={{ border: '3px solid #EE3626' }}
+      >
+        {/* PANEL IZQUIERDO */}
+        <div className="hidden lg:flex items-center justify-center bg-[#FDB71A] p-10">
+          <img
+            src="src/images/login.png"
+            alt="Login"
+            className="max-h-[520px] w-full object-contain animate-fade-in"
+          />
         </div>
 
-        {/* Sección derecha - Formulario */}
-        <div className="flex flex-col justify-center p-8 md:p-12 bg-white order-2 lg:order-2 relative">
-          {/* Eslogan en la esquina superior derecha */}
-          <div className="absolute -top-2 right-0 z-10">
-            <img 
-              src="src/images/eslogan.png" 
-              alt="Eslogan" 
-              className="h-24 md:h-28 w-auto object-cover"
-            />
-          </div>
-          <div className="w-full max-w-md mx-auto">
-            {/* Título de bienvenida */}
-            <h2 className="text-3xl md:text-4xl font-bold text-black mb-2 text-center">Bienvenido</h2>
-            <p className="text-gray-600 text-center mb-8">Inicia sesión para continuar</p>
+        {/* PANEL DERECHO */}
+        <div className="relative flex items-center justify-center p-8 md:p-12">
+          {/* Eslogan */}
+          <img
+            src="src/images/eslogan.png"
+            alt="Eslogan"
+            className="absolute top-4 right-4 h-24"
+          />
+
+          <div className="w-full max-w-md">
+            <h2 className="text-4xl font-extrabold text-center text-black mb-2">
+              Bienvenido
+            </h2>
+            <p className="text-center text-gray-600 mb-10">
+              Accede a tu panel administrativo
+            </p>
 
             <form onSubmit={onSubmit} className="space-y-6">
-              {/* Campo Email */}
+              {/* EMAIL */}
               <div>
-                <label className="block text-sm font-medium text-black mb-2">Correo electrónico</label>
-                <div className="relative">
-                  <input
-                    className="w-full bg-gray-50 text-black placeholder-gray-500 border border-gray-300 rounded-lg px-4 py-3 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#EE3626] focus:border-[#EE3626] transition-all"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="correo@empresa.com"
-                    autoComplete="username"
-                    required
-                  />
-                </div>
+                <label className="block text-sm font-semibold text-black mb-2">
+                  Correo electrónico
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="correo@empresa.com"
+                  autoComplete="username"
+                  required
+                  className="
+                    w-full rounded-xl border border-gray-300 bg-gray-50
+                    px-4 py-3 text-black placeholder-gray-400
+                    focus:outline-none focus:ring-2 focus:ring-[#EE3626] focus:border-[#EE3626]
+                    transition-all
+                  "
+                />
               </div>
 
-              {/* Campo Contraseña */}
+              {/* PASSWORD */}
               <div>
-                <label className="block text-sm font-medium text-black mb-2">Contraseña</label>
+                <label className="block text-sm font-semibold text-black mb-2">
+                  Contraseña
+                </label>
                 <div className="relative">
                   <input
-                    className="w-full bg-gray-50 text-black placeholder-gray-500 border border-gray-300 rounded-lg px-4 py-3 pr-12 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#EE3626] focus:border-[#EE3626] transition-all"
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
                     autoComplete="current-password"
                     required
+                    className="
+                      w-full rounded-xl border border-gray-300 bg-gray-50
+                      px-4 py-3 pr-12 text-black placeholder-gray-400
+                      focus:outline-none focus:ring-2 focus:ring-[#EE3626] focus:border-[#EE3626]
+                      transition-all
+                    "
                   />
                   <button
                     type="button"
-                    onClick={() => setShowPassword((v) => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-black transition-colors"
-                    aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-black"
                   >
-                    {showPassword ? <EyeSlashIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
+                    {showPassword ? (
+                      <EyeSlashIcon className="w-5 h-5" />
+                    ) : (
+                      <EyeIcon className="w-5 h-5" />
+                    )}
                   </button>
                 </div>
               </div>
 
-              {/* Mensaje de error */}
+              {/* ERROR */}
               {error && (
-                <div className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-lg p-3">
+                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
                   {error}
                 </div>
               )}
 
-              {/* Opciones adicionales */}
+              {/* OPCIONES */}
               <div className="flex items-center justify-between text-sm">
-                <label className="inline-flex items-center gap-2 select-none cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    className="w-4 h-4 accent-[#EE3626] cursor-pointer"
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 accent-[#EE3626]"
                   />
                   <span className="text-black">Recuérdame</span>
                 </label>
-                <a className="text-black hover:underline font-medium" href="#">
+                <a href="#" className="font-medium text-black hover:underline">
                   ¿Olvidaste tu contraseña?
                 </a>
               </div>
 
-              {/* Botón de entrar */}
+              {/* BOTÓN */}
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3.5 rounded-lg text-white font-semibold text-base shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
+                className="
+                  w-full rounded-xl py-3.5 text-white font-semibold
+                  shadow-lg transition-all duration-300
+                  hover:scale-[1.02] hover:shadow-xl
+                  disabled:opacity-70 disabled:cursor-not-allowed disabled:scale-100
+                "
                 style={{ backgroundColor: '#010101' }}
               >
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">
-                    <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    <svg
+                      className="h-5 w-5 animate-spin"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.37 0 0 5.37 0 12h4z"
+                      />
                     </svg>
                     Entrando...
                   </span>
@@ -143,5 +185,3 @@ export default function Login() {
     </div>
   )
 }
-
-
