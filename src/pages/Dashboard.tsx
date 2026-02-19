@@ -76,13 +76,31 @@ export default function Dashboard() {
 
     const loadBalanzas = async () => {
       try {
-        const res = await api.get('/balanzas/estados')
+        const res = await api.get('/dashboard/scale-stats')
         const data = res.data || {}
         const map = new Map<number, BalanzaInfo>()
 
-        Object.keys(data).forEach((k) => {
-          map.set(Number(k), data[k])
-        })
+        if (data.scale1) {
+          map.set(1, {
+            operacionesHoy: data.scale1.operacionesHoy || 0,
+            kilosHoy: data.scale1.kilosHoy || 0,
+            lastUpdate: data.scale1.lastUpdate || null
+          })
+        }
+        if (data.scale2) {
+          map.set(2, {
+            operacionesHoy: data.scale2.operacionesHoy || 0,
+            kilosHoy: data.scale2.kilosHoy || 0,
+            lastUpdate: data.scale2.lastUpdate || null
+          })
+        }
+        if (data.scale3) {
+          map.set(3, {
+            operacionesHoy: data.scale3.operacionesHoy || 0,
+            kilosHoy: data.scale3.kilosHoy || 0,
+            lastUpdate: data.scale3.lastUpdate || null
+          })
+        }
 
         setBalanzas(map)
       } catch (e) {
@@ -93,7 +111,7 @@ export default function Dashboard() {
     loadStats()
     loadBalanzas()
 
-    const interval = setInterval(loadBalanzas, 5000)
+    const interval = setInterval(loadBalanzas, 30000)
     return () => clearInterval(interval)
   }, [])
 
@@ -109,7 +127,7 @@ export default function Dashboard() {
         <StatCard title="Alertas" value={stats.alerts} />
       </div>
 
-      {/* Básculas / Despacho */}
+      {/* Producción de Pesajes */}
       <section className="bg-white/5 border border-white/10 rounded-xl p-4">
         <h2 className="font-semibold mb-3 text-lg">
           Producción de Pesajes
@@ -118,8 +136,6 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[1, 2, 3].map((i) => {
             const b = balanzas.get(i)
-            
-            // Nombres descriptivos para cada sección
             const sectionName = i === 1 ? 'Pesaje de Vehículos' : i === 2 ? 'Pesaje de Pallets' : 'Despacho'
 
             return (
