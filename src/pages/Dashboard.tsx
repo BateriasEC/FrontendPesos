@@ -76,9 +76,18 @@ export default function Dashboard() {
 
     const loadBalanzas = async () => {
       try {
+        console.log('🔍 Cargando datos de balanzas...')
         const res = await api.get('/dashboard/scale-stats')
-        const data = res.data || {}
+        console.log('📦 Respuesta completa:', res)
+        console.log('📊 Datos recibidos:', res.data)
+        
+        // Los datos vienen en res.data.data
+        const data = res.data?.data || res.data || {}
         const map = new Map<number, BalanzaInfo>()
+
+        console.log('Scale1:', data.scale1)
+        console.log('Scale2:', data.scale2)
+        console.log('Scale3:', data.scale3)
 
         if (data.scale1) {
           map.set(1, {
@@ -102,9 +111,10 @@ export default function Dashboard() {
           })
         }
 
+        console.log('🗺️ Map final:', map)
         setBalanzas(map)
       } catch (e) {
-        console.error('Error balanzas:', e)
+        console.error('❌ Error balanzas:', e)
       }
     }
 
@@ -150,7 +160,7 @@ export default function Dashboard() {
                 {i !== 3 ? (
                   <>
                     <div className="text-sm text-gray-300">
-                      Pesajes hoy
+                      Pesajes totales
                     </div>
                     <div className="text-xl font-bold">
                       {b?.operacionesHoy || 0}
@@ -166,7 +176,7 @@ export default function Dashboard() {
                 ) : (
                   <>
                     <div className="text-sm text-gray-300">
-                      Despachos hoy
+                      Despachos totales
                     </div>
                     <div className="text-xl font-bold">
                       {b?.operacionesHoy || 0}

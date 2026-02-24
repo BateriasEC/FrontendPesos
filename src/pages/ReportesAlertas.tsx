@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../services/api';
+import * as XLSX from 'xlsx';
 
 type Alerta = {
   id: string;
@@ -121,31 +122,45 @@ export default function ReportesAlertas() {
     return isNaN(num) ? '0.00' : num.toFixed(2);
   };
 
-  const exportToCSV = () => {
-    const headers = ['Fecha', 'Tipo', 'Estado', 'Placa', 'Cliente', 'Código Pallet', 'Peso Original', 'Peso Despacho', 'Variación %', 'Descripción'];
-    const rows = filteredAlertas.map(a => [
-      new Date(a.fechaCreacion).toLocaleString('es-EC'),
-      a.tipo === 'VARIACION_PESO' ? 'Variación de Peso' : 'Exceso de Vehículo',
-      a.estado,
-      a.pallet?.vehicle?.placa || 'N/A',
-      a.pallet?.vehicle?.cliente || 'N/A',
-      a.pallet?.codigoIndependiente || a.pallet?.codigo || 'N/A',
-      a.pallet?.pesoTotal || 0,
-      a.pallet?.pesoDescarga || 0,
-      formatVariacion(a.variacionPorcentaje),
-      a.descripcion || ''
-    ]);
+  const exportToExcel = () => {
+    const data = filteredAlertas.map(a => ({
+      'Fecha': new Date(a.fechaCreacion).toLocaleString('es-EC'),
+      'Tipo': a.tipo === 'VARIACION_PESO' ? 'Variación de Peso' : 'Exceso de Vehículo',
+      'Estado': a.estado,
+      'Placa': a.pallet?.vehicle?.placa || 'N/A',
+      'Cliente': a.pallet?.vehicle?.cliente || 'N/A',
+      'Código Pallet': a.pallet?.codigoIndependiente || a.pallet?.codigo || 'N/A',
+      'Peso Original (kg)': a.pallet?.pesoTotal || 0,
+      'Peso Despacho (kg)': a.pallet?.pesoDescarga || 0,
+      'Variación %': formatVariacion(a.variacionPorcentaje),
+      'Descripción': a.descripcion || '',
+      'Fecha Resolución': a.fechaResolucion 
+        ? new Date(a.fechaResolucion).toLocaleString('es-EC')
+        : 'Pendiente'
+    }));
 
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
-    ].join('\n');
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    
+    // Ajustar ancho de columnas
+    const columnWidths = [
+      { wch: 18 }, // Fecha
+      { wch: 20 }, // Tipo
+      { wch: 12 }, // Estado
+      { wch: 12 }, // Placa
+      { wch: 25 }, // Cliente
+      { wch: 20 }, // Código Pallet
+      { wch: 18 }, // Peso Original
+      { wch: 18 }, // Peso Despacho
+      { wch: 12 }, // Variación %
+      { wch: 40 }, // Descripción
+      { wch: 18 }, // Fecha Resolución
+    ];
+    worksheet['!cols'] = columnWidths;
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `alertas_${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Alertas');
+
+    XLSX.writeFile(workbook, `alertas_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   const stats = {
@@ -161,11 +176,11 @@ export default function ReportesAlertas() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-100">Reportes de Alertas</h1>
         <button
-          onClick={exportToCSV}
+          onClick={exportToExcel}
           disabled={filteredAlertas.length === 0}
           className="h-10 px-5 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white rounded-lg transition font-medium"
         >
-          Exportar CSV
+          Exportar Excel
         </button>
       </div>
 

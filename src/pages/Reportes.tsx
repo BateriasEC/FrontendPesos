@@ -166,18 +166,43 @@ export default function Reportes() {
       const excelData = filtered.map((r, idx) => {
         const fecha = new Date(r.fecha);
         return {
-          ID: idx + 1,
-          Fecha: fecha,
-          Hora: fecha,
-          "Variación (kg)": r.variacion,
-          "Producto ID": r.productoId,
-          Cliente: r.cliente || "N/A",
+          'ID': idx + 1,
+          'Fecha': fecha.toLocaleDateString('es-EC', { 
+            year: 'numeric', 
+            month: '2-digit', 
+            day: '2-digit',
+            timeZone: 'America/Bogota'
+          }),
+          'Hora': fecha.toLocaleTimeString('es-EC', { 
+            hour: '2-digit', 
+            minute: '2-digit', 
+            second: '2-digit',
+            timeZone: 'America/Bogota'
+          }),
+          'Día de la Semana': fecha.toLocaleDateString('es-EC', { weekday: 'long', timeZone: 'America/Bogota' }),
+          'Variación (kg)': Number(r.variacion).toFixed(2),
+          'Producto ID': r.productoId,
+          'Cliente': r.cliente || 'N/A',
+          'Rango de Consulta': `${reportRange.from} al ${reportRange.to}`,
         };
       });
 
-      const ws = XLSX.utils.json_to_sheet(excelData, { cellDates: true });
+      const ws = XLSX.utils.json_to_sheet(excelData);
+      
+      // Ajustar anchos de columna
+      ws['!cols'] = [
+        { wch: 8 },  // ID
+        { wch: 12 }, // Fecha
+        { wch: 12 }, // Hora
+        { wch: 15 }, // Día
+        { wch: 15 }, // Variación
+        { wch: 15 }, // Producto ID
+        { wch: 30 }, // Cliente
+        { wch: 30 }, // Rango
+      ];
+      
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Reportes");
+      XLSX.utils.book_append_sheet(wb, ws, 'Reportes');
       XLSX.writeFile(wb, `reportes_${reportRange.from}_${reportRange.to}.xlsx`);
     } catch (error) {
       console.error("Error al exportar Excel:", error);
@@ -185,35 +210,272 @@ export default function Reportes() {
     }
   }, [filtered, reportRange]);
 
+  // Excel Reporte General Consolidado
+  const exportReporteGeneralExcel = useCallback(() => {
+    try {
+      const wb = XLSX.utils.book_new();
+      
+      const fechaGeneracion = new Date().toLocaleString('es-EC', { timeZone: 'America/Bogota' });
+
+      // Hoja 1: Resumen General
+      const resumenData = [
+        { '': 'REPORTE GENERAL CONSOLIDADO', ' ': '' },
+        { '': 'Fecha de Generación', ' ': fechaGeneracion },
+        { '': 'Rango de Consulta', ' ': `${sabanaRange.from} al ${sabanaRange.to}` },
+        { '': '', ' ': '' },
+        { '': 'MÉTRICAS GENERALES', ' ': '' },
+        { '': 'Total de Vehículos Procesados', ' ': sabanaPesajesData.length },
+        { '': 'Total de Pallets Creados', ' ': sabanaPesajesData.reduce((acc, v) => acc + v.pallets.length, 0) },
+        { '': 'Total de Pallets Despachados', ' ': sabanaDespachoData.filter(d => d.estadoDespacho === 'completado').length },
+        { '': 'Total de Pallets Pendientes', ' ': sabanaDespachoData.filter(d => d.estadoDespacho !== 'completado').length },
+        { '': '', ' ': '' },
+        { '': 'PESOS Y DIFERENCIAS', ' ': '' },
+        { '': 'Peso Total Ingresado (kg)', ' ': sabanaPesajesData.reduce((acc, v) => acc + v.pesoIngreso, 0).toFixed(2) },
+        { '': 'Peso Total Salida (kg)', ' ': sabanaPesajesData.reduce((acc, v) => acc + v.pesoSalida, 0).toFixed(2) },
+        { '': 'Diferencia Total Vehículos (kg)', ' ': sabanaPesajesData.reduce((acc, v) => acc + v.diferencia, 0).toFixed(2) },
+        { '': 'Peso Total Pallets (kg)', ' ': sabanaPesajesData.reduce((acc, v) => acc + v.pallets.reduce((sum, p) => sum + p.pesoReal, 0), 0).toFixed(2) },
+        { '': 'Promedio Peso por Pallet (kg)', ' ': (sabanaPesajesData.reduce((acc, v) => acc + v.pallets.reduce((sum, p) => sum + p.pesoReal, 0), 0) / Math.max(1, sabanaPesajesData.reduce((acc, v) => acc + v.pallets.length, 0))).toFixed(2) },
+      ];
+      const wsResumen = XLSX.utils.json_to_sheet(resumenData, { skipHeader: true });
+      wsResumen['!cols'] = [{ wch: 40 }, { wch: 30 }];
+      XLSX.utils.book_append_sheet(wb, wsResumen, 'Resumen General');
+
+      // Hoja 2: Detalle de Vehículos y Pallets
+      const detalleData: any[] = [];
+      sabanaPesajesData.forEach((vehiculo, idx) => {
+        const fechaCompleta = new Date(`${vehiculo.fecha}T${vehiculo.horaIngreso}`);
+        const diaSemana = fechaCompleta.toLocaleDateString('es-EC', { weekday: 'long', timeZone: 'America/Bogota' });
+        
+        vehiculo.pallets.forEach((pallet, pIdx) => {
+          detalleData.push({
+            'N° Vehículo': idx + 1,
+            'N° Pallet': pIdx + 1,
+            'Fecha': vehiculo.fecha,
+            'Hora Ingreso': vehiculo.horaIngreso,
+            'Día de la Semana': diaSemana,
+            'Placa': vehiculo.placa,
+            'Código Trazabilidad': vehiculo.codigoTrazabilidad,
+            'Cliente': vehiculo.cliente,
+            'Tipo Vehículo': vehiculo.tipoVehiculo || 'N/A',
+            'Producto Vehículo': vehiculo.producto,
+            'Operador': vehiculo.operador || 'N/A',
+            'Peso Ingreso Vehículo (kg)': Number(vehiculo.pesoIngreso).toFixed(2),
+            'Peso Salida Vehículo (kg)': Number(vehiculo.pesoSalida).toFixed(2),
+            'Diferencia Vehículo (kg)': Number(vehiculo.diferencia).toFixed(2),
+            'Diferencia Vehículo %': vehiculo.pesoIngreso > 0 ? ((vehiculo.diferencia / vehiculo.pesoIngreso) * 100).toFixed(2) + '%' : '0%',
+            'Código Pallet': pallet.codigoIndependiente,
+            'Producto Pallet': pallet.producto,
+            'Peso Real Pallet (kg)': Number(pallet.pesoReal).toFixed(2),
+            'Peso Estimado Pallet (kg)': Number(pallet.pesoEstimado).toFixed(2),
+            'Peso Tolerado Pallet (kg)': Number(pallet.pesoTolerado).toFixed(2),
+            'Diferencia vs Estimado (kg)': (pallet.pesoReal - pallet.pesoEstimado).toFixed(2),
+            'Diferencia vs Estimado %': pallet.pesoEstimado > 0 ? (((pallet.pesoReal - pallet.pesoEstimado) / pallet.pesoEstimado) * 100).toFixed(2) + '%' : '0%',
+            'Estado Despacho': pallet.estadoDespacho === 'despachado' ? 'Despachado' : 'Pendiente',
+          });
+        });
+      });
+      const wsDetalle = XLSX.utils.json_to_sheet(detalleData);
+      wsDetalle['!cols'] = Array(23).fill({ wch: 18 });
+      XLSX.utils.book_append_sheet(wb, wsDetalle, 'Detalle Completo');
+
+      // Hoja 3: Despachos
+      const despachoData = sabanaDespachoData.map((item, idx) => {
+        let diaDespacho = 'Pendiente';
+        if (item.estadoDespacho === 'completado' && item.fechaDespacho) {
+          try {
+            const fechaObj = new Date(`${item.fechaDespacho}T${item.horaDespacho || '00:00:00'}`);
+            if (!isNaN(fechaObj.getTime())) {
+              diaDespacho = fechaObj.toLocaleDateString('es-EC', { weekday: 'long', timeZone: 'America/Bogota' });
+            }
+          } catch (e) {}
+        }
+        
+        return {
+          'ID': idx + 1,
+          'Fecha Despacho': item.estadoDespacho === 'completado' ? item.fechaDespacho : 'Pendiente',
+          'Hora Despacho': item.estadoDespacho === 'completado' ? item.horaDespacho : 'Pendiente',
+          'Día de la Semana': diaDespacho,
+          'Código Pallet': item.codigoIndependiente,
+          'Placa': item.placa,
+          'Cliente': item.cliente,
+          'Producto': item.producto,
+          'Peso Original (kg)': Number(item.pesoOriginal).toFixed(2),
+          'Peso Despacho (kg)': item.estadoDespacho === 'completado' ? Number(item.pesoDespacho).toFixed(2) : 'Pendiente',
+          'Variación (kg)': item.estadoDespacho === 'completado' ? Number(item.variacion).toFixed(2) : 'Pendiente',
+          'Variación %': item.estadoDespacho === 'completado' ? ((item.variacion / item.pesoOriginal) * 100).toFixed(2) + '%' : 'Pendiente',
+          'Estado': item.estadoDespacho === 'completado' ? 'Completado' : 'Pendiente',
+        };
+      });
+      const wsDespacho = XLSX.utils.json_to_sheet(despachoData);
+      wsDespacho['!cols'] = Array(13).fill({ wch: 18 });
+      XLSX.utils.book_append_sheet(wb, wsDespacho, 'Despachos');
+
+      // Hoja 4: Análisis por Cliente
+      const clienteMap = new Map<string, { vehiculos: number; pallets: number; pesoTotal: number; despachados: number; pendientes: number }>();
+      sabanaPesajesData.forEach(v => {
+        const cliente = v.cliente;
+        const current = clienteMap.get(cliente) || { vehiculos: 0, pallets: 0, pesoTotal: 0, despachados: 0, pendientes: 0 };
+        current.vehiculos += 1;
+        current.pallets += v.pallets.length;
+        current.pesoTotal += v.pallets.reduce((sum, p) => sum + p.pesoReal, 0);
+        current.despachados += v.pallets.filter(p => p.estadoDespacho === 'despachado').length;
+        current.pendientes += v.pallets.filter(p => p.estadoDespacho !== 'despachado').length;
+        clienteMap.set(cliente, current);
+      });
+      const clienteData = Array.from(clienteMap.entries())
+        .sort((a, b) => b[1].pesoTotal - a[1].pesoTotal)
+        .map(([cliente, data], idx) => ({
+          'Ranking': idx + 1,
+          'Cliente': cliente,
+          'Vehículos': data.vehiculos,
+          'Pallets Totales': data.pallets,
+          'Pallets Despachados': data.despachados,
+          'Pallets Pendientes': data.pendientes,
+          '% Despachado': data.pallets > 0 ? ((data.despachados / data.pallets) * 100).toFixed(2) + '%' : '0%',
+          'Peso Total (kg)': data.pesoTotal.toFixed(2),
+          'Promedio por Pallet (kg)': (data.pesoTotal / data.pallets).toFixed(2),
+          'Promedio por Vehículo (kg)': (data.pesoTotal / data.vehiculos).toFixed(2),
+        }));
+      const wsCliente = XLSX.utils.json_to_sheet(clienteData);
+      wsCliente['!cols'] = Array(10).fill({ wch: 20 });
+      XLSX.utils.book_append_sheet(wb, wsCliente, 'Análisis por Cliente');
+
+      // Hoja 5: Análisis por Producto
+      const productoMap = new Map<string, { pallets: number; pesoTotal: number; despachados: number; pendientes: number }>();
+      sabanaPesajesData.forEach(v => {
+        v.pallets.forEach(p => {
+          const producto = p.producto;
+          const current = productoMap.get(producto) || { pallets: 0, pesoTotal: 0, despachados: 0, pendientes: 0 };
+          current.pallets += 1;
+          current.pesoTotal += p.pesoReal;
+          if (p.estadoDespacho === 'despachado') {
+            current.despachados += 1;
+          } else {
+            current.pendientes += 1;
+          }
+          productoMap.set(producto, current);
+        });
+      });
+      const productoData = Array.from(productoMap.entries())
+        .sort((a, b) => b[1].pesoTotal - a[1].pesoTotal)
+        .map(([producto, data], idx) => ({
+          'Ranking': idx + 1,
+          'Producto': producto,
+          'Pallets Totales': data.pallets,
+          'Pallets Despachados': data.despachados,
+          'Pallets Pendientes': data.pendientes,
+          '% Despachado': data.pallets > 0 ? ((data.despachados / data.pallets) * 100).toFixed(2) + '%' : '0%',
+          'Peso Total (kg)': data.pesoTotal.toFixed(2),
+          'Promedio por Pallet (kg)': (data.pesoTotal / data.pallets).toFixed(2),
+          '% del Total': sabanaPesajesData.reduce((acc, v) => acc + v.pallets.reduce((sum, p) => sum + p.pesoReal, 0), 0) > 0 
+            ? ((data.pesoTotal / sabanaPesajesData.reduce((acc, v) => acc + v.pallets.reduce((sum, p) => sum + p.pesoReal, 0), 0)) * 100).toFixed(2) + '%' 
+            : '0%',
+        }));
+      const wsProducto = XLSX.utils.json_to_sheet(productoData);
+      wsProducto['!cols'] = Array(9).fill({ wch: 20 });
+      XLSX.utils.book_append_sheet(wb, wsProducto, 'Análisis por Producto');
+
+      // Hoja 6: Análisis Temporal
+      const fechaMap = new Map<string, { vehiculos: number; pallets: number; pesoTotal: number }>();
+      sabanaPesajesData.forEach(v => {
+        const fecha = v.fecha;
+        const current = fechaMap.get(fecha) || { vehiculos: 0, pallets: 0, pesoTotal: 0 };
+        current.vehiculos += 1;
+        current.pallets += v.pallets.length;
+        current.pesoTotal += v.pallets.reduce((sum, p) => sum + p.pesoReal, 0);
+        fechaMap.set(fecha, current);
+      });
+      const temporalData = Array.from(fechaMap.entries())
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([fecha, data]) => {
+          const fechaObj = new Date(fecha);
+          const diaSemana = fechaObj.toLocaleDateString('es-EC', { weekday: 'long', timeZone: 'America/Bogota' });
+          
+          return {
+            'Fecha': fecha,
+            'Día de la Semana': diaSemana,
+            'Vehículos': data.vehiculos,
+            'Pallets': data.pallets,
+            'Peso Total (kg)': data.pesoTotal.toFixed(2),
+            'Promedio por Vehículo (kg)': (data.pesoTotal / data.vehiculos).toFixed(2),
+            'Promedio por Pallet (kg)': (data.pesoTotal / data.pallets).toFixed(2),
+          };
+        });
+      const wsTemporal = XLSX.utils.json_to_sheet(temporalData);
+      wsTemporal['!cols'] = Array(7).fill({ wch: 20 });
+      XLSX.utils.book_append_sheet(wb, wsTemporal, 'Análisis Temporal');
+
+      XLSX.writeFile(wb, `reporte_general_${sabanaRange.from}_${sabanaRange.to}.xlsx`);
+    } catch (error) {
+      console.error("Error al exportar Reporte General:", error);
+      alert("Error al exportar Reporte General");
+    }
+  }, [sabanaPesajesData, sabanaDespachoData, sabanaRange]);
+
   // Excel Sábana de Pesajes
   const exportSabanaPesajesExcel = useCallback(() => {
     try {
       const excelData: any[] = [];
+      
       sabanaPesajesData.forEach((vehiculo, idx) => {
-        vehiculo.pallets.forEach((pallet) => {
+        vehiculo.pallets.forEach((pallet, palletIdx) => {
+          const fechaCompleta = new Date(`${vehiculo.fecha}T${vehiculo.horaIngreso}`);
+          
           excelData.push({
-            'Vehículo': idx + 1,
+            'N° Vehículo': idx + 1,
+            'N° Pallet': palletIdx + 1,
+            'Fecha': vehiculo.fecha,
+            'Hora Ingreso': vehiculo.horaIngreso,
+            'Día de la Semana': fechaCompleta.toLocaleDateString('es-EC', { weekday: 'long', timeZone: 'America/Bogota' }),
             'Placa': vehiculo.placa,
             'Código Trazabilidad': vehiculo.codigoTrazabilidad,
             'Cliente': vehiculo.cliente,
+            'Tipo Vehículo': vehiculo.tipoVehiculo || 'N/A',
             'Producto Vehículo': vehiculo.producto,
-            'Fecha': vehiculo.fecha,
-            'Hora Ingreso': vehiculo.horaIngreso,
             'Operador': vehiculo.operador || 'N/A',
-            'Peso Ingreso (kg)': vehiculo.pesoIngreso,
-            'Peso Salida (kg)': vehiculo.pesoSalida,
-            'Diferencia Vehículo (kg)': vehiculo.diferencia,
+            'Peso Ingreso Vehículo (kg)': Number(vehiculo.pesoIngreso).toFixed(2),
+            'Peso Salida Vehículo (kg)': Number(vehiculo.pesoSalida).toFixed(2),
+            'Diferencia Vehículo (kg)': Number(vehiculo.diferencia).toFixed(2),
             'Código Pallet': pallet.codigoIndependiente,
             'Producto Pallet': pallet.producto,
-            'Peso Real (kg)': pallet.pesoReal,
-            'Peso Estimado (kg)': pallet.pesoEstimado,
-            'Peso Tolerado (kg)': pallet.pesoTolerado,
+            'Peso Real Pallet (kg)': Number(pallet.pesoReal).toFixed(2),
+            'Peso Estimado Pallet (kg)': Number(pallet.pesoEstimado).toFixed(2),
+            'Peso Tolerado Pallet (kg)': Number(pallet.pesoTolerado).toFixed(2),
+            'Diferencia vs Estimado (kg)': (pallet.pesoReal - pallet.pesoEstimado).toFixed(2),
             'Estado Despacho': pallet.estadoDespacho === 'despachado' ? 'Despachado' : 'Pendiente de Despacho',
+            'Rango de Consulta': `${sabanaRange.from} al ${sabanaRange.to}`,
           });
         });
       });
 
       const ws = XLSX.utils.json_to_sheet(excelData);
+      
+      // Ajustar anchos de columna
+      ws['!cols'] = [
+        { wch: 12 }, // N° Vehículo
+        { wch: 10 }, // N° Pallet
+        { wch: 12 }, // Fecha
+        { wch: 12 }, // Hora Ingreso
+        { wch: 15 }, // Día
+        { wch: 12 }, // Placa
+        { wch: 25 }, // Código Trazabilidad
+        { wch: 30 }, // Cliente
+        { wch: 15 }, // Tipo Vehículo
+        { wch: 25 }, // Producto Vehículo
+        { wch: 20 }, // Operador
+        { wch: 22 }, // Peso Ingreso
+        { wch: 22 }, // Peso Salida
+        { wch: 22 }, // Diferencia
+        { wch: 30 }, // Código Pallet
+        { wch: 25 }, // Producto Pallet
+        { wch: 22 }, // Peso Real
+        { wch: 22 }, // Peso Estimado
+        { wch: 22 }, // Peso Tolerado
+        { wch: 22 }, // Diferencia vs Estimado
+        { wch: 22 }, // Estado Despacho
+        { wch: 30 }, // Rango
+      ];
+      
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Sábana de Pesajes");
       XLSX.writeFile(wb, `sabana_pesajes_${sabanaRange.from}_${sabanaRange.to}.xlsx`);
@@ -297,21 +559,62 @@ export default function Reportes() {
   // Excel Sábana de Despacho
   const exportSabanaDespachoExcel = useCallback(() => {
     try {
-      const excelData = sabanaDespachoData.map((item, idx) => ({
-        'ID': idx + 1,
-        'Código Pallet': item.codigoIndependiente,
-        'Placa': item.placa,
-        'Cliente': item.cliente,
-        'Producto': item.producto,
-        'Peso Original (kg)': item.pesoOriginal,
-        'Peso Despacho (kg)': item.estadoDespacho === 'completado' ? item.pesoDespacho : 'Pendiente',
-        'Variación (kg)': item.estadoDespacho === 'completado' ? item.variacion : 'Pendiente',
-        'Fecha Despacho': item.estadoDespacho === 'completado' ? item.fechaDespacho : 'Pendiente',
-        'Hora Despacho': item.estadoDespacho === 'completado' ? item.horaDespacho : 'Pendiente',
-        'Estado': item.estadoDespacho === 'completado' ? 'Completado' : 'Pendiente',
-      }));
+      const excelData = sabanaDespachoData.map((item, idx) => {
+        let fechaDespachoObj: Date | null = null;
+        let diaDespacho = 'Pendiente';
+        
+        if (item.estadoDespacho === 'completado' && item.fechaDespacho) {
+          try {
+            fechaDespachoObj = new Date(`${item.fechaDespacho}T${item.horaDespacho || '00:00:00'}`);
+            if (!isNaN(fechaDespachoObj.getTime())) {
+              diaDespacho = fechaDespachoObj.toLocaleDateString('es-EC', { 
+                weekday: 'long', 
+                timeZone: 'America/Bogota' 
+              });
+            }
+          } catch (e) {
+            console.error('Error parseando fecha:', e);
+          }
+        }
+        
+        return {
+          'ID': idx + 1,
+          'Código Pallet': item.codigoIndependiente,
+          'Placa': item.placa,
+          'Cliente': item.cliente,
+          'Producto': item.producto,
+          'Peso Original (kg)': Number(item.pesoOriginal).toFixed(2),
+          'Peso Despacho (kg)': item.estadoDespacho === 'completado' ? Number(item.pesoDespacho).toFixed(2) : 'Pendiente',
+          'Variación (kg)': item.estadoDespacho === 'completado' ? Number(item.variacion).toFixed(2) : 'Pendiente',
+          'Variación %': item.estadoDespacho === 'completado' ? ((item.variacion / item.pesoOriginal) * 100).toFixed(2) + '%' : 'Pendiente',
+          'Fecha Despacho': item.estadoDespacho === 'completado' ? item.fechaDespacho : 'Pendiente',
+          'Hora Despacho': item.estadoDespacho === 'completado' ? item.horaDespacho : 'Pendiente',
+          'Día de la Semana': diaDespacho,
+          'Estado': item.estadoDespacho === 'completado' ? 'Completado' : 'Pendiente',
+          'Rango de Consulta': `${sabanaRange.from} al ${sabanaRange.to}`,
+        };
+      });
 
       const ws = XLSX.utils.json_to_sheet(excelData);
+      
+      // Ajustar anchos de columna
+      ws['!cols'] = [
+        { wch: 8 },  // ID
+        { wch: 30 }, // Código Pallet
+        { wch: 12 }, // Placa
+        { wch: 30 }, // Cliente
+        { wch: 25 }, // Producto
+        { wch: 18 }, // Peso Original
+        { wch: 18 }, // Peso Despacho
+        { wch: 15 }, // Variación
+        { wch: 15 }, // Variación %
+        { wch: 15 }, // Fecha Despacho
+        { wch: 15 }, // Hora Despacho
+        { wch: 15 }, // Día
+        { wch: 12 }, // Estado
+        { wch: 30 }, // Rango
+      ];
+      
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Sábana de Despacho");
       XLSX.writeFile(wb, `sabana_despacho_${sabanaRange.from}_${sabanaRange.to}.xlsx`);
@@ -389,6 +692,71 @@ export default function Reportes() {
   return (
     <div className="space-y-6 w-full">
       <h1 className="text-2xl font-bold text-gray-100">Reportes</h1>
+
+      {/* REPORTE GENERAL CONSOLIDADO */}
+      <section className="rounded-xl border-2 border-brand-orange/50 bg-gradient-to-br from-brand-orange/10 to-transparent p-6">
+        <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-100 flex items-center gap-2">
+              <svg className="w-7 h-7 text-brand-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Reporte General Consolidado
+            </h2>
+            <p className="text-sm text-gray-400 mt-1">
+              Exporta todos los datos en un solo archivo Excel con múltiples hojas de análisis
+            </p>
+          </div>
+
+          <button
+            onClick={exportReporteGeneralExcel}
+            disabled={sabanaLoading || sabanaPesajesData.length === 0}
+            className="h-12 px-6 bg-brand-orange hover:bg-brand-orange/90 disabled:bg-gray-500 text-white rounded-lg transition font-bold text-lg shadow-lg flex items-center gap-2"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Exportar Reporte General
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+          <div className="bg-black/30 rounded-lg p-4 border border-white/10">
+            <div className="text-xs text-gray-400 mb-1">Vehículos Procesados</div>
+            <div className="text-2xl font-bold text-white">{sabanaPesajesData.length}</div>
+          </div>
+          <div className="bg-black/30 rounded-lg p-4 border border-white/10">
+            <div className="text-xs text-gray-400 mb-1">Pallets Totales</div>
+            <div className="text-2xl font-bold text-white">
+              {sabanaPesajesData.reduce((acc, v) => acc + v.pallets.length, 0)}
+            </div>
+          </div>
+          <div className="bg-black/30 rounded-lg p-4 border border-white/10">
+            <div className="text-xs text-gray-400 mb-1">Pallets Despachados</div>
+            <div className="text-2xl font-bold text-green-400">
+              {sabanaDespachoData.filter(d => d.estadoDespacho === 'completado').length}
+            </div>
+          </div>
+          <div className="bg-black/30 rounded-lg p-4 border border-white/10">
+            <div className="text-xs text-gray-400 mb-1">Peso Total (kg)</div>
+            <div className="text-2xl font-bold text-brand-orange">
+              {sabanaPesajesData.reduce((acc, v) => acc + v.pallets.reduce((sum, p) => sum + p.pesoReal, 0), 0).toLocaleString()}
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+          <div className="flex items-start gap-3">
+            <svg className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div className="text-sm text-blue-200">
+              <strong>El reporte incluye:</strong> Resumen general, detalle completo de vehículos y pallets, 
+              información de despachos, análisis por cliente y análisis por producto. Todo con fechas, horas y métricas detalladas.
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* FILTROS */}
       <div className="flex flex-wrap gap-3 items-end">
