@@ -80,8 +80,8 @@ export default function Vehiculos() {
           onChange={(e) => setEstado(e.target.value as any)}
         >
           <option value="">TODOS</option>
-          <option value="en_planta">EN PLANTA</option>
-          <option value="salido">DESPACHADO</option>
+          <option value="en_planta">EN PROCESO</option>
+          <option value="salido">DESCARGADO</option>
         </select>
 
         <button
@@ -131,7 +131,7 @@ export default function Vehiculos() {
                         bg-green-500/30 text-green-200
                         dark:bg-gray-500/30 dark:text-gray-300
                       ">
-                        {v.estado === 'en_planta' ? 'EN PLANTA' : 'DESPACHADO'}
+                        {v.estado === 'en_planta' ? 'EN PROCESO' : 'DESCARGADO'}
                       </span>
                     </td>
                     <td className="p-3 text-sm">{formatDate(v.ingresoAt)}</td>
@@ -171,7 +171,7 @@ export default function Vehiculos() {
                     bg-green-500/30 text-green-200
                     dark:bg-gray-500/30 dark:text-gray-300
                   ">
-                    {v.estado === 'en_planta' ? 'EN PLANTA' : 'DESPACHADO'}
+                    {v.estado === 'en_planta' ? 'EN PROCESO' : 'DESCARGADO'}
                   </span>
                 </div>
                 <div className="pt-2 border-t border-white/20 space-y-1 text-sm">

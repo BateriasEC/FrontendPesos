@@ -8,7 +8,7 @@ import {
   CartesianGrid
 } from 'recharts'
 
-type ChartData = Array<{ day: string; total: number }>
+type ChartData = Array<{ day: string; total: number; peso: number }>
 type DeviationData = Array<{
   product: string
   avg: number
@@ -76,17 +76,39 @@ export function ReportCharts({
                   allowDecimals={false}
                 />
                 <Tooltip
-                  formatter={(value: number) => [`${value}`, 'Pesajes']}
-                  labelFormatter={(label: string) => {
-                    const [y, m, d] = label.split('-')
-                    return `Fecha: ${d}/${m}/${y}`
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      const data = payload[0].payload;
+                      const [y, m, d] = data.day.split('-');
+                      return (
+                        <div style={{
+                          backgroundColor: '#262626',
+                          border: '1px solid #ffffff14',
+                          borderRadius: 8,
+                          padding: '8px 12px',
+                          color: '#fff',
+                          fontSize: 12
+                        }}>
+                          <p style={{ margin: 0, marginBottom: 4, fontWeight: 'bold' }}>
+                            Fecha: {d}/{m}/{y}
+                          </p>
+                          <p style={{ margin: 0, color: '#F15A29' }}>
+                            Pesajes: {data.total}
+                          </p>
+                          <p style={{ margin: 0, color: '#F15A29', fontWeight: 'bold' }}>
+                            Peso Total: {data.peso.toLocaleString()} kg
+                          </p>
+                        </div>
+                      );
+                    }
+                    return null;
                   }}
-                  contentStyle={tooltipStyle}
                 />
                 <Bar
                   dataKey="total"
                   fill="#F15A29"
                   radius={[6, 6, 0, 0]}
+                  name="Pesajes"
                 />
               </BarChart>
             </ResponsiveContainer>

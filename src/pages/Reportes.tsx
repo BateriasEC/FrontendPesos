@@ -34,6 +34,7 @@ export default function Reportes() {
   const [searchDespacho, setSearchDespacho] = useState('');
   const [searching, setSearching] = useState(false);
   const [searchingReports, setSearchingReports] = useState(false);
+  const [activeTab, setActiveTab] = useState<'pesajes' | 'despacho'>('pesajes');
   const ref = useRef<HTMLDivElement>(null);
   const { sabanaPesajesData, sabanaDespachoData, loading: sabanaLoading } = useSabanaData(sabanaRange);
 
@@ -52,13 +53,20 @@ export default function Reportes() {
   }, [rows, reportRange]);
 
   const byDay = useMemo(() => {
-    const map = new Map<string, number>();
+    const map = new Map<string, { count: number; peso: number }>();
     filtered.forEach((r) => {
       const day = new Date(r.fecha).toISOString().slice(0, 10);
-      map.set(day, (map.get(day) || 0) + 1);
+      const current = map.get(day) || { count: 0, peso: 0 };
+      current.count += 1;
+      current.peso += Math.abs(r.variacion || 0);
+      map.set(day, current);
     });
     return Array.from(map.entries())
-      .map(([day, total]) => ({ day, total }))
+      .map(([day, data]) => ({ 
+        day, 
+        total: data.count,
+        peso: Number(data.peso.toFixed(2))
+      }))
       .sort((a, b) => a.day.localeCompare(b.day));
   }, [filtered]);
 
@@ -94,6 +102,8 @@ export default function Reportes() {
         unit: "mm",
         format: "a4",
       });
+      
+      // Encabezado
       pdf.setFontSize(18);
       pdf.setTextColor(183, 28, 28);
       pdf.text("Reporte de Pesajes", 14, 15);
@@ -105,39 +115,59 @@ export default function Reportes() {
         14,
         23,
       );
+      
       pdf.setFontSize(10);
       pdf.text(`Total de registros: ${filtered.length}`, 14, 30);
+      pdf.text(
+        `Fecha de generación: ${new Date().toLocaleString('es-EC')}`,
+        14,
+        36,
+      );
 
       autoTable(pdf, {
-        startY: 36,
-        head: [["Fecha", "Hora", "Variación (kg)", "Producto ID", "Cliente"]],
-        body: filtered.map((r) => {
+        startY: 42,
+        head: [["ID", "Fecha", "Hora", "Día", "Variación (kg)", "Producto ID", "Cliente"]],
+        body: filtered.map((r, idx) => {
           const fecha = new Date(r.fecha);
           return [
-            fecha.toLocaleDateString("es-CO", { timeZone: "America/Bogota" }),
-            fecha.toLocaleTimeString("es-CO", {
+            idx + 1,
+            fecha.toLocaleDateString("es-EC", { 
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit',
+              timeZone: "America/Bogota" 
+            }),
+            fecha.toLocaleTimeString("es-EC", {
               hour: "2-digit",
               minute: "2-digit",
+              second: "2-digit",
               timeZone: "America/Bogota",
             }),
-            r.variacion,
+            fecha.toLocaleDateString("es-EC", { 
+              weekday: 'short',
+              timeZone: "America/Bogota" 
+            }),
+            Number(r.variacion).toFixed(2),
             r.productoId,
             r.cliente || "N/A",
           ];
         }),
-        styles: { fontSize: 9, cellPadding: 3, textColor: [40, 40, 40] },
+        styles: { fontSize: 8, cellPadding: 2, textColor: [40, 40, 40] },
         headStyles: {
           fillColor: [183, 28, 28],
           textColor: 255,
           halign: "center",
+          fontSize: 9,
         },
         alternateRowStyles: { fillColor: [255, 243, 205] },
         columnStyles: {
-          0: { halign: "center" },
-          1: { halign: "center" },
-          2: { halign: "right" },
-          3: { halign: "center" },
-          4: { halign: "left" },
+          0: { halign: "center", cellWidth: 12 },
+          1: { halign: "center", cellWidth: 25 },
+          2: { halign: "center", cellWidth: 22 },
+          3: { halign: "center", cellWidth: 18 },
+          4: { halign: "right", cellWidth: 25 },
+          5: { halign: "center", cellWidth: 25 },
+          6: { halign: "left", cellWidth: 'auto' },
         },
       });
 
@@ -405,6 +435,232 @@ export default function Reportes() {
       wsTemporal['!cols'] = Array(7).fill({ wch: 20 });
       XLSX.utils.book_append_sheet(wb, wsTemporal, 'Análisis Temporal');
 
+  // Excel Reporte General Consolidado
+  const exportReporteGeneralExcel = useCallback(() => {
+    try {
+      const wb = XLSX.utils.book_new();
+      
+      const fechaGeneracion = new Date().toLocaleString('es-EC', { timeZone: 'America/Bogota' });
+
+      // Hoja 1: Resumen General
+      const resumenData = [
+        { '': 'REPORTE GENERAL CONSOLIDADO', ' ': '' },
+        { '': 'Fecha de Generación', ' ': fechaGeneracion },
+        { '': 'Rango de Consulta', ' ': `${sabanaRange.from} al ${sabanaRange.to}` },
+        { '': '', ' ': '' },
+        { '': 'MÉTRICAS GENERALES', ' ': '' },
+        { '': 'Total de Vehículos Procesados', ' ': sabanaPesajesData.length },
+        { '': 'Total de Pallets Creados', ' ': sabanaPesajesData.reduce((acc, v) => acc + v.pallets.length, 0) },
+        { '': 'Total de Pallets Despachados', ' ': sabanaDespachoData.filter(d => d.estadoDespacho === 'completado').length },
+        { '': 'Total de Pallets Pendientes', ' ': sabanaDespachoData.filter(d => d.estadoDespacho !== 'completado').length },
+        { '': '', ' ': '' },
+        { '': 'PESOS Y DIFERENCIAS', ' ': '' },
+        { '': 'Peso Total Ingresado (kg)', ' ': sabanaPesajesData.reduce((acc, v) => acc + v.pesoIngreso, 0).toFixed(2) },
+        { '': 'Peso Total Salida (kg)', ' ': sabanaPesajesData.reduce((acc, v) => acc + v.pesoSalida, 0).toFixed(2) },
+        { '': 'Diferencia Total Vehículos (kg)', ' ': sabanaPesajesData.reduce((acc, v) => acc + v.diferencia, 0).toFixed(2) },
+        { '': 'Peso Total Pallets (kg)', ' ': sabanaPesajesData.reduce((acc, v) => acc + v.pallets.reduce((sum, p) => sum + p.pesoReal, 0), 0).toFixed(2) },
+        { '': 'Promedio Peso por Pallet (kg)', ' ': (sabanaPesajesData.reduce((acc, v) => acc + v.pallets.reduce((sum, p) => sum + p.pesoReal, 0), 0) / Math.max(1, sabanaPesajesData.reduce((acc, v) => acc + v.pallets.length, 0))).toFixed(2) },
+      ];
+      const wsResumen = XLSX.utils.json_to_sheet(resumenData, { skipHeader: true });
+      wsResumen['!cols'] = [{ wch: 40 }, { wch: 30 }];
+      XLSX.utils.book_append_sheet(wb, wsResumen, 'Resumen General');
+
+      // Hoja 2: Vehículos
+      const vehiculosData = sabanaPesajesData.map((vehiculo, idx) => {
+        const fechaObj = new Date(vehiculo.fecha + 'T00:00:00');
+        const diaSemana = fechaObj.toLocaleDateString('es-EC', { weekday: 'long', timeZone: 'America/Bogota' });
+        
+        return {
+          'N°': idx + 1,
+          'Fecha': vehiculo.fecha,
+          'Día de la Semana': diaSemana,
+          'Hora Ingreso': vehiculo.horaIngreso,
+          'Placa': vehiculo.placa,
+          'Código Trazabilidad': vehiculo.codigoTrazabilidad,
+          'Cliente': vehiculo.cliente,
+          'Producto': vehiculo.producto,
+          'Operador': vehiculo.operador || 'N/A',
+          'Peso Ingreso (kg)': Number(vehiculo.pesoIngreso).toFixed(2),
+          'Peso Salida (kg)': Number(vehiculo.pesoSalida).toFixed(2),
+          'Diferencia (kg)': Number(vehiculo.diferencia).toFixed(2),
+          'Diferencia %': vehiculo.pesoIngreso > 0 ? ((vehiculo.diferencia / vehiculo.pesoIngreso) * 100).toFixed(2) + '%' : '0%',
+          'Cantidad Pallets': vehiculo.pallets.length,
+        };
+      });
+      const wsVehiculos = XLSX.utils.json_to_sheet(vehiculosData);
+      wsVehiculos['!cols'] = [
+        { wch: 8 },  // N°
+        { wch: 12 }, // Fecha
+        { wch: 15 }, // Día
+        { wch: 12 }, // Hora
+        { wch: 12 }, // Placa
+        { wch: 25 }, // Código
+        { wch: 30 }, // Cliente
+        { wch: 25 }, // Producto
+        { wch: 20 }, // Operador
+        { wch: 18 }, // Peso Ingreso
+        { wch: 18 }, // Peso Salida
+        { wch: 18 }, // Diferencia
+        { wch: 15 }, // Diferencia %
+        { wch: 15 }, // Cantidad Pallets
+      ];
+      XLSX.utils.book_append_sheet(wb, wsVehiculos, 'Vehículos');
+
+      // Hoja 3: Pallets
+      const palletsData: any[] = [];
+      sabanaPesajesData.forEach((vehiculo) => {
+        const fechaObj = new Date(vehiculo.fecha + 'T00:00:00');
+        const diaSemana = fechaObj.toLocaleDateString('es-EC', { weekday: 'long', timeZone: 'America/Bogota' });
+        
+        vehiculo.pallets.forEach((pallet) => {
+          palletsData.push({
+            'Código Pallet': pallet.codigoIndependiente,
+            'Fecha': vehiculo.fecha,
+            'Día de la Semana': diaSemana,
+            'Hora': vehiculo.horaIngreso,
+            'Placa Vehículo': vehiculo.placa,
+            'Cliente': vehiculo.cliente,
+            'Producto': pallet.producto,
+            'Peso Real (kg)': Number(pallet.pesoReal).toFixed(2),
+            'Peso Estimado (kg)': Number(pallet.pesoEstimado).toFixed(2),
+            'Peso Tolerado (kg)': Number(pallet.pesoTolerado).toFixed(2),
+            'Diferencia vs Estimado (kg)': (pallet.pesoReal - pallet.pesoEstimado).toFixed(2),
+            'Diferencia %': pallet.pesoEstimado > 0 ? (((pallet.pesoReal - pallet.pesoEstimado) / pallet.pesoEstimado) * 100).toFixed(2) + '%' : '0%',
+            'Estado Despacho': pallet.estadoDespacho === 'despachado' ? 'Despachado' : 'Pendiente',
+          });
+        });
+      });
+      const wsPallets = XLSX.utils.json_to_sheet(palletsData);
+      wsPallets['!cols'] = [
+        { wch: 30 }, // Código Pallet
+        { wch: 12 }, // Fecha
+        { wch: 15 }, // Día
+        { wch: 12 }, // Hora
+        { wch: 12 }, // Placa
+        { wch: 30 }, // Cliente
+        { wch: 25 }, // Producto
+        { wch: 18 }, // Peso Real
+        { wch: 18 }, // Peso Estimado
+        { wch: 18 }, // Peso Tolerado
+        { wch: 22 }, // Diferencia
+        { wch: 15 }, // Diferencia %
+        { wch: 18 }, // Estado
+      ];
+      XLSX.utils.book_append_sheet(wb, wsPallets, 'Pallets');
+
+      // Hoja 4: Despachos
+      const despachoData = sabanaDespachoData.map((item, idx) => {
+        let diaDespacho = 'Pendiente';
+        if (item.estadoDespacho === 'completado' && item.fechaDespacho) {
+          try {
+            const fechaObj = new Date(item.fechaDespacho + 'T00:00:00');
+            if (!isNaN(fechaObj.getTime())) {
+              diaDespacho = fechaObj.toLocaleDateString('es-EC', { weekday: 'long', timeZone: 'America/Bogota' });
+            }
+          } catch (e) {
+            console.error('Error parseando fecha despacho:', e);
+          }
+        }
+        
+        return {
+          'N°': idx + 1,
+          'Código Pallet': item.codigoIndependiente,
+          'Fecha Despacho': item.estadoDespacho === 'completado' ? item.fechaDespacho : 'Pendiente',
+          'Día de la Semana': diaDespacho,
+          'Hora Despacho': item.estadoDespacho === 'completado' ? item.horaDespacho : 'Pendiente',
+          'Placa': item.placa,
+          'Cliente': item.cliente,
+          'Producto': item.producto,
+          'Peso Original (kg)': Number(item.pesoOriginal).toFixed(2),
+          'Peso Despacho (kg)': item.estadoDespacho === 'completado' ? Number(item.pesoDespacho).toFixed(2) : 'Pendiente',
+          'Variación (kg)': item.estadoDespacho === 'completado' ? Number(item.variacion).toFixed(2) : 'Pendiente',
+          'Variación %': item.estadoDespacho === 'completado' ? ((item.variacion / item.pesoOriginal) * 100).toFixed(2) + '%' : 'Pendiente',
+          'Estado': item.estadoDespacho === 'completado' ? 'Completado' : 'Pendiente',
+        };
+      });
+      const wsDespacho = XLSX.utils.json_to_sheet(despachoData);
+      wsDespacho['!cols'] = [
+        { wch: 8 },  // N°
+        { wch: 30 }, // Código Pallet
+        { wch: 15 }, // Fecha
+        { wch: 15 }, // Día
+        { wch: 15 }, // Hora
+        { wch: 12 }, // Placa
+        { wch: 30 }, // Cliente
+        { wch: 25 }, // Producto
+        { wch: 18 }, // Peso Original
+        { wch: 18 }, // Peso Despacho
+        { wch: 15 }, // Variación
+        { wch: 15 }, // Variación %
+        { wch: 12 }, // Estado
+      ];
+      XLSX.utils.book_append_sheet(wb, wsDespacho, 'Despachos');
+
+      // Hoja 5: Análisis por Producto
+      const productoMap = new Map<string, { pallets: number; pesoTotal: number; despachados: number; pendientes: number }>();
+      sabanaPesajesData.forEach(v => {
+        v.pallets.forEach(p => {
+          const producto = p.producto;
+          const current = productoMap.get(producto) || { pallets: 0, pesoTotal: 0, despachados: 0, pendientes: 0 };
+          current.pallets += 1;
+          current.pesoTotal += p.pesoReal;
+          if (p.estadoDespacho === 'despachado') {
+            current.despachados += 1;
+          } else {
+            current.pendientes += 1;
+          }
+          productoMap.set(producto, current);
+        });
+      });
+      const productoData = Array.from(productoMap.entries())
+        .sort((a, b) => b[1].pesoTotal - a[1].pesoTotal)
+        .map(([producto, data], idx) => ({
+          'Ranking': idx + 1,
+          'Producto': producto,
+          'Pallets Totales': data.pallets,
+          'Pallets Despachados': data.despachados,
+          'Pallets Pendientes': data.pendientes,
+          '% Despachado': data.pallets > 0 ? ((data.despachados / data.pallets) * 100).toFixed(2) + '%' : '0%',
+          'Peso Total (kg)': data.pesoTotal.toFixed(2),
+          'Promedio por Pallet (kg)': (data.pesoTotal / data.pallets).toFixed(2),
+          '% del Total': sabanaPesajesData.reduce((acc, v) => acc + v.pallets.reduce((sum, p) => sum + p.pesoReal, 0), 0) > 0 
+            ? ((data.pesoTotal / sabanaPesajesData.reduce((acc, v) => acc + v.pallets.reduce((sum, p) => sum + p.pesoReal, 0), 0)) * 100).toFixed(2) + '%' 
+            : '0%',
+        }));
+      const wsProducto = XLSX.utils.json_to_sheet(productoData);
+      wsProducto['!cols'] = Array(9).fill({ wch: 20 });
+      XLSX.utils.book_append_sheet(wb, wsProducto, 'Análisis por Producto');
+
+      // Hoja 6: Análisis Temporal
+      const fechaMap = new Map<string, { vehiculos: number; pallets: number; pesoTotal: number }>();
+      sabanaPesajesData.forEach(v => {
+        const fecha = v.fecha;
+        const current = fechaMap.get(fecha) || { vehiculos: 0, pallets: 0, pesoTotal: 0 };
+        current.vehiculos += 1;
+        current.pallets += v.pallets.length;
+        current.pesoTotal += v.pallets.reduce((sum, p) => sum + p.pesoReal, 0);
+        fechaMap.set(fecha, current);
+      });
+      const temporalData = Array.from(fechaMap.entries())
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([fecha, data]) => {
+          const fechaObj = new Date(fecha + 'T00:00:00');
+          const diaSemana = fechaObj.toLocaleDateString('es-EC', { weekday: 'long', timeZone: 'America/Bogota' });
+          
+          return {
+            'Fecha': fecha,
+            'Día de la Semana': diaSemana,
+            'Vehículos': data.vehiculos,
+            'Pallets': data.pallets,
+            'Peso Total (kg)': data.pesoTotal.toFixed(2),
+            'Promedio por Vehículo (kg)': (data.pesoTotal / data.vehiculos).toFixed(2),
+            'Promedio por Pallet (kg)': (data.pesoTotal / data.pallets).toFixed(2),
+          };
+        });
+      const wsTemporal = XLSX.utils.json_to_sheet(temporalData);
+      wsTemporal['!cols'] = Array(7).fill({ wch: 20 });
+      XLSX.utils.book_append_sheet(wb, wsTemporal, 'Análisis Temporal');
+
       XLSX.writeFile(wb, `reporte_general_${sabanaRange.from}_${sabanaRange.to}.xlsx`);
     } catch (error) {
       console.error("Error al exportar Reporte General:", error);
@@ -419,18 +675,18 @@ export default function Reportes() {
       
       sabanaPesajesData.forEach((vehiculo, idx) => {
         vehiculo.pallets.forEach((pallet, palletIdx) => {
-          const fechaCompleta = new Date(`${vehiculo.fecha}T${vehiculo.horaIngreso}`);
+          const fechaObj = new Date(vehiculo.fecha + 'T00:00:00');
+          const diaSemana = fechaObj.toLocaleDateString('es-EC', { weekday: 'long', timeZone: 'America/Bogota' });
           
           excelData.push({
             'N° Vehículo': idx + 1,
             'N° Pallet': palletIdx + 1,
             'Fecha': vehiculo.fecha,
+            'Día de la Semana': diaSemana,
             'Hora Ingreso': vehiculo.horaIngreso,
-            'Día de la Semana': fechaCompleta.toLocaleDateString('es-EC', { weekday: 'long', timeZone: 'America/Bogota' }),
             'Placa': vehiculo.placa,
             'Código Trazabilidad': vehiculo.codigoTrazabilidad,
             'Cliente': vehiculo.cliente,
-            'Tipo Vehículo': vehiculo.tipoVehiculo || 'N/A',
             'Producto Vehículo': vehiculo.producto,
             'Operador': vehiculo.operador || 'N/A',
             'Peso Ingreso Vehículo (kg)': Number(vehiculo.pesoIngreso).toFixed(2),
@@ -455,12 +711,11 @@ export default function Reportes() {
         { wch: 12 }, // N° Vehículo
         { wch: 10 }, // N° Pallet
         { wch: 12 }, // Fecha
-        { wch: 12 }, // Hora Ingreso
         { wch: 15 }, // Día
+        { wch: 12 }, // Hora Ingreso
         { wch: 12 }, // Placa
         { wch: 25 }, // Código Trazabilidad
         { wch: 30 }, // Cliente
-        { wch: 15 }, // Tipo Vehículo
         { wch: 25 }, // Producto Vehículo
         { wch: 20 }, // Operador
         { wch: 22 }, // Peso Ingreso
@@ -505,36 +760,68 @@ export default function Reportes() {
         14,
         23,
       );
+      
+      pdf.setFontSize(10);
+      pdf.text(
+        `Fecha de generación: ${new Date().toLocaleString('es-EC')}`,
+        14,
+        29,
+      );
+      pdf.text(
+        `Total vehículos: ${sabanaPesajesData.length} | Total pallets: ${sabanaPesajesData.reduce((acc, v) => acc + v.pallets.length, 0)}`,
+        14,
+        35,
+      );
 
       const tableData: any[] = [];
       sabanaPesajesData.forEach((vehiculo, idx) => {
+        const fechaCompleta = new Date(`${vehiculo.fecha}T${vehiculo.horaIngreso}`);
+        const diaSemana = fechaCompleta.toLocaleDateString('es-EC', { weekday: 'short', timeZone: 'America/Bogota' });
+        
         vehiculo.pallets.forEach((pallet, pIdx) => {
           tableData.push([
             idx + 1,
             vehiculo.placa,
             vehiculo.cliente,
             vehiculo.fecha,
-            vehiculo.pesoIngreso,
-            vehiculo.pesoSalida,
-            vehiculo.diferencia,
+            vehiculo.horaIngreso,
+            diaSemana,
+            Number(vehiculo.pesoIngreso).toFixed(2),
+            Number(vehiculo.pesoSalida).toFixed(2),
+            Number(vehiculo.diferencia).toFixed(2),
             pallet.codigoIndependiente,
-            pallet.pesoReal.toFixed(2),
+            Number(pallet.pesoReal).toFixed(2),
             pallet.estadoDespacho === 'despachado' ? 'Despachado' : 'Pendiente',
           ]);
         });
       });
 
       autoTable(pdf, {
-        startY: 30,
-        head: [["Veh.", "Placa", "Cliente", "Fecha", "Peso Ing.", "Peso Sal.", "Dif.", "Código Pallet", "Peso", "Estado"]],
+        startY: 41,
+        head: [["Veh.", "Placa", "Cliente", "Fecha", "Hora", "Día", "P.Ing.", "P.Sal.", "Dif.", "Cód.Pallet", "Peso", "Estado"]],
         body: tableData,
-        styles: { fontSize: 8, cellPadding: 2, textColor: [40, 40, 40] },
+        styles: { fontSize: 7, cellPadding: 1.5, textColor: [40, 40, 40] },
         headStyles: {
           fillColor: [183, 28, 28],
           textColor: 255,
           halign: "center",
+          fontSize: 8,
         },
         alternateRowStyles: { fillColor: [255, 243, 205] },
+        columnStyles: {
+          0: { halign: "center", cellWidth: 12 },
+          1: { halign: "center", cellWidth: 18 },
+          2: { halign: "left", cellWidth: 35 },
+          3: { halign: "center", cellWidth: 20 },
+          4: { halign: "center", cellWidth: 15 },
+          5: { halign: "center", cellWidth: 15 },
+          6: { halign: "right", cellWidth: 18 },
+          7: { halign: "right", cellWidth: 18 },
+          8: { halign: "right", cellWidth: 15 },
+          9: { halign: "left", cellWidth: 35 },
+          10: { halign: "right", cellWidth: 18 },
+          11: { halign: "center", cellWidth: 20 },
+        },
       });
 
       const pageCount = pdf.getNumberOfPages();
@@ -560,14 +847,13 @@ export default function Reportes() {
   const exportSabanaDespachoExcel = useCallback(() => {
     try {
       const excelData = sabanaDespachoData.map((item, idx) => {
-        let fechaDespachoObj: Date | null = null;
         let diaDespacho = 'Pendiente';
         
         if (item.estadoDespacho === 'completado' && item.fechaDespacho) {
           try {
-            fechaDespachoObj = new Date(`${item.fechaDespacho}T${item.horaDespacho || '00:00:00'}`);
-            if (!isNaN(fechaDespachoObj.getTime())) {
-              diaDespacho = fechaDespachoObj.toLocaleDateString('es-EC', { 
+            const fechaObj = new Date(item.fechaDespacho + 'T00:00:00');
+            if (!isNaN(fechaObj.getTime())) {
+              diaDespacho = fechaObj.toLocaleDateString('es-EC', { 
                 weekday: 'long', 
                 timeZone: 'America/Bogota' 
               });
@@ -578,8 +864,11 @@ export default function Reportes() {
         }
         
         return {
-          'ID': idx + 1,
+          'N°': idx + 1,
           'Código Pallet': item.codigoIndependiente,
+          'Fecha Despacho': item.estadoDespacho === 'completado' ? item.fechaDespacho : 'Pendiente',
+          'Día de la Semana': diaDespacho,
+          'Hora Despacho': item.estadoDespacho === 'completado' ? item.horaDespacho : 'Pendiente',
           'Placa': item.placa,
           'Cliente': item.cliente,
           'Producto': item.producto,
@@ -587,9 +876,6 @@ export default function Reportes() {
           'Peso Despacho (kg)': item.estadoDespacho === 'completado' ? Number(item.pesoDespacho).toFixed(2) : 'Pendiente',
           'Variación (kg)': item.estadoDespacho === 'completado' ? Number(item.variacion).toFixed(2) : 'Pendiente',
           'Variación %': item.estadoDespacho === 'completado' ? ((item.variacion / item.pesoOriginal) * 100).toFixed(2) + '%' : 'Pendiente',
-          'Fecha Despacho': item.estadoDespacho === 'completado' ? item.fechaDespacho : 'Pendiente',
-          'Hora Despacho': item.estadoDespacho === 'completado' ? item.horaDespacho : 'Pendiente',
-          'Día de la Semana': diaDespacho,
           'Estado': item.estadoDespacho === 'completado' ? 'Completado' : 'Pendiente',
           'Rango de Consulta': `${sabanaRange.from} al ${sabanaRange.to}`,
         };
@@ -599,8 +885,11 @@ export default function Reportes() {
       
       // Ajustar anchos de columna
       ws['!cols'] = [
-        { wch: 8 },  // ID
+        { wch: 8 },  // N°
         { wch: 30 }, // Código Pallet
+        { wch: 15 }, // Fecha Despacho
+        { wch: 15 }, // Día
+        { wch: 15 }, // Hora Despacho
         { wch: 12 }, // Placa
         { wch: 30 }, // Cliente
         { wch: 25 }, // Producto
@@ -608,9 +897,6 @@ export default function Reportes() {
         { wch: 18 }, // Peso Despacho
         { wch: 15 }, // Variación
         { wch: 15 }, // Variación %
-        { wch: 15 }, // Fecha Despacho
-        { wch: 15 }, // Hora Despacho
-        { wch: 15 }, // Día
         { wch: 12 }, // Estado
         { wch: 30 }, // Rango
       ];
@@ -644,30 +930,73 @@ export default function Reportes() {
         14,
         23,
       );
+      
+      pdf.setFontSize(10);
+      pdf.text(
+        `Fecha de generación: ${new Date().toLocaleString('es-EC')}`,
+        14,
+        29,
+      );
+      
+      const completados = sabanaDespachoData.filter(d => d.estadoDespacho === 'completado').length;
+      const pendientes = sabanaDespachoData.length - completados;
+      pdf.text(
+        `Total: ${sabanaDespachoData.length} | Completados: ${completados} | Pendientes: ${pendientes}`,
+        14,
+        35,
+      );
 
-      const tableData = sabanaDespachoData.map((item, idx) => [
-        idx + 1,
-        item.codigoIndependiente,
-        item.placa,
-        item.cliente,
-        item.pesoOriginal.toFixed(2),
-        item.estadoDespacho === 'completado' ? item.pesoDespacho.toFixed(2) : 'Pendiente',
-        item.estadoDespacho === 'completado' ? item.variacion.toFixed(2) : '-',
-        item.estadoDespacho === 'completado' ? item.fechaDespacho : 'Pendiente',
-        item.estadoDespacho === 'completado' ? 'Completado' : 'Pendiente',
-      ]);
+      const tableData = sabanaDespachoData.map((item, idx) => {
+        let diaDespacho = '-';
+        if (item.estadoDespacho === 'completado' && item.fechaDespacho) {
+          try {
+            const fechaObj = new Date(`${item.fechaDespacho}T${item.horaDespacho || '00:00:00'}`);
+            if (!isNaN(fechaObj.getTime())) {
+              diaDespacho = fechaObj.toLocaleDateString('es-EC', { weekday: 'short', timeZone: 'America/Bogota' });
+            }
+          } catch (e) {}
+        }
+        
+        return [
+          idx + 1,
+          item.codigoIndependiente,
+          item.placa,
+          item.cliente,
+          Number(item.pesoOriginal).toFixed(2),
+          item.estadoDespacho === 'completado' ? Number(item.pesoDespacho).toFixed(2) : 'Pend.',
+          item.estadoDespacho === 'completado' ? Number(item.variacion).toFixed(2) : '-',
+          item.estadoDespacho === 'completado' ? item.fechaDespacho : 'Pend.',
+          item.estadoDespacho === 'completado' ? item.horaDespacho : '-',
+          diaDespacho,
+          item.estadoDespacho === 'completado' ? 'OK' : 'Pend.',
+        ];
+      });
 
       autoTable(pdf, {
-        startY: 30,
-        head: [["ID", "Código Pallet", "Placa", "Cliente", "Peso Orig.", "Peso Desp.", "Var.", "Fecha", "Estado"]],
+        startY: 41,
+        head: [["ID", "Cód.Pallet", "Placa", "Cliente", "P.Orig.", "P.Desp.", "Var.", "Fecha", "Hora", "Día", "Est."]],
         body: tableData,
-        styles: { fontSize: 8, cellPadding: 2, textColor: [40, 40, 40] },
+        styles: { fontSize: 7, cellPadding: 1.5, textColor: [40, 40, 40] },
         headStyles: {
           fillColor: [183, 28, 28],
           textColor: 255,
           halign: "center",
+          fontSize: 8,
         },
         alternateRowStyles: { fillColor: [255, 243, 205] },
+        columnStyles: {
+          0: { halign: "center", cellWidth: 10 },
+          1: { halign: "left", cellWidth: 40 },
+          2: { halign: "center", cellWidth: 18 },
+          3: { halign: "left", cellWidth: 35 },
+          4: { halign: "right", cellWidth: 18 },
+          5: { halign: "right", cellWidth: 18 },
+          6: { halign: "right", cellWidth: 15 },
+          7: { halign: "center", cellWidth: 20 },
+          8: { halign: "center", cellWidth: 15 },
+          9: { halign: "center", cellWidth: 15 },
+          10: { halign: "center", cellWidth: 15 },
+        },
       });
 
       const pageCount = pdf.getNumberOfPages();
@@ -801,155 +1130,175 @@ export default function Reportes() {
         />
       </div>
 
-      {/* SÁBANA DE PESAJES */}
+      {/* SÁBANAS CON TABS */}
       <section className="rounded-xl border border-white/10 bg-white/5 p-6 mt-4">
-        <div className="flex flex-wrap justify-between gap-4 mb-5">
-          <h2 className="text-xl font-semibold text-gray-100 pt-1">
-            Sábana de Pesajes
-          </h2>
+        {/* Tabs Header */}
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+          <div className="flex gap-2">
+            <button
+              onClick={() => setActiveTab('pesajes')}
+              className={`px-6 py-3 rounded-lg font-semibold transition-all ${
+                activeTab === 'pesajes'
+                  ? 'bg-brand-orange text-white shadow-lg'
+                  : 'bg-white/5 text-gray-400 hover:bg-white/10'
+              }`}
+            >
+              Sábana de Pesajes
+            </button>
+            <button
+              onClick={() => setActiveTab('despacho')}
+              className={`px-6 py-3 rounded-lg font-semibold transition-all ${
+                activeTab === 'despacho'
+                  ? 'bg-brand-orange text-white shadow-lg'
+                  : 'bg-white/5 text-gray-400 hover:bg-white/10'
+              }`}
+            >
+              Sábana de Despacho
+            </button>
+          </div>
 
           <div className="flex flex-wrap gap-2 items-end">
             <DateRange from={range.from} to={range.to} onChange={setRange} />
 
-            <div className="flex gap-2 mt-5">
-              <button
-                onClick={async () => {
-                  setSearching(true);
-                  setSabanaRange(range);
-                  setSabanaPage(1);
-                  setTimeout(() => setSearching(false), 500);
-                }}
-                disabled={searching || sabanaLoading}
-                className="h-10 px-5 bg-gray-600 hover:bg-gray-700 disabled:bg-gray-500 text-white rounded-lg transition font-medium flex items-center justify-center"
-              >
-                {searching || sabanaLoading ? (
-                  <div className="animate-spin h-4 w-4 border-b-2 border-white rounded-full" />
-                ) : (
-                  "Buscar"
-                )}
-              </button>
+            <button
+              onClick={async () => {
+                setSearching(true);
+                setSabanaRange(range);
+                setSabanaPage(1);
+                setDespachoPage(1);
+                setTimeout(() => setSearching(false), 500);
+              }}
+              disabled={searching || sabanaLoading}
+              className="h-10 px-5 bg-gray-600 hover:bg-gray-700 disabled:bg-gray-500 text-white rounded-lg transition font-medium flex items-center justify-center"
+            >
+              {searching || sabanaLoading ? (
+                <div className="animate-spin h-4 w-4 border-b-2 border-white rounded-full" />
+              ) : (
+                "Buscar"
+              )}
+            </button>
 
-              <button
-                onClick={exportSabanaPesajesExcel}
-                className="h-10 px-5 bg-green-600 hover:bg-green-700 text-white rounded-lg transition font-medium flex items-center justify-center"
-              >
-                Excel
-              </button>
-
-              <button
-                onClick={exportSabanaPesajesPDF}
-                className="h-10 px-5 bg-red-600 hover:bg-red-700 text-white rounded-lg transition font-medium flex items-center justify-center"
-              >
-                PDF
-              </button>
-            </div>
+            {activeTab === 'pesajes' ? (
+              <>
+                <button
+                  onClick={exportSabanaPesajesExcel}
+                  className="h-10 px-5 bg-green-600 hover:bg-green-700 text-white rounded-lg transition font-medium"
+                >
+                  Excel
+                </button>
+                <button
+                  onClick={exportSabanaPesajesPDF}
+                  className="h-10 px-5 bg-red-600 hover:bg-red-700 text-white rounded-lg transition font-medium"
+                >
+                  PDF
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={exportSabanaDespachoExcel}
+                  className="h-10 px-5 bg-green-600 hover:bg-green-700 text-white rounded-lg transition font-medium"
+                >
+                  Excel
+                </button>
+                <button
+                  onClick={exportSabanaDespachoPDF}
+                  className="h-10 px-5 bg-red-600 hover:bg-red-700 text-white rounded-lg transition font-medium"
+                >
+                  PDF
+                </button>
+              </>
+            )}
           </div>
         </div>
 
-        {/* Búsqueda */}
-        <div className="mb-4">
-          <input
-            type="text"
-            placeholder="Buscar por placa, cliente, código de trazabilidad o número de pallet..."
-            value={searchPesajes}
-            onChange={(e) => setSearchPesajes(e.target.value)}
-            className="w-full px-4 py-2 bg-black/30 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-brand-orange"
-          />
-        </div>
-
-        {sabanaLoading || searching ? (
-          <div className="flex justify-center py-12">
-            <div className="h-10 w-10 animate-spin border-b-2 border-gray-400 rounded-full" />
-          </div>
-        ) : sabanaPesajesData.length === 0 ? (
-          <div className="text-center py-12 text-gray-500">
-            <p>No hay datos para el rango de fechas seleccionado</p>
-            <p className="text-sm mt-1 text-gray-500">
-              Rango: {sabanaRange.from} a {sabanaRange.to}
-            </p>
-          </div>
-        ) : (
+        {/* Tab Content - Sábana de Pesajes */}
+        {activeTab === 'pesajes' && (
           <>
-            <div className="overflow-x-auto rounded-lg border border-white/5">
-              <SabanaPesajes
-                data={sabanaPesajesData.slice((sabanaPage - 1) * 10, sabanaPage * 10)}
-                searchTerm={searchPesajes}
+            <div className="mb-4">
+              <input
+                type="text"
+                placeholder="Buscar por placa, cliente, código de trazabilidad o número de pallet..."
+                value={searchPesajes}
+                onChange={(e) => setSearchPesajes(e.target.value)}
+                className="w-full px-4 py-2 bg-black/30 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-brand-orange"
               />
             </div>
 
-            <div className="flex justify-end mt-4">
-              <Pagination
-                page={sabanaPage}
-                pageSize={10}
-                total={sabanaPesajesData.length}
-                onChange={setSabanaPage}
-              />
-            </div>
+            {sabanaLoading || searching ? (
+              <div className="flex justify-center py-12">
+                <div className="h-10 w-10 animate-spin border-b-2 border-gray-400 rounded-full" />
+              </div>
+            ) : sabanaPesajesData.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                <p>No hay datos para el rango de fechas seleccionado</p>
+                <p className="text-sm mt-1 text-gray-500">
+                  Rango: {sabanaRange.from} a {sabanaRange.to}
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="overflow-x-auto rounded-lg border border-white/5">
+                  <SabanaPesajes
+                    data={sabanaPesajesData.slice((sabanaPage - 1) * 10, sabanaPage * 10)}
+                    searchTerm={searchPesajes}
+                  />
+                </div>
+
+                <div className="flex justify-end mt-4">
+                  <Pagination
+                    page={sabanaPage}
+                    pageSize={10}
+                    total={sabanaPesajesData.length}
+                    onChange={setSabanaPage}
+                  />
+                </div>
+              </>
+            )}
           </>
         )}
-      </section>
 
-      {/* SÁBANA DE DESPACHO */}
-      <section className="rounded-xl border border-white/10 bg-white/5 p-6 mt-4">
-        <div className="flex flex-wrap justify-between gap-4 mb-5">
-          <h2 className="text-xl font-semibold text-gray-100 pt-1">
-            Sábana de Despacho
-          </h2>
-
-          <div className="flex gap-2">
-            <button
-              onClick={exportSabanaDespachoExcel}
-              className="h-10 px-5 bg-green-600 hover:bg-green-700 text-white rounded-lg transition font-medium flex items-center justify-center"
-            >
-              Excel
-            </button>
-
-            <button
-              onClick={exportSabanaDespachoPDF}
-              className="h-10 px-5 bg-red-600 hover:bg-red-700 text-white rounded-lg transition font-medium flex items-center justify-center"
-            >
-              PDF
-            </button>
-          </div>
-        </div>
-
-        {/* Búsqueda */}
-        <div className="mb-4">
-          <input
-            type="text"
-            placeholder="Buscar por placa, cliente o número de pallet..."
-            value={searchDespacho}
-            onChange={(e) => setSearchDespacho(e.target.value)}
-            className="w-full px-4 py-2 bg-black/30 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-brand-orange"
-          />
-        </div>
-
-        {sabanaLoading || searching ? (
-          <div className="flex justify-center py-12">
-            <div className="h-10 w-10 animate-spin border-b-2 border-gray-400 rounded-full" />
-          </div>
-        ) : sabanaDespachoData.length === 0 ? (
-          <div className="text-center py-12 text-gray-500">
-            <p>No hay datos para el rango de fechas seleccionado</p>
-            <p className="text-sm mt-1 text-gray-500">
-              Rango: {sabanaRange.from} a {sabanaRange.to}
-            </p>
-          </div>
-        ) : (
+        {/* Tab Content - Sábana de Despacho */}
+        {activeTab === 'despacho' && (
           <>
-            <SabanaDespacho
-              data={sabanaDespachoData.slice((despachoPage - 1) * 20, despachoPage * 20)}
-              searchTerm={searchDespacho}
-            />
-
-            <div className="flex justify-end mt-4">
-              <Pagination
-                page={despachoPage}
-                pageSize={20}
-                total={sabanaDespachoData.length}
-                onChange={setDespachoPage}
+            <div className="mb-4">
+              <input
+                type="text"
+                placeholder="Buscar por placa, cliente o número de pallet..."
+                value={searchDespacho}
+                onChange={(e) => setSearchDespacho(e.target.value)}
+                className="w-full px-4 py-2 bg-black/30 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-brand-orange"
               />
             </div>
+
+            {sabanaLoading || searching ? (
+              <div className="flex justify-center py-12">
+                <div className="h-10 w-10 animate-spin border-b-2 border-gray-400 rounded-full" />
+              </div>
+            ) : sabanaDespachoData.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                <p>No hay datos para el rango de fechas seleccionado</p>
+                <p className="text-sm mt-1 text-gray-500">
+                  Rango: {sabanaRange.from} a {sabanaRange.to}
+                </p>
+              </div>
+            ) : (
+              <>
+                <SabanaDespacho
+                  data={sabanaDespachoData.slice((despachoPage - 1) * 20, despachoPage * 20)}
+                  searchTerm={searchDespacho}
+                />
+
+                <div className="flex justify-end mt-4">
+                  <Pagination
+                    page={despachoPage}
+                    pageSize={20}
+                    total={sabanaDespachoData.length}
+                    onChange={setDespachoPage}
+                  />
+                </div>
+              </>
+            )}
           </>
         )}
       </section>

@@ -91,7 +91,7 @@ export default function ReportesAlertas() {
     }
     return (
       <span className="px-2 py-1 text-xs font-medium rounded bg-green-500/20 text-green-400">
-        RESUELTA
+        REPESAJE
       </span>
     );
   };
@@ -123,37 +123,70 @@ export default function ReportesAlertas() {
   };
 
   const exportToExcel = () => {
-    const data = filteredAlertas.map(a => ({
-      'Fecha': new Date(a.fechaCreacion).toLocaleString('es-EC'),
-      'Tipo': a.tipo === 'VARIACION_PESO' ? 'Variación de Peso' : 'Exceso de Vehículo',
-      'Estado': a.estado,
-      'Placa': a.pallet?.vehicle?.placa || 'N/A',
-      'Cliente': a.pallet?.vehicle?.cliente || 'N/A',
-      'Código Pallet': a.pallet?.codigoIndependiente || a.pallet?.codigo || 'N/A',
-      'Peso Original (kg)': a.pallet?.pesoTotal || 0,
-      'Peso Despacho (kg)': a.pallet?.pesoDescarga || 0,
-      'Variación %': formatVariacion(a.variacionPorcentaje),
-      'Descripción': a.descripcion || '',
-      'Fecha Resolución': a.fechaResolucion 
-        ? new Date(a.fechaResolucion).toLocaleString('es-EC')
-        : 'Pendiente'
-    }));
+    const data = filteredAlertas.map((a, idx) => {
+      const fechaCreacion = new Date(a.fechaCreacion);
+      const fechaResolucion = a.fechaResolucion ? new Date(a.fechaResolucion) : null;
+      
+      return {
+        'ID': idx + 1,
+        'Fecha Creación': fechaCreacion.toLocaleDateString('es-EC', { 
+          year: 'numeric', 
+          month: '2-digit', 
+          day: '2-digit' 
+        }),
+        'Hora Creación': fechaCreacion.toLocaleTimeString('es-EC', { 
+          hour: '2-digit', 
+          minute: '2-digit', 
+          second: '2-digit' 
+        }),
+        'Día de la Semana': fechaCreacion.toLocaleDateString('es-EC', { weekday: 'long' }),
+        'Tipo de Alerta': a.tipo === 'VARIACION_PESO' ? 'Variación de Peso' : 'Exceso de Vehículo',
+        'Estado': a.estado === 'ACTIVA' ? 'Activa' : 'Repesaje',
+        'Placa Vehículo': a.pallet?.vehicle?.placa || 'N/A',
+        'Cliente': a.pallet?.vehicle?.cliente || 'N/A',
+        'Código Trazabilidad': a.pallet?.vehicle?.codigoTrazabilidad || 'N/A',
+        'Código Pallet': a.pallet?.codigoIndependiente || a.pallet?.codigo || 'N/A',
+        'Producto': a.pallet?.product?.nombre || 'N/A',
+        'Peso Original (kg)': Number(a.pallet?.pesoTotal || 0).toFixed(2),
+        'Peso Despacho (kg)': Number(a.pallet?.pesoDescarga || 0).toFixed(2),
+        'Variación (kg)': Number(a.variacion || 0).toFixed(2),
+        'Variación %': formatVariacion(a.variacionPorcentaje) + '%',
+        'Descripción': a.descripcion || '',
+        'Fecha Resolución': fechaResolucion 
+          ? fechaResolucion.toLocaleDateString('es-EC', { year: 'numeric', month: '2-digit', day: '2-digit' })
+          : 'Pendiente',
+        'Hora Resolución': fechaResolucion 
+          ? fechaResolucion.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+          : 'Pendiente',
+        'Tiempo de Resolución (horas)': fechaResolucion 
+          ? ((fechaResolucion.getTime() - fechaCreacion.getTime()) / (1000 * 60 * 60)).toFixed(2)
+          : 'Pendiente',
+      };
+    });
 
     const worksheet = XLSX.utils.json_to_sheet(data);
     
     // Ajustar ancho de columnas
     const columnWidths = [
-      { wch: 18 }, // Fecha
+      { wch: 8 },  // ID
+      { wch: 15 }, // Fecha Creación
+      { wch: 15 }, // Hora Creación
+      { wch: 15 }, // Día
       { wch: 20 }, // Tipo
       { wch: 12 }, // Estado
-      { wch: 12 }, // Placa
-      { wch: 25 }, // Cliente
-      { wch: 20 }, // Código Pallet
+      { wch: 15 }, // Placa
+      { wch: 30 }, // Cliente
+      { wch: 25 }, // Código Trazabilidad
+      { wch: 30 }, // Código Pallet
+      { wch: 25 }, // Producto
       { wch: 18 }, // Peso Original
       { wch: 18 }, // Peso Despacho
+      { wch: 15 }, // Variación kg
       { wch: 12 }, // Variación %
-      { wch: 40 }, // Descripción
+      { wch: 50 }, // Descripción
       { wch: 18 }, // Fecha Resolución
+      { wch: 18 }, // Hora Resolución
+      { wch: 25 }, // Tiempo Resolución
     ];
     worksheet['!cols'] = columnWidths;
 
@@ -188,7 +221,7 @@ export default function ReportesAlertas() {
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
         <StatCard title="Total Alertas" value={stats.total} />
         <StatCard title="Activas" value={stats.activas} />
-        <StatCard title="Resueltas" value={stats.resueltas} />
+        <StatCard title="Repesaje" value={stats.resueltas} />
         <StatCard title="Variación Peso" value={stats.variacionPeso} />
         <StatCard title="Exceso Vehículo" value={stats.excesoVehiculo} />
       </div>
@@ -239,7 +272,7 @@ export default function ReportesAlertas() {
                     : 'bg-gray-600 hover:bg-gray-700 text-white'
                 }`}
               >
-                Resueltas
+                Repesaje
               </button>
             </div>
 

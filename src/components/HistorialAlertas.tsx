@@ -81,7 +81,7 @@ export default function HistorialAlertas() {
     }
     return (
       <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-500/20 text-green-400 border border-green-500/40">
-        RESUELTA
+        REPESAJE
       </span>
     );
   };
@@ -132,7 +132,7 @@ export default function HistorialAlertas() {
                 : 'bg-white/5 hover:bg-white/10'
             }`}
           >
-            Resueltas
+            Repesaje
           </button>
         </div>
       </div>
