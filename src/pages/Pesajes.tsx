@@ -111,9 +111,6 @@ export default function Pesajes() {
     XLSX.writeFile(wb, "pesajes.xlsx");
   };
 
-  const totalIngreso = filtered.reduce((a, b) => a + b.pesoIngreso, 0);
-  const totalVariacion = filtered.reduce((a, b) => a + b.variacion, 0);
-
   return (
     <div className="space-y-6 w-full">
       {/* HEADER */}
@@ -251,8 +248,8 @@ export default function Pesajes() {
                 fecha: labelRow.fecha,
                 productNombre: labelRow.productNombre || "",
                 pesoTotal: labelRow.pesoTotal || 0,
-                pesoDescarga: labelRow.pesoDescarga,
-                variacionPallet: labelRow.variacionPeso,
+                pesoDescarga: labelRow.pesoDescarga ?? null,
+                variacionPallet: labelRow.variacionPeso ?? null,
                 descargado: labelRow.descargado || false,
               }
             : null

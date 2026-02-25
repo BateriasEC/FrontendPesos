@@ -80,7 +80,7 @@ export function Header({ onMenuClick }: HeaderProps) {
             {/* Usuario + Rol */}
             <div className="hidden sm:flex flex-col text-right leading-tight">
               <span className="text-sm font-semibold text-black">
-                {user?.name || user?.nombre || user?.email || 'Invitado'}
+                {user?.name || user?.email || 'Invitado'}
               </span>
               <span className="text-[11px] font-semibold text-black/60 tracking-widest">
                 {formattedRole}

@@ -35,6 +35,8 @@ type SabanaDespachoData = {
   variacion: number
   estadoDespacho: 'completado' | 'pendiente'
   pesoOriginal: number
+  fechaEntrada: string
+  horaEntrada: string
 }
 
 export function useSabanaData(range: { from: string; to: string }) {
@@ -82,7 +84,8 @@ export function useSabanaData(range: { from: string; to: string }) {
         // Filtrar por rango de fechas
         if (!range.from || !range.to) {
           console.warn('[Sabana] Rango de fechas incompleto:', range)
-          setSabanasData([])
+          setSabanaPesajesData([])
+          setSabanaDespachoData([])
           setLoading(false)
           return
         }
@@ -239,7 +242,9 @@ export function useSabanaData(range: { from: string; to: string }) {
                 horaDespacho,
                 variacion: Math.abs(variacion),
                 estadoDespacho: 'completado',
-                pesoOriginal: pesoTotal
+                pesoOriginal: pesoTotal,
+                fechaEntrada: fechaString,
+                horaEntrada: horaIngreso
               })
             } else {
               // Agregar como pendiente
@@ -253,7 +258,9 @@ export function useSabanaData(range: { from: string; to: string }) {
                 horaDespacho: '',
                 variacion: 0,
                 estadoDespacho: 'pendiente',
-                pesoOriginal: pesoTotal
+                pesoOriginal: pesoTotal,
+                fechaEntrada: fechaString,
+                horaEntrada: horaIngreso
               })
             }
             

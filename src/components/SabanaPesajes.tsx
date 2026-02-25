@@ -103,50 +103,57 @@ export function SabanaPesajes({ data, searchTerm }: Props) {
               {/* BODY */}
               <div className="grid grid-cols-1 xl:grid-cols-2 divide-y xl:divide-y-0 xl:divide-x divide-white/10">
                 {/* VEHÍCULO */}
-                <section className="p-4 space-y-3">
+                <section className="p-3 space-y-2">
                   <h4 className="text-xs uppercase tracking-wide text-gray-300">
                     Pesaje del Vehículo
                   </h4>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-neutral-800/40 rounded-lg p-3 border border-white/10 hover:border-white/20 transition">
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="bg-neutral-800/40 rounded-lg p-2 border border-white/10">
                       <span className="text-xs text-gray-400">Peso Ingreso</span>
-                      <div className="font-semibold text-gray-200">
+                      <div className="text-sm font-semibold text-gray-200">
                         {camion.pesoIngreso.toLocaleString()} kg
                       </div>
                     </div>
 
-                    <div className="bg-neutral-800/40 rounded-lg p-3 border border-white/10 hover:border-white/20 transition">
+                    <div className="bg-neutral-800/40 rounded-lg p-2 border border-white/10">
                       <span className="text-xs text-gray-400">Peso Salida</span>
-                      <div className="font-semibold text-gray-200">
+                      <div className="text-sm font-semibold text-gray-200">
                         {camion.pesoSalida.toLocaleString()} kg
+                      </div>
+                    </div>
+
+                    <div className="bg-neutral-800/40 rounded-lg p-2 border border-white/10">
+                      <span className="text-xs text-gray-400">Diferencia</span>
+                      <div className="text-sm font-semibold text-gray-200">
+                        {(camion.pesoIngreso - camion.pesoSalida).toLocaleString()} kg
                       </div>
                     </div>
                   </div>
 
-                  <div className="bg-neutral-800/40 rounded-lg p-3 border border-white/10">
-                    <span className="text-xs text-gray-400">Diferencia</span>
-                    <div className="text-lg font-bold text-gray-100">
-                      {camion.diferencia.toLocaleString()} kg
+                  <div className="bg-neutral-800/40 rounded-lg p-2 border border-white/10">
+                    <span className="text-xs text-gray-400">Peso Total Pallets</span>
+                    <div className="text-base font-bold text-gray-100">
+                      {camion.pallets.reduce((sum, p) => sum + p.pesoReal, 0).toLocaleString()} kg
                     </div>
                   </div>
                 </section>
 
                 {/* PALLETS */}
-                <section className="p-4">
-                  <h4 className="text-xs uppercase tracking-wide text-gray-300 mb-3">
+                <section className="p-3">
+                  <h4 className="text-xs uppercase tracking-wide text-gray-300 mb-2">
                     Pallets
                   </h4>
 
-                  <div className="space-y-2 max-h-[420px] overflow-y-auto scrollbar-thin pr-1">
+                  <div className="space-y-2 max-h-[320px] overflow-y-auto pr-2 custom-scrollbar">
                     {camion.pallets.map((p, i) => (
                       <div
                         key={i}
-                        className="bg-neutral-800/40 rounded-lg p-3 border border-white/10 hover:border-white/20 transition"
+                        className="bg-neutral-800/40 rounded-lg p-2 border border-white/10 hover:border-white/20 transition"
                       >
-                        <div className="flex justify-between items-start mb-2">
+                        <div className="flex justify-between items-start mb-1.5">
                           <div>
-                            <div className="text-sm font-bold text-brand-orange mb-1">
+                            <div className="text-sm font-bold text-brand-orange">
                               {p.codigoIndependiente}
                             </div>
                             <div className="text-xs text-gray-400">
@@ -156,15 +163,22 @@ export function SabanaPesajes({ data, searchTerm }: Props) {
                           <span
                             className={`text-xs px-2 py-0.5 rounded border ${estadoDespachoStyles[p.estadoDespacho]}`}
                           >
-                            {p.estadoDespacho === 'despachado' ? 'Despachado' : 'Pendiente de Despacho'}
+                            {p.estadoDespacho === 'despachado' ? 'Despachado' : 'Pendiente'}
                           </span>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-2 text-xs text-gray-300">
-                          <div>Real: {p.pesoReal.toFixed(2)} kg</div>
-                          <div>Estimado: {p.pesoEstimado.toFixed(2)} kg</div>
-                          <div className="col-span-2">
-                            Tolerado: {p.pesoTolerado.toFixed(2)} kg
+                        <div className="grid grid-cols-3 gap-2 text-xs text-gray-300">
+                          <div>
+                            <span className="text-gray-500">Inicial:</span>
+                            <div className="font-medium">{p.pesoReal.toFixed(2)} kg</div>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">Despacho:</span>
+                            <div className="font-medium">{p.estadoDespacho === 'despachado' ? `${p.pesoEstimado.toFixed(2)} kg` : 'Pendiente'}</div>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">Diferencia:</span>
+                            <div className="font-medium">{p.estadoDespacho === 'despachado' ? `${(p.pesoReal - p.pesoEstimado).toFixed(2)} kg` : 'Pendiente'}</div>
                           </div>
                         </div>
                       </div>

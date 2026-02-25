@@ -21,6 +21,9 @@ type Alerta = {
       cliente: string;
       codigoTrazabilidad: string;
     };
+    product?: {
+      nombre: string;
+    };
   };
 };
 

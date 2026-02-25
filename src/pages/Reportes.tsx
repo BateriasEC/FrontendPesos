@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import "../styles/report-sabanas.css";
-import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
@@ -35,7 +34,6 @@ export default function Reportes() {
   const [searching, setSearching] = useState(false);
   const [searchingReports, setSearchingReports] = useState(false);
   const [activeTab, setActiveTab] = useState<'pesajes' | 'despacho'>('pesajes');
-  const ref = useRef<HTMLDivElement>(null);
   const { sabanaPesajesData, sabanaDespachoData, loading: sabanaLoading } = useSabanaData(sabanaRange);
 
   useEffect(() => {
@@ -356,6 +354,8 @@ export default function Reportes() {
       // Hoja 4: Despachos
       const despachoData = sabanaDespachoData.map((item, idx) => {
         let diaDespacho = 'Pendiente';
+        let diaEntrada = 'N/A';
+        
         if (item.estadoDespacho === 'completado' && item.fechaDespacho) {
           try {
             const fechaObj = new Date(item.fechaDespacho + 'T00:00:00');
@@ -367,11 +367,25 @@ export default function Reportes() {
           }
         }
         
+        if (item.fechaEntrada) {
+          try {
+            const fechaEntradaObj = new Date(item.fechaEntrada + 'T00:00:00');
+            if (!isNaN(fechaEntradaObj.getTime())) {
+              diaEntrada = fechaEntradaObj.toLocaleDateString('es-EC', { weekday: 'long', timeZone: 'America/Bogota' });
+            }
+          } catch (e) {
+            console.error('Error parseando fecha entrada:', e);
+          }
+        }
+        
         return {
           'N°': idx + 1,
           'Código Pallet': item.codigoIndependiente,
+          'Fecha Entrada': item.fechaEntrada || 'N/A',
+          'Día Entrada': diaEntrada,
+          'Hora Entrada': item.horaEntrada || 'N/A',
           'Fecha Despacho': item.estadoDespacho === 'completado' ? item.fechaDespacho : 'Pendiente',
-          'Día de la Semana': diaDespacho,
+          'Día Despacho': diaDespacho,
           'Hora Despacho': item.estadoDespacho === 'completado' ? item.horaDespacho : 'Pendiente',
           'Placa': item.placa,
           'Cliente': item.cliente,
@@ -387,9 +401,12 @@ export default function Reportes() {
       wsDespacho['!cols'] = [
         { wch: 8 },  // N°
         { wch: 30 }, // Código Pallet
-        { wch: 15 }, // Fecha
-        { wch: 15 }, // Día
-        { wch: 15 }, // Hora
+        { wch: 15 }, // Fecha Entrada
+        { wch: 15 }, // Día Entrada
+        { wch: 15 }, // Hora Entrada
+        { wch: 15 }, // Fecha Despacho
+        { wch: 15 }, // Día Despacho
+        { wch: 15 }, // Hora Despacho
         { wch: 12 }, // Placa
         { wch: 30 }, // Cliente
         { wch: 25 }, // Producto
@@ -583,7 +600,7 @@ export default function Reportes() {
         const fechaCompleta = new Date(`${vehiculo.fecha}T${vehiculo.horaIngreso}`);
         const diaSemana = fechaCompleta.toLocaleDateString('es-EC', { weekday: 'short', timeZone: 'America/Bogota' });
         
-        vehiculo.pallets.forEach((pallet, pIdx) => {
+        vehiculo.pallets.forEach((pallet) => {
           tableData.push([
             idx + 1,
             vehiculo.placa,
@@ -653,6 +670,7 @@ export default function Reportes() {
     try {
       const excelData = sabanaDespachoData.map((item, idx) => {
         let diaDespacho = 'Pendiente';
+        let diaEntrada = 'N/A';
         
         if (item.estadoDespacho === 'completado' && item.fechaDespacho) {
           try {
@@ -668,11 +686,28 @@ export default function Reportes() {
           }
         }
         
+        if (item.fechaEntrada) {
+          try {
+            const fechaEntradaObj = new Date(item.fechaEntrada + 'T00:00:00');
+            if (!isNaN(fechaEntradaObj.getTime())) {
+              diaEntrada = fechaEntradaObj.toLocaleDateString('es-EC', { 
+                weekday: 'long', 
+                timeZone: 'America/Bogota' 
+              });
+            }
+          } catch (e) {
+            console.error('Error parseando fecha entrada:', e);
+          }
+        }
+        
         return {
           'N°': idx + 1,
           'Código Pallet': item.codigoIndependiente,
+          'Fecha Entrada': item.fechaEntrada || 'N/A',
+          'Día Entrada': diaEntrada,
+          'Hora Entrada': item.horaEntrada || 'N/A',
           'Fecha Despacho': item.estadoDespacho === 'completado' ? item.fechaDespacho : 'Pendiente',
-          'Día de la Semana': diaDespacho,
+          'Día Despacho': diaDespacho,
           'Hora Despacho': item.estadoDespacho === 'completado' ? item.horaDespacho : 'Pendiente',
           'Placa': item.placa,
           'Cliente': item.cliente,
@@ -692,8 +727,11 @@ export default function Reportes() {
       ws['!cols'] = [
         { wch: 8 },  // N°
         { wch: 30 }, // Código Pallet
+        { wch: 15 }, // Fecha Entrada
+        { wch: 15 }, // Día Entrada
+        { wch: 15 }, // Hora Entrada
         { wch: 15 }, // Fecha Despacho
-        { wch: 15 }, // Día
+        { wch: 15 }, // Día Despacho
         { wch: 15 }, // Hora Despacho
         { wch: 12 }, // Placa
         { wch: 30 }, // Cliente

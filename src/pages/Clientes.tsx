@@ -27,7 +27,6 @@ export default function Clientes() {
   const [rows, setRows] = useState<Cliente[]>([]);
   const [q, setQ] = useState("");
   const [estado, setEstado] = useState<Cliente["estado"] | "">("");
-  const [loading, setLoading] = useState(true);
 
   /* ================== MODAL ================== */
   const [openForm, setOpenForm] = useState(false);
@@ -42,7 +41,6 @@ export default function Clientes() {
 
   /* ================== CARGAR CLIENTES ================== */
   const load = useCallback(async () => {
-    setLoading(true);
     try {
       const res = await api.get("/clients");
       const clients = res.data?.data || res.data || [];
@@ -58,8 +56,6 @@ export default function Clientes() {
       setRows(mapped);
     } catch (err: any) {
       alert(err.response?.data?.message || "Error al cargar clientes");
-    } finally {
-      setLoading(false);
     }
   }, []);
 

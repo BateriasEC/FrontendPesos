@@ -22,11 +22,9 @@ export default function Usuarios() {
   const [rows, setRows] = useState<Usuario[]>([]);
   const [q, setQ] = useState("");
   const [role, setRole] = useState<Usuario["role"] | "">("");
-  const [loading, setLoading] = useState(true);
 
   // ================== CARGAR USUARIOS ==================
   const load = useCallback(async () => {
-    setLoading(true);
     try {
       const response = await api.get("/users");
       const users = response.data?.data || response.data || [];
@@ -44,8 +42,6 @@ export default function Usuarios() {
     } catch (error: any) {
       alert(error.response?.data?.message || "Error al cargar usuarios");
       setRows([]);
-    } finally {
-      setLoading(false);
     }
   }, []);
 
