@@ -81,6 +81,52 @@ export default function Pesajes() {
     }
   }, []);
 
+  // Agrupar por vehículo para calcular pesos totales
+  const vehicleSummary = useMemo(() => {
+    const vehicleMap = new Map<string, {
+      placa: string;
+      pesoIngreso: number;
+      pesoSalida: number | null;
+      diferencia: number;
+      pesoTotalPallets: number;
+      palletsCount: number;
+      coincidencia: boolean;
+      diferenciaPallets: number;
+    }>();
+
+    filtered.forEach((row) => {
+      if (!row.vehicleId) return;
+      
+      const key = row.vehicleId;
+      if (!vehicleMap.has(key)) {
+        vehicleMap.set(key, {
+          placa: row.placa,
+          pesoIngreso: row.pesoIngreso,
+          pesoSalida: row.pesoSalida,
+          diferencia: row.variacion,
+          pesoTotalPallets: 0,
+          palletsCount: 0,
+          coincidencia: false,
+          diferenciaPallets: 0,
+        });
+      }
+
+      const vehicle = vehicleMap.get(key)!;
+      vehicle.pesoTotalPallets += row.pesoTotal || 0;
+      vehicle.palletsCount += 1;
+    });
+
+    // Calcular coincidencia y diferencia
+    vehicleMap.forEach((vehicle) => {
+      vehicle.diferenciaPallets = vehicle.pesoTotalPallets - vehicle.diferencia;
+      // Considerar coincidencia si la diferencia es menor a 1% o 10 kg
+      const tolerancia = Math.max(vehicle.diferencia * 0.01, 10);
+      vehicle.coincidencia = Math.abs(vehicle.diferenciaPallets) <= tolerancia;
+    });
+
+    return Array.from(vehicleMap.values());
+  }, [filtered]);
+
   useEffect(() => {
     load();
   }, [load]);
