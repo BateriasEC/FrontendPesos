@@ -497,15 +497,30 @@ export default function Reportes() {
       
       sabanaPesajesData.forEach((vehiculo, idx) => {
         vehiculo.pallets.forEach((pallet, palletIdx) => {
-          const fechaObj = new Date(vehiculo.fecha + 'T00:00:00');
-          const diaSemana = fechaObj.toLocaleDateString('es-EC', { weekday: 'long', timeZone: 'America/Bogota' });
+          const fechaVehiculoObj = new Date(vehiculo.fecha + 'T00:00:00');
+          const diaVehiculo = fechaVehiculoObj.toLocaleDateString('es-EC', { weekday: 'long', timeZone: 'America/Bogota' });
+          
+          const fechaPesajeObj = new Date(pallet.fechaPesaje + 'T00:00:00');
+          const diaPesaje = fechaPesajeObj.toLocaleDateString('es-EC', { weekday: 'long', timeZone: 'America/Bogota' });
+          
+          let diaDespacho = 'Pendiente';
+          if (pallet.fechaDespacho) {
+            const fechaDespachoObj = new Date(pallet.fechaDespacho + 'T00:00:00');
+            diaDespacho = fechaDespachoObj.toLocaleDateString('es-EC', { weekday: 'long', timeZone: 'America/Bogota' });
+          }
           
           excelData.push({
             'N° Vehículo': idx + 1,
             'N° Pallet': palletIdx + 1,
-            'Fecha': vehiculo.fecha,
-            'Día de la Semana': diaSemana,
-            'Hora Ingreso': vehiculo.horaIngreso,
+            'Fecha Ingreso Vehículo': vehiculo.fecha,
+            'Día Ingreso': diaVehiculo,
+            'Hora Ingreso Vehículo': vehiculo.horaIngreso,
+            'Fecha Pesaje Pallet': pallet.fechaPesaje,
+            'Día Pesaje': diaPesaje,
+            'Hora Pesaje Pallet': pallet.horaPesaje,
+            'Fecha Despacho': pallet.fechaDespacho || 'Pendiente',
+            'Día Despacho': diaDespacho,
+            'Hora Despacho': pallet.horaDespacho || 'Pendiente',
             'Placa': vehiculo.placa,
             'Código Trazabilidad': vehiculo.codigoTrazabilidad,
             'Cliente': vehiculo.cliente,
@@ -532,9 +547,15 @@ export default function Reportes() {
       ws['!cols'] = [
         { wch: 12 }, // N° Vehículo
         { wch: 10 }, // N° Pallet
-        { wch: 12 }, // Fecha
-        { wch: 15 }, // Día
-        { wch: 12 }, // Hora Ingreso
+        { wch: 18 }, // Fecha Ingreso Vehículo
+        { wch: 15 }, // Día Ingreso
+        { wch: 18 }, // Hora Ingreso Vehículo
+        { wch: 18 }, // Fecha Pesaje Pallet
+        { wch: 15 }, // Día Pesaje
+        { wch: 18 }, // Hora Pesaje Pallet
+        { wch: 18 }, // Fecha Despacho
+        { wch: 15 }, // Día Despacho
+        { wch: 18 }, // Hora Despacho
         { wch: 12 }, // Placa
         { wch: 25 }, // Código Trazabilidad
         { wch: 30 }, // Cliente
@@ -671,6 +692,7 @@ export default function Reportes() {
       const excelData = sabanaDespachoData.map((item, idx) => {
         let diaDespacho = 'Pendiente';
         let diaEntrada = 'N/A';
+        let diaPesaje = 'N/A';
         
         if (item.estadoDespacho === 'completado' && item.fechaDespacho) {
           try {
@@ -700,12 +722,29 @@ export default function Reportes() {
           }
         }
         
+        if (item.fechaPesaje) {
+          try {
+            const fechaPesajeObj = new Date(item.fechaPesaje + 'T00:00:00');
+            if (!isNaN(fechaPesajeObj.getTime())) {
+              diaPesaje = fechaPesajeObj.toLocaleDateString('es-EC', { 
+                weekday: 'long', 
+                timeZone: 'America/Bogota' 
+              });
+            }
+          } catch (e) {
+            console.error('Error parseando fecha pesaje:', e);
+          }
+        }
+        
         return {
           'N°': idx + 1,
           'Código Pallet': item.codigoIndependiente,
-          'Fecha Entrada': item.fechaEntrada || 'N/A',
+          'Fecha Entrada Vehículo': item.fechaEntrada || 'N/A',
           'Día Entrada': diaEntrada,
-          'Hora Entrada': item.horaEntrada || 'N/A',
+          'Hora Entrada Vehículo': item.horaEntrada || 'N/A',
+          'Fecha Pesaje Pallet': item.fechaPesaje || 'N/A',
+          'Día Pesaje': diaPesaje,
+          'Hora Pesaje Pallet': item.horaPesaje || 'N/A',
           'Fecha Despacho': item.estadoDespacho === 'completado' ? item.fechaDespacho : 'Pendiente',
           'Día Despacho': diaDespacho,
           'Hora Despacho': item.estadoDespacho === 'completado' ? item.horaDespacho : 'Pendiente',
@@ -727,12 +766,15 @@ export default function Reportes() {
       ws['!cols'] = [
         { wch: 8 },  // N°
         { wch: 30 }, // Código Pallet
-        { wch: 15 }, // Fecha Entrada
+        { wch: 18 }, // Fecha Entrada Vehículo
         { wch: 15 }, // Día Entrada
-        { wch: 15 }, // Hora Entrada
-        { wch: 15 }, // Fecha Despacho
+        { wch: 18 }, // Hora Entrada Vehículo
+        { wch: 18 }, // Fecha Pesaje Pallet
+        { wch: 15 }, // Día Pesaje
+        { wch: 18 }, // Hora Pesaje Pallet
+        { wch: 18 }, // Fecha Despacho
         { wch: 15 }, // Día Despacho
-        { wch: 15 }, // Hora Despacho
+        { wch: 18 }, // Hora Despacho
         { wch: 12 }, // Placa
         { wch: 30 }, // Cliente
         { wch: 25 }, // Producto
