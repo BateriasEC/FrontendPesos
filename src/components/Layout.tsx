@@ -33,7 +33,7 @@ export function Layout() {
             transform
             ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
             transition-transform duration-300 ease-in-out
-            bg-black/20 border-r border-white/10
+            bg-[#1c1c1e] border-r border-white/10
           `}
           style={{ top: '83px' }}
         >

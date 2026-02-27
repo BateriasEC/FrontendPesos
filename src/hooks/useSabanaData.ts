@@ -203,8 +203,8 @@ export function useSabanaData(range: { from: string; to: string }) {
           const cliente = vehicle.cliente || 'N/A'
           const producto = firstPallet.product?.nombre || 'N/A'
           const codigoTrazabilidad = vehicle.codigoTrazabilidad || 'N/A'
-          // Usar el operador del vehículo, o 'Sistema' como fallback para registros antiguos
-          const operador = vehicle.user?.fullName || 'Sistema'
+          // Usar el operador del vehículo (viene del backend con fallback ya aplicado)
+          const operador = vehicle.user?.fullName || undefined
           
           // Mapear pallets para Sábana de Pesajes
           const palletsData = pallets.map((p: any, index: number) => {

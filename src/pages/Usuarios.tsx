@@ -183,52 +183,60 @@ export default function Usuarios() {
       </div>
 
       {/* ================== TABLA ================== */}
-      <table className="table table-zebra w-full">
-        <thead>
-          <tr>
-            <th className="uppercase font-bold align-middle">Nombre</th>
-            <th className="uppercase font-bold align-middle">Correo</th>
-            <th className="uppercase font-bold align-middle">Rol</th>
-            <th className="uppercase font-bold text-center align-middle">
-              Acciones
-            </th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {pageRows.map((u) => (
-            <tr key={u.id}>
-              <td className="align-middle">{u.name}</td>
-              <td className="align-middle">{u.email}</td>
-              <td className="align-middle font-semibold">
-                {ROLE_LABELS[u.role]}
-              </td>
-
-              {/* ✅ PERFECTAMENTE ALINEADO */}
-              <td className="text-center align-middle space-x-2">
-                <button
-                  onClick={() => openEdit(u)}
-                  className="btn btn-ghost btn-sm"
-                >
-                  Editar
-                </button>
-
-                <button
-                  disabled={u.role === "admin"}
-                  onClick={() => setDeleteUser(u)}
-                  className={
-                    u.role === "admin"
-                      ? "btn btn-sm bg-red-500/10 text-red-300 opacity-40 cursor-not-allowed"
-                      : "btn btn-sm bg-red-500/20 text-red-300"
-                  }
-                >
-                  Eliminar
-                </button>
-              </td>
+      <div className="overflow-x-auto rounded-lg border border-white/10">
+        <table className="table table-zebra w-full">
+          <thead>
+            <tr>
+              <th className="uppercase font-bold align-middle whitespace-nowrap">Nombre</th>
+              <th className="uppercase font-bold align-middle whitespace-nowrap">Correo</th>
+              <th className="uppercase font-bold align-middle whitespace-nowrap">Rol</th>
+              <th className="uppercase font-bold text-center align-middle whitespace-nowrap">
+                Acciones
+              </th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+
+          <tbody>
+            {pageRows.map((u) => (
+              <tr key={u.id}>
+                <td className="align-middle whitespace-nowrap">{u.name}</td>
+                <td className="align-middle">
+                  <span className="block truncate max-w-[200px] md:max-w-none" title={u.email}>
+                    {u.email}
+                  </span>
+                </td>
+                <td className="align-middle font-semibold whitespace-nowrap">
+                  {ROLE_LABELS[u.role]}
+                </td>
+
+                {/* ✅ PERFECTAMENTE ALINEADO Y RESPONSIVE */}
+                <td className="text-center align-middle">
+                  <div className="flex items-center justify-center gap-2 flex-wrap">
+                    <button
+                      onClick={() => openEdit(u)}
+                      className="btn btn-ghost btn-sm whitespace-nowrap"
+                    >
+                      Editar
+                    </button>
+
+                    <button
+                      disabled={u.role === "admin"}
+                      onClick={() => setDeleteUser(u)}
+                      className={
+                        u.role === "admin"
+                          ? "btn btn-sm bg-red-500/10 text-red-300 opacity-40 cursor-not-allowed whitespace-nowrap"
+                          : "btn btn-sm bg-red-500/20 text-red-300 whitespace-nowrap"
+                      }
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       <Pagination
         page={page}

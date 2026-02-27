@@ -32,10 +32,9 @@ type Alerta = {
 
 export default function HistorialAlertas() {
   const [alertas, setAlertas] = useState<Alerta[]>([]);
-  const [alertasDiferencia, setAlertasDiferencia] = useState<Alerta[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<'todas' | 'activas' | 'resueltas' | 'diferencia'>('todas');
+  const [filter, setFilter] = useState<'todas' | 'activas' | 'resueltas'>('todas');
 
   useEffect(() => {
     loadAlertas();
@@ -46,10 +45,7 @@ export default function HistorialAlertas() {
   const loadAlertas = async () => {
     try {
       setError(null);
-      const [resAlertas, resDiferencia] = await Promise.all([
-        api.get('/alertas'),
-        api.get('/alertas/diferencia-pallets')
-      ]);
+      const resAlertas = await api.get('/alertas');
       
       // Procesar alertas generales
       let data = resAlertas.data;
@@ -58,34 +54,22 @@ export default function HistorialAlertas() {
       }
       const alertasArray = Array.isArray(data) ? data : [];
       setAlertas(alertasArray);
-
-      // Procesar alertas de diferencia de pallets
-      let dataDiferencia = resDiferencia.data;
-      if (dataDiferencia && typeof dataDiferencia === 'object' && 'data' in dataDiferencia) {
-        dataDiferencia = dataDiferencia.data;
-      }
-      const alertasDiferenciaArray = Array.isArray(dataDiferencia) ? dataDiferencia : [];
-      setAlertasDiferencia(alertasDiferenciaArray);
     } catch (e: any) {
       console.error('Error al cargar alertas:', e);
       setError(e.message || 'Error al cargar alertas');
       setAlertas([]);
-      setAlertasDiferencia([]);
     } finally {
       setLoading(false);
     }
   };
 
   const filteredAlertas = useMemo(() => {
-    if (filter === 'diferencia') {
-      return Array.isArray(alertasDiferencia) ? alertasDiferencia : [];
-    }
     return Array.isArray(alertas) ? alertas.filter((a) => {
       if (filter === 'activas') return a.estado === 'ACTIVA';
       if (filter === 'resueltas') return a.estado === 'RESUELTA';
       return true;
     }) : [];
-  }, [alertas, alertasDiferencia, filter]);
+  }, [alertas, filter]);
 
   const getAlertColor = (tipo: string) => {
     if (tipo === 'VARIACION_PESO') return 'bg-orange-500/20 border-orange-500/40';
@@ -158,16 +142,7 @@ export default function HistorialAlertas() {
           >
             Repesaje
           </button>
-          <button
-            onClick={() => setFilter('diferencia')}
-            className={`px-3 py-1 text-sm rounded-lg transition-colors ${
-              filter === 'diferencia'
-                ? 'bg-brand-orange text-white'
-                : 'bg-white/5 hover:bg-white/10'
-            }`}
-          >
-            Diferencia de Pallets
-          </button>
+          {/* Pestaña "Diferencia de Pallets" oculta - ya no se crean estas alertas */}
         </div>
       </div>
 
@@ -187,9 +162,7 @@ export default function HistorialAlertas() {
         </div>
       ) : filteredAlertas.length === 0 ? (
         <div className="h-64 flex items-center justify-center text-gray-400">
-          {filter === 'todas' ? 'No hay alertas registradas' : 
-           filter === 'diferencia' ? 'No hay alertas de diferencia de pallets' :
-           `No hay alertas ${filter}`}
+          {filter === 'todas' ? 'No hay alertas registradas' : `No hay alertas ${filter}`}
         </div>
       ) : (
         <div className="overflow-x-auto">
@@ -199,20 +172,9 @@ export default function HistorialAlertas() {
                 <th className="text-left py-3 px-2 font-semibold">Código Pallet</th>
                 <th className="text-left py-3 px-2 font-semibold">N° Pallet</th>
                 <th className="text-left py-3 px-2 font-semibold">Placa</th>
-                {filter === 'diferencia' ? (
-                  <>
-                    <th className="text-right py-3 px-2 font-semibold">Peso Ingreso Vehículo</th>
-                    <th className="text-right py-3 px-2 font-semibold">Suma Pallets</th>
-                    <th className="text-right py-3 px-2 font-semibold">Exceso</th>
-                    <th className="text-right py-3 px-2 font-semibold">Exceso %</th>
-                  </>
-                ) : (
-                  <>
-                    <th className="text-right py-3 px-2 font-semibold">Peso Ingreso</th>
-                    <th className="text-right py-3 px-2 font-semibold">Peso Despacho</th>
-                    <th className="text-right py-3 px-2 font-semibold">Variación %</th>
-                  </>
-                )}
+                <th className="text-right py-3 px-2 font-semibold">Peso Ingreso</th>
+                <th className="text-right py-3 px-2 font-semibold">Peso Despacho</th>
+                <th className="text-right py-3 px-2 font-semibold">Variación %</th>
                 <th className="text-left py-3 px-2 font-semibold">Tipo</th>
                 <th className="text-left py-3 px-2 font-semibold">Fecha</th>
                 <th className="text-center py-3 px-2 font-semibold">Estado</th>
@@ -231,59 +193,23 @@ export default function HistorialAlertas() {
                     {extractPalletNumber(alerta.pallet?.codigoIndependiente || alerta.pallet?.codigo || '')}
                   </td>
                   <td className="py-3 px-2">{alerta.pallet?.vehicle?.placa || 'N/A'}</td>
-                  {filter === 'diferencia' ? (
-                    <>
-                      <td className="py-3 px-2 text-right">
-                        {alerta.metadata?.pesoIngresoVehiculo 
-                          ? Number(alerta.metadata.pesoIngresoVehiculo).toLocaleString('es-EC') + ' kg'
-                          : alerta.pallet?.vehicle?.pesoIngreso
-                          ? Number(alerta.pallet.vehicle.pesoIngreso).toLocaleString('es-EC') + ' kg'
-                          : 'N/A'}
-                      </td>
-                      <td className="py-3 px-2 text-right font-semibold">
-                        {alerta.metadata?.sumaPallets 
-                          ? Number(alerta.metadata.sumaPallets).toLocaleString('es-EC') + ' kg'
-                          : alerta.descripcion?.match(/suma de los pallets \(([\d.]+)/)?.[1] 
-                          ? Number(alerta.descripcion.match(/suma de los pallets \(([\d.]+)/)?.[1]).toLocaleString('es-EC') + ' kg'
-                          : 'N/A'}
-                        {alerta.metadata?.pesoEsperadoPallets && (
-                          <div className="text-xs text-gray-400 mt-1">
-                            Esperado: {Number(alerta.metadata.pesoEsperadoPallets).toLocaleString('es-EC')} kg
-                          </div>
-                        )}
-                      </td>
-                      <td className="py-3 px-2 text-right font-semibold">
-                        <span className={alerta.tipo === 'EXCESO_ALTO' ? 'text-red-400' : 'text-yellow-400'}>
-                          {formatVariacion(alerta.variacion)} kg
-                        </span>
-                      </td>
-                      <td className="py-3 px-2 text-right font-semibold">
-                        <span className={alerta.tipo === 'EXCESO_ALTO' ? 'text-red-400' : 'text-yellow-400'}>
-                          {formatVariacion(alerta.variacionPorcentaje)}%
-                        </span>
-                      </td>
-                    </>
-                  ) : (
-                    <>
-                      <td className="py-3 px-2 text-right">
-                        {Number(alerta.pallet?.pesoTotal || 0).toLocaleString()} kg
-                      </td>
-                      <td className="py-3 px-2 text-right">
-                        {Number(alerta.pallet?.pesoDescarga || 0).toLocaleString()} kg
-                      </td>
-                      <td className="py-3 px-2 text-right font-semibold">
-                        <span
-                          className={
-                            Math.abs(Number(alerta.variacionPorcentaje || 0)) > 5
-                              ? 'text-red-400'
-                              : 'text-yellow-400'
-                          }
-                        >
-                          {formatVariacion(alerta.variacionPorcentaje)}%
-                        </span>
-                      </td>
-                    </>
-                  )}
+                  <td className="py-3 px-2 text-right">
+                    {Number(alerta.pallet?.pesoTotal || 0).toLocaleString()} kg
+                  </td>
+                  <td className="py-3 px-2 text-right">
+                    {Number(alerta.pallet?.pesoDescarga || 0).toLocaleString()} kg
+                  </td>
+                  <td className="py-3 px-2 text-right font-semibold">
+                    <span
+                      className={
+                        Math.abs(Number(alerta.variacionPorcentaje || 0)) > 5
+                          ? 'text-red-400'
+                          : 'text-yellow-400'
+                      }
+                    >
+                      {formatVariacion(alerta.variacionPorcentaje)}%
+                    </span>
+                  </td>
                   <td className="py-3 px-2 text-xs">
                     {alerta.tipo === 'VARIACION_PESO' ? 'Variación Peso' : 
                      alerta.tipo === 'EXCESO_PROMEDIO' ? 'Exceso al Promedio' :
