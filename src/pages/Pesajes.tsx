@@ -76,10 +76,34 @@ export default function Pesajes() {
           };
         }),
       );
+    } catch (error: any) {
+      console.error('[Pesajes] Error al cargar datos:', error);
+      setRows([]);
     } finally {
       setLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const filtered = useMemo(() => {
+    return rows.filter((r) => {
+      const match =
+        !q ||
+        r.placa.toLowerCase().includes(q.toLowerCase()) ||
+        r.codigoPallet.toLowerCase().includes(q.toLowerCase());
+
+      const d = new Date(r.fecha);
+
+      return (
+        match &&
+        (!range.from || d >= new Date(range.from)) &&
+        (!range.to || d <= new Date(range.to + "T23:59:59"))
+      );
+    });
+  }, [rows, q, range]);
 
   // Agrupar por vehículo para calcular pesos totales
   const vehicleSummary = useMemo(() => {
@@ -126,27 +150,6 @@ export default function Pesajes() {
 
     return Array.from(vehicleMap.values());
   }, [filtered]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  const filtered = useMemo(() => {
-    return rows.filter((r) => {
-      const match =
-        !q ||
-        r.placa.toLowerCase().includes(q.toLowerCase()) ||
-        r.codigoPallet.toLowerCase().includes(q.toLowerCase());
-
-      const d = new Date(r.fecha);
-
-      return (
-        match &&
-        (!range.from || d >= new Date(range.from)) &&
-        (!range.to || d <= new Date(range.to + "T23:59:59"))
-      );
-    });
-  }, [rows, q, range]);
 
   const pageRows = filtered.slice((page - 1) * pageSize, page * pageSize);
 
