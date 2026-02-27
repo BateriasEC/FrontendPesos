@@ -390,6 +390,7 @@ export default function Reportes() {
           'Placa': item.placa,
           'Cliente': item.cliente,
           'Producto': item.producto,
+          'Operador': item.operador || 'N/A',
           'Peso Original (kg)': Number(item.pesoOriginal).toFixed(2),
           'Peso Despacho (kg)': item.estadoDespacho === 'completado' ? Number(item.pesoDespacho).toFixed(2) : 'Pendiente',
           'Variación (kg)': item.estadoDespacho === 'completado' ? Number(item.variacion).toFixed(2) : 'Pendiente',
@@ -410,6 +411,7 @@ export default function Reportes() {
         { wch: 12 }, // Placa
         { wch: 30 }, // Cliente
         { wch: 25 }, // Producto
+        { wch: 20 }, // Operador
         { wch: 18 }, // Peso Original
         { wch: 18 }, // Peso Despacho
         { wch: 15 }, // Variación
@@ -751,6 +753,7 @@ export default function Reportes() {
           'Placa': item.placa,
           'Cliente': item.cliente,
           'Producto': item.producto,
+          'Operador': item.operador || 'N/A',
           'Peso Original (kg)': Number(item.pesoOriginal).toFixed(2),
           'Peso Despacho (kg)': item.estadoDespacho === 'completado' ? Number(item.pesoDespacho).toFixed(2) : 'Pendiente',
           'Variación (kg)': item.estadoDespacho === 'completado' ? Number(item.variacion).toFixed(2) : 'Pendiente',
@@ -778,6 +781,7 @@ export default function Reportes() {
         { wch: 12 }, // Placa
         { wch: 30 }, // Cliente
         { wch: 25 }, // Producto
+        { wch: 20 }, // Operador
         { wch: 18 }, // Peso Original
         { wch: 18 }, // Peso Despacho
         { wch: 15 }, // Variación

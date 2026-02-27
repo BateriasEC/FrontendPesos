@@ -43,6 +43,7 @@ type SabanaDespachoData = {
   horaEntrada: string
   fechaPesaje: string
   horaPesaje: string
+  operador?: string
 }
 
 export function useSabanaData(range: { from: string; to: string }) {
@@ -270,7 +271,8 @@ export function useSabanaData(range: { from: string; to: string }) {
                 fechaEntrada: fechaString,
                 horaEntrada: horaIngreso,
                 fechaPesaje: fechaPesajeString,
-                horaPesaje: horaPesaje
+                horaPesaje: horaPesaje,
+                operador: operador
               })
             } else {
               // Agregar como pendiente
@@ -288,7 +290,8 @@ export function useSabanaData(range: { from: string; to: string }) {
                 fechaEntrada: fechaString,
                 horaEntrada: horaIngreso,
                 fechaPesaje: fechaPesajeString,
-                horaPesaje: horaPesaje
+                horaPesaje: horaPesaje,
+                operador: operador
               })
             }
             

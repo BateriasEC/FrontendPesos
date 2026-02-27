@@ -9,6 +9,7 @@ type SabanaDespachoData = {
   variacion: number
   estadoDespacho: 'completado' | 'pendiente'
   pesoOriginal: number
+  operador?: string
 }
 
 type Props = {
@@ -58,6 +59,7 @@ export function SabanaDespacho({ data, searchTerm }: Props) {
                 <th className="text-left py-3 px-4 font-semibold text-gray-300">Placa</th>
                 <th className="text-left py-3 px-4 font-semibold text-gray-300">Cliente</th>
                 <th className="text-left py-3 px-4 font-semibold text-gray-300">Producto</th>
+                <th className="text-left py-3 px-4 font-semibold text-gray-300">Operador</th>
                 <th className="text-left py-3 px-4 font-semibold text-gray-300">Peso Original</th>
                 <th className="text-left py-3 px-4 font-semibold text-gray-300">Peso Despacho</th>
                 <th className="text-left py-3 px-4 font-semibold text-gray-300">Variación</th>
@@ -84,6 +86,9 @@ export function SabanaDespacho({ data, searchTerm }: Props) {
                   </td>
                   <td className="py-3 px-4 text-gray-300">
                     {item.producto}
+                  </td>
+                  <td className="py-3 px-4 text-gray-300">
+                    {item.operador || 'N/A'}
                   </td>
                   <td className="py-3 px-4 text-gray-300">
                     {item.pesoOriginal.toFixed(2)} kg
