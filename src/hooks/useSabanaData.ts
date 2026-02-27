@@ -21,6 +21,10 @@ type SabanaPesajesData = {
     pesoTolerado: number
     estadoDespacho: 'despachado' | 'pendiente'
     producto: string
+    fechaPesaje: string
+    horaPesaje: string
+    fechaDespacho?: string
+    horaDespacho?: string
   }>
 }
 
@@ -37,6 +41,8 @@ type SabanaDespachoData = {
   pesoOriginal: number
   fechaEntrada: string
   horaEntrada: string
+  fechaPesaje: string
+  horaPesaje: string
 }
 
 export function useSabanaData(range: { from: string; to: string }) {
@@ -197,7 +203,8 @@ export function useSabanaData(range: { from: string; to: string }) {
           const cliente = vehicle.cliente || 'N/A'
           const producto = firstPallet.product?.nombre || 'N/A'
           const codigoTrazabilidad = vehicle.codigoTrazabilidad || 'N/A'
-          const operador = vehicle.operador || undefined
+          // Usar el operador del vehículo, o 'Sistema' como fallback para registros antiguos
+          const operador = vehicle.user?.fullName || 'Sistema'
           
           // Mapear pallets para Sábana de Pesajes
           const palletsData = pallets.map((p: any, index: number) => {
@@ -205,7 +212,21 @@ export function useSabanaData(range: { from: string; to: string }) {
             const pesoTotal = Number(p.pesoTotal) || 0
             const descargado = p.descargado === true || p.descargado === 'true' || p.descargado === 1
             
+            // Obtener fecha y hora de pesaje del pallet (createdAt)
+            const fechaPesajeRaw = p.createdAt || p.fecha
+            const fechaPesajeObj = new Date(fechaPesajeRaw)
+            const fechaPesajeString = `${fechaPesajeObj.getFullYear()}-${String(fechaPesajeObj.getMonth() + 1).padStart(2, '0')}-${String(fechaPesajeObj.getDate()).padStart(2, '0')}`
+            const horaPesaje = fechaPesajeObj.toLocaleTimeString('es-CO', { 
+              hour: '2-digit', 
+              minute: '2-digit',
+              second: '2-digit',
+              timeZone: 'America/Bogota'
+            })
+            
             let pesoDescarga: number = 0
+            let fechaDespachoString = ''
+            let horaDespacho = ''
+            
             if (descargado && p.pesoDescarga) {
               if (typeof p.pesoDescarga === 'string') {
                 pesoDescarga = parseFloat(p.pesoDescarga)
@@ -213,6 +234,17 @@ export function useSabanaData(range: { from: string; to: string }) {
                 pesoDescarga = Number(p.pesoDescarga)
               }
               if (isNaN(pesoDescarga)) pesoDescarga = 0
+              
+              // Obtener fecha y hora de despacho (updatedAt cuando se descarga)
+              const fechaDespachoRaw = p.updatedAt || p.fechaDescarga || fechaPesajeRaw
+              const fechaDespachoObj = new Date(fechaDespachoRaw)
+              fechaDespachoString = `${fechaDespachoObj.getFullYear()}-${String(fechaDespachoObj.getMonth() + 1).padStart(2, '0')}-${String(fechaDespachoObj.getDate()).padStart(2, '0')}`
+              horaDespacho = fechaDespachoObj.toLocaleTimeString('es-CO', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                second: '2-digit',
+                timeZone: 'America/Bogota'
+              })
             }
             
             const variacion = pesoTotal - pesoDescarga
@@ -224,14 +256,6 @@ export function useSabanaData(range: { from: string; to: string }) {
             
             // Agregar a datos de despacho
             if (descargado && pesoDescarga > 0) {
-              const fechaDespacho = p.fechaDescarga ? new Date(p.fechaDescarga) : fecha
-              const fechaDespachoString = `${fechaDespacho.getFullYear()}-${String(fechaDespacho.getMonth() + 1).padStart(2, '0')}-${String(fechaDespacho.getDate()).padStart(2, '0')}`
-              const horaDespacho = fechaDespacho.toLocaleTimeString('es-CO', { 
-                hour: '2-digit', 
-                minute: '2-digit',
-                timeZone: 'America/Bogota'
-              })
-              
               dataDespacho.push({
                 codigoIndependiente,
                 placa: vehicle.placa || 'N/A',
@@ -244,7 +268,9 @@ export function useSabanaData(range: { from: string; to: string }) {
                 estadoDespacho: 'completado',
                 pesoOriginal: pesoTotal,
                 fechaEntrada: fechaString,
-                horaEntrada: horaIngreso
+                horaEntrada: horaIngreso,
+                fechaPesaje: fechaPesajeString,
+                horaPesaje: horaPesaje
               })
             } else {
               // Agregar como pendiente
@@ -260,7 +286,9 @@ export function useSabanaData(range: { from: string; to: string }) {
                 estadoDespacho: 'pendiente',
                 pesoOriginal: pesoTotal,
                 fechaEntrada: fechaString,
-                horaEntrada: horaIngreso
+                horaEntrada: horaIngreso,
+                fechaPesaje: fechaPesajeString,
+                horaPesaje: horaPesaje
               })
             }
             
@@ -271,7 +299,11 @@ export function useSabanaData(range: { from: string; to: string }) {
               pesoEstimado: pesoTotal,
               pesoTolerado: pesoTolerado,
               estadoDespacho,
-              producto: productoPallet
+              producto: productoPallet,
+              fechaPesaje: fechaPesajeString,
+              horaPesaje: horaPesaje,
+              fechaDespacho: fechaDespachoString || undefined,
+              horaDespacho: horaDespacho || undefined
             }
           })
           
