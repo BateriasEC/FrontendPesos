@@ -26,32 +26,29 @@ export function ReportCharts({
   deviationByProduct,
   loading = false
 }: ReportChartsProps) {
-  const deviationSummary = [
+  // Resumen de estado de pallets
+  const estadoPallets = [
     {
-      label: 'Baja (≤ 0.5 kg)',
-      total: deviationByProduct.filter(d => d.avg <= 0.5).length
+      label: 'Despachados',
+      total: deviationByProduct.reduce((sum, p) => sum + (p.despachados || 0), 0),
+      color: '#10B981'
     },
     {
-      label: 'Media (0.5 – 1 kg)',
-      total: deviationByProduct.filter(
-        d => d.avg > 0.5 && d.avg <= 1
-      ).length
-    },
-    {
-      label: 'Alta (> 1 kg)',
-      total: deviationByProduct.filter(d => d.avg > 1).length
+      label: 'Pendientes',
+      total: deviationByProduct.reduce((sum, p) => sum + (p.pendientes || 0), 0),
+      color: '#FDB71A'
     }
-  ]
+  ];
 
   return (
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-      {/* ================= PESAJES POR DÍA ================= */}
+      {/* ================= PESO TOTAL POR DÍA ================= */}
       <section className="rounded-xl border border-white/10 bg-neutral-800/40 p-4">
         <h3 className="text-sm font-semibold text-gray-200 mb-1">
-          Cantidad de pesajes por día
+          Peso Total Procesado por Día
         </h3>
         <p className="text-xs text-gray-400 mb-3">
-          Total de registros diarios según el rango seleccionado
+          Peso total de pallets procesados diariamente (en kilogramos)
         </p>
 
         <div className="h-64">
@@ -74,6 +71,7 @@ export function ReportCharts({
                 <YAxis
                   tick={{ fill: '#9ca3af', fontSize: 12 }}
                   allowDecimals={false}
+                  label={{ value: 'Peso (kg)', angle: -90, position: 'insideLeft', fill: '#9ca3af', fontSize: 12 }}
                 />
                 <Tooltip
                   content={({ active, payload }) => {
@@ -93,10 +91,82 @@ export function ReportCharts({
                             Fecha: {d}/{m}/{y}
                           </p>
                           <p style={{ margin: 0, color: '#F15A29' }}>
-                            Pesajes: {data.total}
+                            Vehículos: {data.total}
                           </p>
-                          <p style={{ margin: 0, color: '#F15A29', fontWeight: 'bold' }}>
-                            Peso Total: {data.peso.toLocaleString()} kg
+                          <p style={{ margin: 0, color: '#FDB71A' }}>
+                            Pallets: {data.pallets}
+                          </p>
+                          <p style={{ margin: 0, color: '#10B981', fontWeight: 'bold', fontSize: 14 }}>
+                            Peso Pallets: {data.peso.toLocaleString()} kg
+                          </p>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
+                />
+                <Bar
+                  dataKey="peso"
+                  fill="#F15A29"
+                  radius={[6, 6, 0, 0]}
+                  name="Peso Total (kg)"
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </section>
+
+      {/* ================= ESTADO DE PALLETS ================= */}
+      <section className="rounded-xl border border-white/10 bg-neutral-800/40 p-4">
+        <h3 className="text-sm font-semibold text-gray-200 mb-1">
+          Estado de Pallets
+        </h3>
+        <p className="text-xs text-gray-400 mb-3">
+          Cantidad de pallets despachados vs pendientes de despacho
+        </p>
+
+        <div className="h-64">
+          {loading ? (
+            <Loading />
+          ) : estadoPallets.every(d => d.total === 0) ? (
+            <Empty />
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={estadoPallets}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#ffffff12" />
+                <XAxis
+                  dataKey="label"
+                  tick={{ fill: '#9ca3af', fontSize: 12 }}
+                />
+                <YAxis
+                  tick={{ fill: '#9ca3af', fontSize: 12 }}
+                  allowDecimals={false}
+                  label={{ value: 'Cantidad', angle: -90, position: 'insideLeft', fill: '#9ca3af', fontSize: 12 }}
+                />
+                <Tooltip
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      const data = payload[0].payload;
+                      const totalPallets = estadoPallets.reduce((sum, p) => sum + p.total, 0);
+                      const porcentaje = totalPallets > 0 ? ((data.total / totalPallets) * 100).toFixed(1) : '0';
+                      return (
+                        <div style={{
+                          backgroundColor: '#262626',
+                          border: '1px solid #ffffff14',
+                          borderRadius: 8,
+                          padding: '8px 12px',
+                          color: '#fff',
+                          fontSize: 12
+                        }}>
+                          <p style={{ margin: 0, marginBottom: 4, fontWeight: 'bold' }}>
+                            {data.label}
+                          </p>
+                          <p style={{ margin: 0, color: data.color, fontSize: 14, fontWeight: 'bold' }}>
+                            {data.total} pallets
+                          </p>
+                          <p style={{ margin: 0, color: '#9ca3af', fontSize: 11 }}>
+                            {porcentaje}% del total
                           </p>
                         </div>
                       );
@@ -106,51 +176,12 @@ export function ReportCharts({
                 />
                 <Bar
                   dataKey="total"
-                  fill="#F15A29"
                   radius={[6, 6, 0, 0]}
-                  name="Pesajes"
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-      </section>
-
-      {/* ================= DESVIACIÓN GENERAL ================= */}
-      <section className="rounded-xl border border-white/10 bg-neutral-800/40 p-4">
-        <h3 className="text-sm font-semibold text-gray-200 mb-1">
-          Distribución de desviación promedio
-        </h3>
-        <p className="text-xs text-gray-400 mb-3">
-          Clasificación general de desviaciones por rango de peso
-        </p>
-
-        <div className="h-64">
-          {loading ? (
-            <Loading />
-          ) : deviationSummary.every(d => d.total === 0) ? (
-            <Empty />
-          ) : (
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={deviationSummary}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#ffffff12" />
-                <XAxis
-                  dataKey="label"
-                  tick={{ fill: '#9ca3af', fontSize: 12 }}
-                />
-                <YAxis
-                  tick={{ fill: '#9ca3af', fontSize: 12 }}
-                  allowDecimals={false}
-                />
-                <Tooltip
-                  formatter={(value: number) => [`${value}`, 'Modelos']}
-                  contentStyle={tooltipStyle}
-                />
-                <Bar
-                  dataKey="total"
-                  fill="#f97316"
-                  radius={[6, 6, 0, 0]}
-                />
+                >
+                  {estadoPallets.map((entry, index) => (
+                    <Bar key={`bar-${index}`} dataKey="total" fill={entry.color} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           )}

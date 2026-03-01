@@ -53,7 +53,7 @@ export default function Vehiculos() {
   useEffect(() => { load() }, [load])
 
   const filtered = useMemo(() => rows.filter(r => (
-    (!q || r.placa.toLowerCase().includes(q.toLowerCase()) || r.cliente.toLowerCase().includes(q.toLowerCase())) &&
+    (!q || r.placa.toLowerCase().includes(q.toLowerCase())) &&
     (!estado || r.estado === estado)
   )), [rows, q, estado])
 
@@ -63,79 +63,116 @@ export default function Vehiculos() {
 
   return (
     <div className="space-y-6 w-full">
+      {/* HEADER */}
       <h1 className="text-2xl font-bold">VEHÍCULOS</h1>
 
-      {/* Filtros */}
-      <div className="grid sm:grid-cols-3 gap-4">
-        <input
-          className="input bg-white/5 border border-white/20 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-orange rounded p-2 transition"
-          placeholder="Buscar por placa o cliente"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-        />
+      {/* KPIs */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="rounded-xl border border-white/10 bg-white/5 p-5">
+          <p className="text-xs text-gray-400 uppercase">
+            Total Vehículos
+          </p>
+          <p className="mt-1 text-2xl font-semibold">
+            {filtered.length}
+          </p>
+        </div>
 
-        <select
-          className="select bg-white/5 border border-white/20 text-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-orange rounded p-2 transition"
-          value={estado}
-          onChange={(e) => setEstado(e.target.value as any)}
-        >
-          <option value="">TODOS</option>
-          <option value="en_planta">EN PROCESO</option>
-          <option value="salido">DESCARGADO</option>
-        </select>
+        <div className="rounded-xl border border-white/10 bg-white/5 p-5">
+          <p className="text-xs text-gray-400 uppercase">
+            En Proceso
+          </p>
+          <p className="mt-1 text-2xl font-semibold text-green-400">
+            {filtered.filter(v => v.estado === 'en_planta').length}
+          </p>
+        </div>
 
-        <button
-          onClick={load}
-          className="btn btn-primary"
-        >
-          RECARGAR
-        </button>
+        <div className="rounded-xl border border-white/10 bg-white/5 p-5">
+          <p className="text-xs text-gray-400 uppercase">
+            Descargados
+          </p>
+          <p className="mt-1 text-2xl font-semibold text-gray-400">
+            {filtered.filter(v => v.estado === 'salido').length}
+          </p>
+        </div>
       </div>
 
-      {/* Tabla Desktop */}
-      {loading ? (
-        <div className="hidden md:flex items-center justify-center min-h-[400px] bg-white/5 rounded border border-white/10">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-orange mx-auto mb-4"></div>
-            <p className="text-gray-400">Cargando vehículos...</p>
+      {/* FILTROS */}
+      <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="flex flex-col gap-1 justify-end w-full">
+            <label className="text-xs text-gray-400 font-medium">Buscar</label>
+            <input
+              className="input h-11 w-full text-sm"
+              placeholder="Placa"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+            />
+          </div>
+
+          <div className="flex flex-col gap-1 justify-end w-full">
+            <label className="text-xs text-gray-400 font-medium">Estado</label>
+            <select
+              className="select h-11 w-full text-sm"
+              value={estado}
+              onChange={(e) => setEstado(e.target.value as any)}
+            >
+              <option value="">TODOS</option>
+              <option value="en_planta">EN PROCESO</option>
+              <option value="salido">DESCARGADO</option>
+            </select>
+          </div>
+
+          <div className="flex justify-end self-end">
+            <button
+              onClick={load}
+              className="h-10 px-4 text-sm rounded-lg bg-brand-orange hover:bg-brand-orange/80 transition font-medium whitespace-nowrap"
+            >
+              Recargar
+            </button>
           </div>
         </div>
+      </div>
+
+      {/* TABLA */}
+      {loading ? (
+        <div className="flex justify-center py-24">
+          <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-brand-orange" />
+        </div>
       ) : (
-        <div className="hidden md:block overflow-x-auto rounded-lg shadow-lg border border-white/10">
-          <table className="table-auto w-full text-left">
-            <thead className="bg-white/10 text-white uppercase text-xs tracking-wider">
+        <div className="rounded-xl border border-white/10 overflow-hidden">
+          <table className="table w-full">
+            <thead className="bg-white/10 sticky top-0 z-10">
               <tr>
-                <th className="p-3">Código</th>
-                <th className="p-3">Placa</th>
-                <th className="p-3">Cliente</th>
-                <th className="p-3">Estado</th>
-                <th className="p-3">Ingreso</th>
-                <th className="p-3">Salida</th>
+                <th>Código</th>
+                <th>Placa</th>
+                <th>Estado</th>
+                <th>Ingreso</th>
+                <th>Salida</th>
               </tr>
             </thead>
             <tbody>
               {pageRows.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="p-6 text-center text-gray-400">
+                  <td colSpan={5} className="text-center py-10 text-gray-400">
                     No hay vehículos registrados
                   </td>
                 </tr>
               ) : (
-                pageRows.map((v, i) => (
-                  <tr key={v.id} className={`transition hover:bg-white/10 ${i % 2 === 0 ? 'bg-white/5' : ''}`}>
-                    <td className="p-3 text-sm">{`COD-${String(v.id).padStart(3,'0')}`}</td>
-                    <td className="p-3 text-sm font-medium">{v.placa}</td>
-                    <td className="p-3 text-sm">{v.cliente}</td>
-                    <td className="p-3 text-sm">
-                      <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold text-center w-24 
-                        bg-green-500/30 text-green-200
-                        dark:bg-gray-500/30 dark:text-gray-300
-                      ">
+                pageRows.map((v) => (
+                  <tr key={v.id} className="hover:bg-white/5 transition">
+                    <td className="font-mono text-sm">{`COD-${String(v.id).padStart(3,'0')}`}</td>
+                    <td className="font-medium">{v.placa}</td>
+                    <td>
+                      <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
+                        v.estado === 'en_planta' 
+                          ? 'bg-green-500/20 text-green-400' 
+                          : 'bg-gray-500/20 text-gray-400'
+                      }`}>
                         {v.estado === 'en_planta' ? 'EN PROCESO' : 'DESCARGADO'}
                       </span>
                     </td>
-                    <td className="p-3 text-sm">{formatDate(v.ingresoAt)}</td>
-                    <td className="p-3 text-sm">{formatDate(v.salidaAt)}</td>
+                    <td className="text-sm">{formatDate(v.ingresoAt)}</td>
+                    <td className="text-sm">{formatDate(v.salidaAt)}</td>
                   </tr>
                 ))
               )}
@@ -144,59 +181,14 @@ export default function Vehiculos() {
         </div>
       )}
 
-      {/* Cards Móvil */}
-      {loading ? (
-        <div className="md:hidden flex items-center justify-center min-h-[400px] bg-white/5 rounded border border-white/10">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-orange mx-auto mb-4"></div>
-            <p className="text-gray-400">Cargando vehículos...</p>
-          </div>
-        </div>
-      ) : (
-        <div className="md:hidden space-y-4">
-          {pageRows.length === 0 ? (
-            <div className="p-6 text-center text-gray-400 bg-white/5 rounded border border-white/10">
-              No hay vehículos registrados
-            </div>
-          ) : (
-            pageRows.map((v) => (
-              <div key={v.id} className="bg-gradient-to-r from-white/5 to-white/10 rounded-lg border border-white/10 p-4 shadow-md hover:shadow-lg transition-all duration-200">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-white text-lg">{v.placa}</h3>
-                    <p className="text-sm text-gray-300 mt-1">{v.cliente}</p>
-                    <p className="text-xs text-gray-400 mt-1">{`COD-${String(v.id).padStart(3,'0')}`}</p>
-                  </div>
-                  <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold text-center w-24 
-                    bg-green-500/30 text-green-200
-                    dark:bg-gray-500/30 dark:text-gray-300
-                  ">
-                    {v.estado === 'en_planta' ? 'EN PROCESO' : 'DESCARGADO'}
-                  </span>
-                </div>
-                <div className="pt-2 border-t border-white/20 space-y-1 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Ingreso:</span>
-                    <span className="text-gray-300">{formatDate(v.ingresoAt)}</span>
-                  </div>
-                  {v.salidaAt && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">Salida:</span>
-                      <span className="text-gray-300">{formatDate(v.salidaAt)}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      )}
-
-      {!loading && (
-        <div className="flex justify-end mt-4">
-          <Pagination page={page} pageSize={pageSize} total={filtered.length} onChange={setPage} />
-        </div>
-      )}
+      <div className="flex justify-end">
+        <Pagination
+          page={page}
+          pageSize={pageSize}
+          total={filtered.length}
+          onChange={setPage}
+        />
+      </div>
     </div>
   )
 }

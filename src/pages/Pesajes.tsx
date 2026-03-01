@@ -32,6 +32,7 @@ type Row = {
   pesoDescarga?: number | null;
   variacionPeso?: number | null;
   descargado?: boolean;
+  operador?: string;
 };
 
 export default function Pesajes() {
@@ -72,6 +73,7 @@ export default function Pesajes() {
             pesoDescarga: p.descargado ? Number(p.pesoDescarga) : null,
             variacionPeso: Number(p.variacionPeso) || null,
             descargado: Boolean(p.descargado),
+            operador: p.vehicle?.user?.fullName || p.user?.fullName || 'N/A',
             niveles: [],
           };
         }),
@@ -154,10 +156,72 @@ export default function Pesajes() {
   const pageRows = filtered.slice((page - 1) * pageSize, page * pageSize);
 
   const exportExcel = () => {
-    const ws = XLSX.utils.json_to_sheet(filtered);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Pesajes");
-    XLSX.writeFile(wb, "pesajes.xlsx");
+    try {
+      const excelData = filtered.map((row, idx) => {
+        const fecha = new Date(row.fecha);
+        const diaSemana = fecha.toLocaleDateString('es-EC', { weekday: 'long', timeZone: 'America/Bogota' });
+        
+        return {
+          'N°': idx + 1,
+          'Fecha': fecha.toLocaleDateString('es-EC', { 
+            year: 'numeric', 
+            month: '2-digit', 
+            day: '2-digit',
+            timeZone: 'America/Bogota'
+          }),
+          'Día de la Semana': diaSemana,
+          'Hora': fecha.toLocaleTimeString('es-EC', { 
+            hour: '2-digit', 
+            minute: '2-digit', 
+            second: '2-digit',
+            timeZone: 'America/Bogota'
+          }),
+          'Placa Vehículo': row.placa,
+          'Código Trazabilidad': row.codigoTrazabilidad || 'N/A',
+          'Operador': row.operador || 'N/A',
+          'Código Pallet': row.codigoPallet,
+          'Producto': row.productNombre || 'N/A',
+          'Peso Ingreso Vehículo (kg)': Number(row.pesoIngreso).toFixed(2),
+          'Peso Salida Vehículo (kg)': row.pesoSalida ? Number(row.pesoSalida).toFixed(2) : 'Pendiente',
+          'Diferencia Vehículo (kg)': Number(row.variacion).toFixed(2),
+          'Peso Pallet (kg)': Number(row.pesoTotal || 0).toFixed(2),
+          'Peso Despacho Pallet (kg)': row.pesoDescarga ? Number(row.pesoDescarga).toFixed(2) : 'Pendiente',
+          'Variación Pallet (kg)': row.variacionPeso ? Number(row.variacionPeso).toFixed(2) : 'N/A',
+          'Estado Despacho': row.descargado ? 'Despachado' : 'Pendiente',
+        };
+      });
+
+      const ws = XLSX.utils.json_to_sheet(excelData);
+      
+      // Ajustar anchos de columna
+      ws['!cols'] = [
+        { wch: 8 },  // N°
+        { wch: 12 }, // Fecha
+        { wch: 15 }, // Día
+        { wch: 12 }, // Hora
+        { wch: 12 }, // Placa
+        { wch: 25 }, // Código Trazabilidad
+        { wch: 20 }, // Operador
+        { wch: 30 }, // Código Pallet
+        { wch: 25 }, // Producto
+        { wch: 22 }, // Peso Ingreso
+        { wch: 22 }, // Peso Salida
+        { wch: 22 }, // Diferencia Vehículo
+        { wch: 18 }, // Peso Pallet
+        { wch: 22 }, // Peso Despacho
+        { wch: 20 }, // Variación Pallet
+        { wch: 18 }, // Estado
+      ];
+      
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Pesajes");
+      
+      const fechaActual = new Date().toISOString().slice(0, 10);
+      XLSX.writeFile(wb, `pesajes_${fechaActual}.xlsx`);
+    } catch (error) {
+      console.error("Error al exportar Excel:", error);
+      alert("Error al exportar Excel");
+    }
   };
 
   return (

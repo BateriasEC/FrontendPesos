@@ -51,48 +51,52 @@ export default function Reportes() {
   }, [rows, reportRange]);
 
   const byDay = useMemo(() => {
-    const map = new Map<string, { count: number; peso: number }>();
-    filtered.forEach((r) => {
-      const day = new Date(r.fecha).toISOString().slice(0, 10);
-      const current = map.get(day) || { count: 0, peso: 0 };
-      current.count += 1;
-      current.peso += Math.abs(r.variacion || 0);
+    const map = new Map<string, { vehiculos: number; pallets: number; pesoTotal: number }>();
+    sabanaPesajesData.forEach((vehiculo) => {
+      const day = vehiculo.fecha;
+      const current = map.get(day) || { vehiculos: 0, pallets: 0, pesoTotal: 0 };
+      current.vehiculos += 1;
+      current.pallets += vehiculo.pallets.length;
+      current.pesoTotal += vehiculo.pallets.reduce((sum, p) => sum + p.pesoReal, 0);
       map.set(day, current);
     });
     return Array.from(map.entries())
       .map(([day, data]) => ({ 
         day, 
-        total: data.count,
-        peso: Number(data.peso.toFixed(2))
+        total: data.vehiculos,
+        pallets: data.pallets,
+        peso: Number(data.pesoTotal.toFixed(2))
       }))
       .sort((a, b) => a.day.localeCompare(b.day));
-  }, [filtered]);
+  }, [sabanaPesajesData]);
 
   const deviationByProduct = useMemo(() => {
-    const map = new Map<string, number[]>();
-    filtered.forEach((r) => {
-      const key = String(r.productoId);
-      const arr = map.get(key) || [];
-      arr.push(r.variacion);
-      map.set(key, arr);
+    const map = new Map<string, { pesoTotal: number; pallets: number; despachados: number }>();
+    sabanaPesajesData.forEach((vehiculo) => {
+      vehiculo.pallets.forEach((pallet) => {
+        const producto = pallet.producto;
+        const current = map.get(producto) || { pesoTotal: 0, pallets: 0, despachados: 0 };
+        current.pallets += 1;
+        current.pesoTotal += pallet.pesoReal;
+        if (pallet.estadoDespacho === 'despachado') {
+          current.despachados += 1;
+        }
+        map.set(producto, current);
+      });
     });
 
     return Array.from(map.entries())
-      .map(([product, values]) => {
-        const avg = values.reduce((a, b) => a + b, 0) / values.length;
-        const deviation =
-          values.reduce((acc, v) => acc + Math.abs(v - avg), 0) / values.length;
-        return {
-          product,
-          avg: Number(deviation.toFixed(2)),
-          promedioModelo: Number(avg.toFixed(2)),
-          registros: values.length,
-        };
-      })
-      .filter((p) => p.avg > 0);
-  }, [filtered]);
+      .map(([product, data]) => ({
+        product,
+        avg: Number((data.pesoTotal / data.pallets).toFixed(2)),
+        registros: data.pallets,
+        despachados: data.despachados,
+        pendientes: data.pallets - data.despachados,
+      }))
+      .sort((a, b) => b.registros - a.registros);
+  }, [sabanaPesajesData]);
 
-  // PDF de Reportes
+  // PDF de Reportes - Ahora usa datos de Sábana de Pesajes
   const exportPDF = useCallback(() => {
     try {
       const pdf = new jsPDF({
@@ -104,68 +108,77 @@ export default function Reportes() {
       // Encabezado
       pdf.setFontSize(18);
       pdf.setTextColor(183, 28, 28);
-      pdf.text("Reporte de Pesajes", 14, 15);
+      pdf.text("Reporte de Vehículos y Pallets", 14, 15);
 
       pdf.setFontSize(11);
       pdf.setTextColor(60, 60, 60);
       pdf.text(
-        `Rango de fechas: ${reportRange.from} al ${reportRange.to}`,
+        `Rango de fechas: ${sabanaRange.from} al ${sabanaRange.to}`,
         14,
         23,
       );
       
       pdf.setFontSize(10);
-      pdf.text(`Total de registros: ${filtered.length}`, 14, 30);
+      const totalVehiculos = sabanaPesajesData.length;
+      const totalPallets = sabanaPesajesData.reduce((acc, v) => acc + v.pallets.length, 0);
+      pdf.text(`Total de vehículos: ${totalVehiculos} | Total de pallets: ${totalPallets}`, 14, 30);
       pdf.text(
         `Fecha de generación: ${new Date().toLocaleString('es-EC')}`,
         14,
         36,
       );
 
+      // Preparar datos para la tabla
+      const tableData: any[] = [];
+      sabanaPesajesData.forEach((vehiculo, idx) => {
+        const fecha = new Date(vehiculo.fecha + 'T00:00:00');
+        const diaSemana = fecha.toLocaleDateString('es-EC', { weekday: 'short', timeZone: 'America/Bogota' });
+        
+        vehiculo.pallets.forEach((pallet, palletIdx) => {
+          tableData.push([
+            idx + 1,
+            vehiculo.placa,
+            vehiculo.fecha,
+            diaSemana,
+            vehiculo.horaIngreso,
+            vehiculo.operador || 'N/A',
+            Number(vehiculo.pesoIngreso).toFixed(0),
+            Number(vehiculo.pesoSalida).toFixed(0),
+            Number(vehiculo.diferencia).toFixed(0),
+            pallet.codigoIndependiente,
+            pallet.producto,
+            Number(pallet.pesoReal).toFixed(0),
+            pallet.estadoDespacho === 'despachado' ? 'Desp.' : 'Pend.',
+          ]);
+        });
+      });
+
       autoTable(pdf, {
         startY: 42,
-        head: [["ID", "Fecha", "Hora", "Día", "Variación (kg)", "Producto ID", "Cliente"]],
-        body: filtered.map((r, idx) => {
-          const fecha = new Date(r.fecha);
-          return [
-            idx + 1,
-            fecha.toLocaleDateString("es-EC", { 
-              year: 'numeric',
-              month: '2-digit',
-              day: '2-digit',
-              timeZone: "America/Bogota" 
-            }),
-            fecha.toLocaleTimeString("es-EC", {
-              hour: "2-digit",
-              minute: "2-digit",
-              second: "2-digit",
-              timeZone: "America/Bogota",
-            }),
-            fecha.toLocaleDateString("es-EC", { 
-              weekday: 'short',
-              timeZone: "America/Bogota" 
-            }),
-            Number(r.variacion).toFixed(2),
-            r.productoId,
-            r.cliente || "N/A",
-          ];
-        }),
-        styles: { fontSize: 8, cellPadding: 2, textColor: [40, 40, 40] },
+        head: [["Veh", "Placa", "Fecha", "Día", "Hora", "Operador", "P.Ing", "P.Sal", "Dif", "Código Pallet", "Producto", "Peso", "Estado"]],
+        body: tableData,
+        styles: { fontSize: 7, cellPadding: 1.5, textColor: [40, 40, 40] },
         headStyles: {
           fillColor: [183, 28, 28],
           textColor: 255,
           halign: "center",
-          fontSize: 9,
+          fontSize: 8,
         },
         alternateRowStyles: { fillColor: [255, 243, 205] },
         columnStyles: {
-          0: { halign: "center", cellWidth: 12 },
-          1: { halign: "center", cellWidth: 25 },
-          2: { halign: "center", cellWidth: 22 },
-          3: { halign: "center", cellWidth: 18 },
-          4: { halign: "right", cellWidth: 25 },
-          5: { halign: "center", cellWidth: 25 },
-          6: { halign: "left", cellWidth: 'auto' },
+          0: { halign: "center", cellWidth: 10 },  // Veh
+          1: { halign: "center", cellWidth: 15 },  // Placa
+          2: { halign: "center", cellWidth: 18 },  // Fecha
+          3: { halign: "center", cellWidth: 12 },  // Día
+          4: { halign: "center", cellWidth: 12 },  // Hora
+          5: { halign: "left", cellWidth: 20 },    // Operador
+          6: { halign: "right", cellWidth: 15 },   // P.Ing
+          7: { halign: "right", cellWidth: 15 },   // P.Sal
+          8: { halign: "right", cellWidth: 12 },   // Dif
+          9: { halign: "left", cellWidth: 30 },    // Código Pallet
+          10: { halign: "left", cellWidth: 25 },   // Producto
+          11: { halign: "right", cellWidth: 12 },  // Peso
+          12: { halign: "center", cellWidth: 12 }, // Estado
         },
       });
 
@@ -181,62 +194,87 @@ export default function Reportes() {
         );
       }
 
-      pdf.save(`reportes_${reportRange.from}_${reportRange.to}.pdf`);
+      pdf.save(`reporte_vehiculos_pallets_${sabanaRange.from}_${sabanaRange.to}.pdf`);
     } catch (error) {
       console.error("Error al exportar PDF:", error);
       alert("Error al exportar PDF");
     }
-  }, [filtered, reportRange]);
+  }, [sabanaPesajesData, sabanaRange]);
 
-  // Excel de Reportes
+  // Excel de Reportes - Ahora usa datos de Sábana de Pesajes
   const exportExcel = useCallback(() => {
     try {
-      const excelData = filtered.map((r, idx) => {
-        const fecha = new Date(r.fecha);
-        return {
-          'ID': idx + 1,
-          'Fecha': fecha.toLocaleDateString('es-EC', { 
-            year: 'numeric', 
-            month: '2-digit', 
-            day: '2-digit',
-            timeZone: 'America/Bogota'
-          }),
-          'Hora': fecha.toLocaleTimeString('es-EC', { 
-            hour: '2-digit', 
-            minute: '2-digit', 
-            second: '2-digit',
-            timeZone: 'America/Bogota'
-          }),
-          'Día de la Semana': fecha.toLocaleDateString('es-EC', { weekday: 'long', timeZone: 'America/Bogota' }),
-          'Variación (kg)': Number(r.variacion).toFixed(2),
-          'Producto ID': r.productoId,
-          'Cliente': r.cliente || 'N/A',
-          'Rango de Consulta': `${reportRange.from} al ${reportRange.to}`,
-        };
+      const excelData: any[] = [];
+      
+      sabanaPesajesData.forEach((vehiculo, idx) => {
+        const fecha = new Date(vehiculo.fecha + 'T00:00:00');
+        const diaSemana = fecha.toLocaleDateString('es-EC', { weekday: 'long', timeZone: 'America/Bogota' });
+        
+        vehiculo.pallets.forEach((pallet, palletIdx) => {
+          const fechaPesaje = new Date(pallet.fechaPesaje + 'T00:00:00');
+          const diaPesaje = fechaPesaje.toLocaleDateString('es-EC', { weekday: 'long', timeZone: 'America/Bogota' });
+          
+          excelData.push({
+            'N° Vehículo': idx + 1,
+            'N° Pallet': palletIdx + 1,
+            'Placa': vehiculo.placa,
+            'Código Trazabilidad': vehiculo.codigoTrazabilidad,
+            'Fecha Ingreso': vehiculo.fecha,
+            'Día Ingreso': diaSemana,
+            'Hora Ingreso': vehiculo.horaIngreso,
+            'Operador': vehiculo.operador || 'N/A',
+            'Peso Ingreso (kg)': Number(vehiculo.pesoIngreso).toFixed(2),
+            'Peso Salida (kg)': Number(vehiculo.pesoSalida).toFixed(2),
+            'Diferencia Vehículo (kg)': Number(vehiculo.diferencia).toFixed(2),
+            'Diferencia %': vehiculo.pesoIngreso > 0 ? ((vehiculo.diferencia / vehiculo.pesoIngreso) * 100).toFixed(2) + '%' : '0%',
+            'Código Pallet': pallet.codigoIndependiente,
+            'Producto': pallet.producto,
+            'Fecha Pesaje': pallet.fechaPesaje,
+            'Día Pesaje': diaPesaje,
+            'Hora Pesaje': pallet.horaPesaje,
+            'Peso Pallet (kg)': Number(pallet.pesoReal).toFixed(2),
+            'Peso Estimado (kg)': Number(pallet.pesoEstimado).toFixed(2),
+            'Diferencia Pallet (kg)': (pallet.pesoReal - pallet.pesoEstimado).toFixed(2),
+            'Estado Despacho': pallet.estadoDespacho === 'despachado' ? 'Despachado' : 'Pendiente',
+          });
+        });
       });
 
       const ws = XLSX.utils.json_to_sheet(excelData);
       
       // Ajustar anchos de columna
       ws['!cols'] = [
-        { wch: 8 },  // ID
-        { wch: 12 }, // Fecha
-        { wch: 12 }, // Hora
-        { wch: 15 }, // Día
-        { wch: 15 }, // Variación
-        { wch: 15 }, // Producto ID
-        { wch: 30 }, // Cliente
-        { wch: 30 }, // Rango
+        { wch: 12 }, // N° Vehículo
+        { wch: 10 }, // N° Pallet
+        { wch: 12 }, // Placa
+        { wch: 25 }, // Código Trazabilidad
+        { wch: 15 }, // Fecha Ingreso
+        { wch: 15 }, // Día Ingreso
+        { wch: 12 }, // Hora Ingreso
+        { wch: 20 }, // Operador
+        { wch: 18 }, // Peso Ingreso
+        { wch: 18 }, // Peso Salida
+        { wch: 20 }, // Diferencia Vehículo
+        { wch: 15 }, // Diferencia %
+        { wch: 30 }, // Código Pallet
+        { wch: 25 }, // Producto
+        { wch: 15 }, // Fecha Pesaje
+        { wch: 15 }, // Día Pesaje
+        { wch: 12 }, // Hora Pesaje
+        { wch: 18 }, // Peso Pallet
+        { wch: 18 }, // Peso Estimado
+        { wch: 20 }, // Diferencia Pallet
+        { wch: 18 }, // Estado Despacho
       ];
       
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Reportes');
-      XLSX.writeFile(wb, `reportes_${reportRange.from}_${reportRange.to}.xlsx`);
+      XLSX.utils.book_append_sheet(wb, ws, 'Vehículos y Pallets');
+      XLSX.writeFile(wb, `reporte_vehiculos_pallets_${sabanaRange.from}_${sabanaRange.to}.xlsx`);
     } catch (error) {
       console.error("Error al exportar Excel:", error);
       alert("Error al exportar Excel");
     }
-  }, [filtered, reportRange]);
+  }, [sabanaPesajesData, sabanaRange]);
 
   // Excel Reporte General Consolidado
   const exportReporteGeneralExcel = useCallback(() => {
@@ -322,6 +360,7 @@ export default function Reportes() {
             'Día de la Semana': diaSemana,
             'Hora': vehiculo.horaIngreso,
             'Placa Vehículo': vehiculo.placa,
+            'Operador': vehiculo.operador || 'N/A',
             'Cliente': vehiculo.cliente,
             'Producto': pallet.producto,
             'Peso Real (kg)': Number(pallet.pesoReal).toFixed(2),
@@ -340,6 +379,7 @@ export default function Reportes() {
         { wch: 15 }, // Día
         { wch: 12 }, // Hora
         { wch: 12 }, // Placa
+        { wch: 20 }, // Operador
         { wch: 30 }, // Cliente
         { wch: 25 }, // Producto
         { wch: 18 }, // Peso Real
@@ -620,52 +660,67 @@ export default function Reportes() {
 
       const tableData: any[] = [];
       sabanaPesajesData.forEach((vehiculo, idx) => {
-        const fechaCompleta = new Date(`${vehiculo.fecha}T${vehiculo.horaIngreso}`);
-        const diaSemana = fechaCompleta.toLocaleDateString('es-EC', { weekday: 'short', timeZone: 'America/Bogota' });
+        // Obtener día de la semana correctamente desde la fecha del vehículo
+        const fechaVehiculoObj = new Date(vehiculo.fecha + 'T00:00:00');
+        const diaVehiculo = fechaVehiculoObj.toLocaleDateString('es-EC', { weekday: 'short', timeZone: 'America/Bogota' });
         
-        vehiculo.pallets.forEach((pallet) => {
+        vehiculo.pallets.forEach((pallet, palletIdx) => {
+          // Obtener día de pesaje del pallet
+          const fechaPesajeObj = new Date(pallet.fechaPesaje + 'T00:00:00');
+          const diaPesaje = fechaPesajeObj.toLocaleDateString('es-EC', { weekday: 'short', timeZone: 'America/Bogota' });
+          
           tableData.push([
             idx + 1,
+            palletIdx + 1,
             vehiculo.placa,
-            vehiculo.cliente,
+            vehiculo.operador || 'N/A',
             vehiculo.fecha,
+            diaVehiculo,
             vehiculo.horaIngreso,
-            diaSemana,
-            Number(vehiculo.pesoIngreso).toFixed(2),
-            Number(vehiculo.pesoSalida).toFixed(2),
-            Number(vehiculo.diferencia).toFixed(2),
+            pallet.fechaPesaje,
+            diaPesaje,
+            pallet.horaPesaje,
+            Number(vehiculo.pesoIngreso).toFixed(0),
+            Number(vehiculo.pesoSalida).toFixed(0),
+            Number(vehiculo.diferencia).toFixed(0),
             pallet.codigoIndependiente,
-            Number(pallet.pesoReal).toFixed(2),
-            pallet.estadoDespacho === 'despachado' ? 'Despachado' : 'Pendiente',
+            pallet.producto,
+            Number(pallet.pesoReal).toFixed(0),
+            pallet.estadoDespacho === 'despachado' ? 'Desp.' : 'Pend.',
           ]);
         });
       });
 
       autoTable(pdf, {
         startY: 41,
-        head: [["Veh.", "Placa", "Cliente", "Fecha", "Hora", "Día", "P.Ing.", "P.Sal.", "Dif.", "Cód.Pallet", "Peso", "Estado"]],
+        head: [["Veh", "Pal", "Placa", "Operador", "F.Ing", "Día", "H.Ing", "F.Pes", "Día", "H.Pes", "P.Ing", "P.Sal", "Dif", "Cód.Pallet", "Producto", "Peso", "Est"]],
         body: tableData,
-        styles: { fontSize: 7, cellPadding: 1.5, textColor: [40, 40, 40] },
+        styles: { fontSize: 6, cellPadding: 1, textColor: [40, 40, 40] },
         headStyles: {
           fillColor: [183, 28, 28],
           textColor: 255,
           halign: "center",
-          fontSize: 8,
+          fontSize: 7,
         },
         alternateRowStyles: { fillColor: [255, 243, 205] },
         columnStyles: {
-          0: { halign: "center", cellWidth: 12 },
-          1: { halign: "center", cellWidth: 18 },
-          2: { halign: "left", cellWidth: 35 },
-          3: { halign: "center", cellWidth: 20 },
-          4: { halign: "center", cellWidth: 15 },
-          5: { halign: "center", cellWidth: 15 },
-          6: { halign: "right", cellWidth: 18 },
-          7: { halign: "right", cellWidth: 18 },
-          8: { halign: "right", cellWidth: 15 },
-          9: { halign: "left", cellWidth: 35 },
-          10: { halign: "right", cellWidth: 18 },
-          11: { halign: "center", cellWidth: 20 },
+          0: { halign: "center", cellWidth: 8 },   // Veh
+          1: { halign: "center", cellWidth: 8 },   // Pal
+          2: { halign: "center", cellWidth: 12 },  // Placa
+          3: { halign: "left", cellWidth: 18 },    // Operador
+          4: { halign: "center", cellWidth: 15 },  // F.Ing
+          5: { halign: "center", cellWidth: 10 },  // Día
+          6: { halign: "center", cellWidth: 10 },  // H.Ing
+          7: { halign: "center", cellWidth: 15 },  // F.Pes
+          8: { halign: "center", cellWidth: 10 },  // Día
+          9: { halign: "center", cellWidth: 10 },  // H.Pes
+          10: { halign: "right", cellWidth: 12 },  // P.Ing
+          11: { halign: "right", cellWidth: 12 },  // P.Sal
+          12: { halign: "right", cellWidth: 10 },  // Dif
+          13: { halign: "left", cellWidth: 28 },   // Cód.Pallet
+          14: { halign: "left", cellWidth: 20 },   // Producto
+          15: { halign: "right", cellWidth: 12 },  // Peso
+          16: { halign: "center", cellWidth: 10 }, // Est
         },
       });
 
@@ -836,12 +891,24 @@ export default function Reportes() {
       );
 
       const tableData = sabanaDespachoData.map((item, idx) => {
-        let diaDespacho = '-';
+        // Día de entrada
+        let diaEntrada = 'N/A';
+        if (item.fechaEntrada) {
+          try {
+            const fechaEntradaObj = new Date(item.fechaEntrada + 'T00:00:00');
+            if (!isNaN(fechaEntradaObj.getTime())) {
+              diaEntrada = fechaEntradaObj.toLocaleDateString('es-EC', { weekday: 'short', timeZone: 'America/Bogota' });
+            }
+          } catch (e) {}
+        }
+        
+        // Día de despacho
+        let diaDespacho = 'Pend.';
         if (item.estadoDespacho === 'completado' && item.fechaDespacho) {
           try {
-            const fechaObj = new Date(`${item.fechaDespacho}T${item.horaDespacho || '00:00:00'}`);
-            if (!isNaN(fechaObj.getTime())) {
-              diaDespacho = fechaObj.toLocaleDateString('es-EC', { weekday: 'short', timeZone: 'America/Bogota' });
+            const fechaDespachoObj = new Date(item.fechaDespacho + 'T00:00:00');
+            if (!isNaN(fechaDespachoObj.getTime())) {
+              diaDespacho = fechaDespachoObj.toLocaleDateString('es-EC', { weekday: 'short', timeZone: 'America/Bogota' });
             }
           } catch (e) {}
         }
@@ -850,41 +917,49 @@ export default function Reportes() {
           idx + 1,
           item.codigoIndependiente,
           item.placa,
-          item.cliente,
-          Number(item.pesoOriginal).toFixed(2),
-          item.estadoDespacho === 'completado' ? Number(item.pesoDespacho).toFixed(2) : 'Pend.',
-          item.estadoDespacho === 'completado' ? Number(item.variacion).toFixed(2) : '-',
+          item.operador || 'N/A',
+          item.producto,
+          item.fechaEntrada || 'N/A',
+          diaEntrada,
+          item.horaEntrada || 'N/A',
           item.estadoDespacho === 'completado' ? item.fechaDespacho : 'Pend.',
-          item.estadoDespacho === 'completado' ? item.horaDespacho : '-',
           diaDespacho,
+          item.estadoDespacho === 'completado' ? item.horaDespacho : 'Pend.',
+          Number(item.pesoOriginal).toFixed(0),
+          item.estadoDespacho === 'completado' ? Number(item.pesoDespacho).toFixed(0) : 'Pend.',
+          item.estadoDespacho === 'completado' ? Number(item.variacion).toFixed(0) : '-',
           item.estadoDespacho === 'completado' ? 'OK' : 'Pend.',
         ];
       });
 
       autoTable(pdf, {
         startY: 41,
-        head: [["ID", "Cód.Pallet", "Placa", "Cliente", "P.Orig.", "P.Desp.", "Var.", "Fecha", "Hora", "Día", "Est."]],
+        head: [["N°", "Cód.Pallet", "Placa", "Oper.", "Prod.", "F.Ent", "Día", "H.Ent", "F.Des", "Día", "H.Des", "P.Ori", "P.Des", "Var", "Est"]],
         body: tableData,
-        styles: { fontSize: 7, cellPadding: 1.5, textColor: [40, 40, 40] },
+        styles: { fontSize: 6, cellPadding: 1, textColor: [40, 40, 40] },
         headStyles: {
           fillColor: [183, 28, 28],
           textColor: 255,
           halign: "center",
-          fontSize: 8,
+          fontSize: 7,
         },
         alternateRowStyles: { fillColor: [255, 243, 205] },
         columnStyles: {
-          0: { halign: "center", cellWidth: 10 },
-          1: { halign: "left", cellWidth: 40 },
-          2: { halign: "center", cellWidth: 18 },
-          3: { halign: "left", cellWidth: 35 },
-          4: { halign: "right", cellWidth: 18 },
-          5: { halign: "right", cellWidth: 18 },
-          6: { halign: "right", cellWidth: 15 },
-          7: { halign: "center", cellWidth: 20 },
-          8: { halign: "center", cellWidth: 15 },
-          9: { halign: "center", cellWidth: 15 },
-          10: { halign: "center", cellWidth: 15 },
+          0: { halign: "center", cellWidth: 8 },   // N°
+          1: { halign: "left", cellWidth: 28 },    // Cód.Pallet
+          2: { halign: "center", cellWidth: 12 },  // Placa
+          3: { halign: "left", cellWidth: 18 },    // Oper.
+          4: { halign: "left", cellWidth: 20 },    // Prod.
+          5: { halign: "center", cellWidth: 15 },  // F.Ent
+          6: { halign: "center", cellWidth: 10 },  // Día
+          7: { halign: "center", cellWidth: 10 },  // H.Ent
+          8: { halign: "center", cellWidth: 15 },  // F.Des
+          9: { halign: "center", cellWidth: 10 },  // Día
+          10: { halign: "center", cellWidth: 10 }, // H.Des
+          11: { halign: "right", cellWidth: 12 },  // P.Ori
+          12: { halign: "right", cellWidth: 12 },  // P.Des
+          13: { halign: "right", cellWidth: 10 },  // Var
+          14: { halign: "center", cellWidth: 10 }, // Est
         },
       });
 

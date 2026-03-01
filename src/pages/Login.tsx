@@ -125,20 +125,6 @@ export default function Login() {
                 </div>
               )}
 
-              {/* OPCIONES */}
-              <div className="flex items-center justify-between text-sm">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="w-4 h-4 accent-[#EE3626]"
-                  />
-                  <span className="text-black">Recuérdame</span>
-                </label>
-                <a href="#" className="font-medium text-black hover:underline">
-                  ¿Olvidaste tu contraseña?
-                </a>
-              </div>
-
               {/* BOTÓN */}
               <button
                 type="submit"
