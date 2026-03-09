@@ -2,6 +2,7 @@ import { useEffect, useState, memo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowRightOnRectangleIcon, Bars3Icon } from '@heroicons/react/24/outline'
 import { useAuth } from '../lib/auth'
+import logoImg from '../images/logo.png'
 
 type HeaderProps = {
   onMenuClick?: () => void
@@ -65,7 +66,7 @@ export function Header({ onMenuClick }: HeaderProps) {
             )}
 
             <img
-              src="src/images/logo.png"
+              src={logoImg}
               alt="Logo"
               className="h-14 object-contain drop-shadow-md"
             />

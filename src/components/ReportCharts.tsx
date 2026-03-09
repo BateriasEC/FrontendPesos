@@ -13,6 +13,8 @@ type DeviationData = Array<{
   product: string
   avg: number
   registros?: number
+  despachados?: number
+  pendientes?: number
 }>
 
 type ReportChartsProps = {
@@ -212,10 +214,3 @@ function Empty() {
   )
 }
 
-const tooltipStyle = {
-  backgroundColor: '#262626',
-  border: '1px solid #ffffff14',
-  borderRadius: 8,
-  color: '#fff',
-  fontSize: 12
-}

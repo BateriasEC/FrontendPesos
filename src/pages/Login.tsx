@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'
+import loginImg from '../images/login.png'
+import esloganImg from '../images/eslogan.png'
 
 export default function Login() {
   const { login } = useAuth()
@@ -39,7 +41,7 @@ export default function Login() {
         {/* PANEL IZQUIERDO */}
         <div className="hidden lg:flex items-center justify-center bg-[#FDB71A] p-10">
           <img
-            src="src/images/login.png"
+            src={loginImg}
             alt="Login"
             className="max-h-[520px] w-full object-contain animate-fade-in"
           />
@@ -49,7 +51,7 @@ export default function Login() {
         <div className="relative flex items-center justify-center p-8 md:p-12">
           {/* Eslogan */}
           <img
-            src="src/images/eslogan.png"
+            src={esloganImg}
             alt="Eslogan"
             className="absolute top-4 right-4 h-24"
           />

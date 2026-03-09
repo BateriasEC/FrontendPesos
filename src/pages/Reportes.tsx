@@ -12,14 +12,14 @@ import { useReportData } from "../hooks/useReportData";
 import { useSabanaData } from "../hooks/useSabanaData";
 
 export default function Reportes() {
-  const { rows, loading, load } = useReportData();
+  const { loading, load } = useReportData();
   const todayIso = new Date().toISOString().slice(0, 10);
   const weekAgoIso = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000)
     .toISOString()
     .slice(0, 10);
 
   const [range, setRange] = useState({ from: weekAgoIso, to: todayIso });
-  const [reportRange, setReportRange] = useState({
+  const [, setReportRange] = useState({
     from: weekAgoIso,
     to: todayIso,
   });
@@ -39,16 +39,6 @@ export default function Reportes() {
   useEffect(() => {
     load();
   }, [load]);
-
-  const filtered = useMemo(() => {
-    return rows.filter((r) => {
-      const d = new Date(r.fecha);
-      return (
-        (!reportRange.from || d >= new Date(reportRange.from + "T00:00:00")) &&
-        (!reportRange.to || d <= new Date(reportRange.to + "T23:59:59"))
-      );
-    });
-  }, [rows, reportRange]);
 
   const byDay = useMemo(() => {
     const map = new Map<string, { vehiculos: number; pallets: number; pesoTotal: number }>();
@@ -134,7 +124,7 @@ export default function Reportes() {
         const fecha = new Date(vehiculo.fecha + 'T00:00:00');
         const diaSemana = fecha.toLocaleDateString('es-EC', { weekday: 'short', timeZone: 'America/Bogota' });
         
-        vehiculo.pallets.forEach((pallet, palletIdx) => {
+        vehiculo.pallets.forEach((pallet) => {
           tableData.push([
             idx + 1,
             vehiculo.placa,
