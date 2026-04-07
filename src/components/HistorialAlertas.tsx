@@ -38,8 +38,7 @@ export default function HistorialAlertas() {
 
   useEffect(() => {
     loadAlertas();
-    const interval = setInterval(loadAlertas, 10000); // Actualizar cada 10 segundos
-    return () => clearInterval(interval);
+    // Polling automático removido - solo se actualiza al cargar la página o al recargar manualmente
   }, []);
 
   const loadAlertas = async () => {
@@ -113,6 +112,13 @@ export default function HistorialAlertas() {
         
         <div className="flex gap-2">
           <button
+            onClick={loadAlertas}
+            className="px-3 py-1 text-sm rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+            title="Recargar alertas"
+          >
+            Actualizar
+          </button>
+          <button
             onClick={() => setFilter('todas')}
             className={`px-3 py-1 text-sm rounded-lg transition-colors ${
               filter === 'todas'
@@ -152,7 +158,7 @@ export default function HistorialAlertas() {
         </div>
       ) : error ? (
         <div className="h-64 flex flex-col items-center justify-center text-gray-400">
-          <p className="text-red-400 mb-2">⚠️ {error}</p>
+          <p className="text-red-400 mb-2">Error: {error}</p>
           <button
             onClick={loadAlertas}
             className="px-4 py-2 bg-brand-orange text-white rounded-lg hover:bg-orange-600 transition-colors"

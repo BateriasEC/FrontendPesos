@@ -94,7 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // Intentar renovar con refresh_token (si existe endpoint)
             // Por ahora, simplemente extender la sesión manteniendo el token actual
             // TODO: Implementar endpoint /auth/refresh en backend
-            console.log('🔄 Token próximo a expirar, renovando...')
+            console.log('Token próximo a expirar, renovando...')
             // Por ahora, solo loguear - el token seguirá funcionando hasta que expire
           } catch (error) {
             console.warn('Error al renovar token:', error)
@@ -176,7 +176,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (email: string, password: string) => {
     try {
       // Llamar al endpoint real del backend
-      const response = await api.post('/auth/login', { email, password })
+      const response = await api.post(
+        '/auth/login',
+        { email, password },
+        { timeout: 120000 },
+      )
       
       // El backend puede devolver: { data: { access_token, user, ... } } o directamente { access_token, user, ... }
       const responseData = response.data.data || response.data

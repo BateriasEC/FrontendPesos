@@ -5,7 +5,7 @@ import axios from 'axios'
 // Instancia de axios sin autenticación para endpoints públicos
 const publicApi = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
-  timeout: 10000,
+  timeout: 30000, // 30 segundos de timeout
 })
 
 type PalletData = {
@@ -155,7 +155,7 @@ export default function EtiquetaPublic() {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="text-red-600 text-2xl mb-4">⚠️</div>
+          <div className="text-red-600 text-2xl mb-4 font-bold">!</div>
           <p className="text-gray-800 text-xl">{error || 'Pallet no encontrado'}</p>
         </div>
       </div>
@@ -227,7 +227,7 @@ export default function EtiquetaPublic() {
         <div className="space-y-4 mb-6">
           {vehicleData?.pesoIngreso && (
             <div className="flex justify-between items-center bg-blue-50 p-4 rounded-lg border border-blue-200">
-              <span className="font-bold text-lg">⚖️ Peso Ingreso (Vehículo):</span>
+              <span className="font-bold text-lg">Peso Ingreso (Vehículo):</span>
               <span className="text-2xl font-bold text-blue-700">{vehicleData.pesoIngreso.toFixed(2)} kg</span>
             </div>
           )}
@@ -246,7 +246,7 @@ export default function EtiquetaPublic() {
 
           {variacion !== null && (
             <div className="flex justify-between items-center bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-              <span className="font-bold text-lg">📊 Variación (Pallet):</span>
+              <span className="font-bold text-lg">Variación (Pallet):</span>
               <span className={`text-2xl font-bold ${variacion < 0 ? 'text-red-600' : 'text-green-600'}`}>
                 {variacion > 0 ? '+' : ''}{variacion.toFixed(2)} kg
               </span>
@@ -262,7 +262,7 @@ export default function EtiquetaPublic() {
 
           {vehicleData?.pesoIngreso && vehicleData?.pesoSalida && (
             <div className="flex justify-between items-center bg-indigo-50 p-4 rounded-lg border border-indigo-200">
-              <span className="font-bold text-lg">📊 Variación (Vehículo):</span>
+              <span className="font-bold text-lg">Variación (Vehículo):</span>
               <span className={`text-2xl font-bold ${(vehicleData.pesoIngreso - vehicleData.pesoSalida) < 0 ? 'text-red-600' : 'text-green-600'}`}>
                 {(vehicleData.pesoIngreso - vehicleData.pesoSalida).toFixed(2)} kg
               </span>

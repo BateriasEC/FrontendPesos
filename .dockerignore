@@ -1,9 +1,31 @@
+# Dependencias y salida de Vite
 node_modules
 dist
-.git
-.gitignore
+.vite
+
+# Entorno (build-time si usas VITE_*; no subir secretos)
 .env
 .env.*
 !.env.example
+
+# Git y editor
+.git
+.gitignore
+.vscode
+.idea
+
+# Docs y tests innecesarios en la imagen
+*.md
+!README.md
+coverage
+
+# Logs
 *.log
-README.md
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore

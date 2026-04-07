@@ -1,8 +1,8 @@
-# 🌐 Portal Web - Sistema de Reciclaje de Baterías
+# Portal Web - Sistema de Reciclaje de Baterías
 
 Portal web administrativo desarrollado con React, TypeScript y Vite para la gestión y monitoreo del sistema de reciclaje de baterías.
 
-## ⚡ Inicio Rápido
+## Inicio Rápido
 
 ```bash
 # 1. Instalar dependencias
@@ -20,40 +20,40 @@ npm run dev
 
 ---
 
-## 📋 Tabla de Contenidos
+## Tabla de Contenidos
 
-- [Características](#-características)
-- [Tecnologías](#-tecnologías)
-- [Requisitos Previos](#-requisitos-previos)
-- [Instalación](#-instalación)
-- [Configuración](#-configuración)
-- [Desarrollo](#-desarrollo)
-- [Producción](#-producción)
-- [Estructura del Proyecto](#-estructura-del-proyecto)
-- [Funcionalidades](#-funcionalidades)
-- [Scripts Disponibles](#-scripts-disponibles)
-- [Integración con Backend](#-integración-con-backend)
-- [Troubleshooting](#-troubleshooting)
-
----
-
-## ✨ Características
-
-- 📊 Dashboard con métricas en tiempo real
-- 🚛 Gestión de vehículos y pesajes
-- 📦 Control de pallets y productos
-- 📈 Reportes y gráficas interactivas
-- 🔔 Sistema de alertas y notificaciones
-- 📄 Exportación a PDF, Excel y CSV
-- 🏷️ Generación de etiquetas con QR
-- 👥 Gestión de usuarios y roles
-- 🔐 Autenticación con JWT
-- 📱 Diseño responsive
-- 🎨 Interfaz moderna con Tailwind CSS
+- [Características](#características)
+- [Tecnologías](#tecnologías)
+- [Requisitos Previos](#requisitos-previos)
+- [Instalación](#instalación)
+- [Configuración](#configuración)
+- [Desarrollo](#desarrollo)
+- [Producción](#producción)
+- [Estructura del Proyecto](#estructura-del-proyecto)
+- [Funcionalidades](#funcionalidades)
+- [Scripts Disponibles](#scripts-disponibles)
+- [Integración con Backend](#integración-con-backend)
+- [Troubleshooting](#troubleshooting)
 
 ---
 
-## 🛠️ Tecnologías
+## Características
+
+- Dashboard con métricas en tiempo real
+- Gestión de vehículos y pesajes
+- Control de pallets y productos
+- Reportes y gráficas interactivas
+- Sistema de alertas y notificaciones
+- Exportación a PDF, Excel y CSV
+- Generación de etiquetas con QR
+- Gestión de usuarios y roles
+- Autenticación con JWT
+- Diseño responsive
+- Interfaz moderna con Tailwind CSS
+
+---
+
+## Tecnologías
 
 ### Core
 - **React 19** - Biblioteca de UI
@@ -89,7 +89,7 @@ npm run dev
 
 ---
 
-## 📦 Requisitos Previos
+## Requisitos Previos
 
 - **Node.js** v18 o superior
 - **npm** v9 o superior
@@ -97,7 +97,7 @@ npm run dev
 
 ---
 
-## 🚀 Instalación
+## Instalación
 
 ### 1. Clonar el Repositorio
 
@@ -129,7 +129,7 @@ VITE_API_BASE_URL=http://localhost:3000/api
 
 ---
 
-## ⚙️ Configuración
+## Configuración
 
 ### Variables de Entorno
 
@@ -152,7 +152,7 @@ El proyecto usa Tailwind CSS v4. La configuración está en:
 
 ---
 
-## 💻 Desarrollo
+## Desarrollo
 
 ### Iniciar Servidor de Desarrollo
 
@@ -188,7 +188,7 @@ npm run lint
 
 ---
 
-## 🏗️ Producción
+## Producción
 
 ### Build para Producción
 
@@ -234,7 +234,7 @@ server {
 
 ---
 
-## 📁 Estructura del Proyecto
+## Estructura del Proyecto
 
 ```
 portal-web/
@@ -311,7 +311,7 @@ portal-web/
 
 ---
 
-## 🎯 Funcionalidades
+## Funcionalidades
 
 ### 1. Dashboard
 - Métricas en tiempo real
@@ -357,7 +357,7 @@ portal-web/
 
 ---
 
-## 📜 Scripts Disponibles
+## Scripts Disponibles
 
 ```bash
 # Desarrollo
@@ -377,7 +377,7 @@ npm run api              # Solo JSON Server
 
 ---
 
-## 🔌 Integración con Backend
+## Integración con Backend
 
 ### Cliente API
 
@@ -447,7 +447,7 @@ api.interceptors.response.use(
 
 ---
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### El servidor no inicia
 
@@ -538,32 +538,32 @@ location / {
 
 ---
 
-## 🔐 Seguridad
+## Seguridad
 
 ### Mejores Prácticas
 
-- ✅ No commitear archivos `.env`
-- ✅ Usar HTTPS en producción
-- ✅ Validar datos en el frontend y backend
-- ✅ Sanitizar inputs de usuario
-- ✅ Implementar rate limiting
-- ✅ Usar tokens con expiración
-- ✅ Implementar refresh tokens
-- ✅ Validar permisos en cada endpoint
+- No commitear archivos `.env`
+- Usar HTTPS en producción
+- Validar datos en el frontend y backend
+- Sanitizar inputs de usuario
+- Implementar rate limiting
+- Usar tokens con expiración
+- Implementar refresh tokens
+- Validar permisos en cada endpoint
 
 ---
 
-## 📊 Performance
+## Performance
 
 ### Optimizaciones Implementadas
 
-- ✅ Code splitting con React.lazy
-- ✅ Tree shaking automático con Vite
-- ✅ Minificación de assets
-- ✅ Compresión de imágenes
-- ✅ Lazy loading de componentes
-- ✅ Memoización con React.memo
-- ✅ Debouncing en búsquedas
+- Code splitting con React.lazy
+- Tree shaking automático con Vite
+- Minificación de assets
+- Compresión de imágenes
+- Lazy loading de componentes
+- Memoización con React.memo
+- Debouncing en búsquedas
 
 ### Métricas Objetivo
 
@@ -573,7 +573,7 @@ location / {
 
 ---
 
-## 🧪 Testing (Próximamente)
+## Testing (Próximamente)
 
 El proyecto está preparado para testing con:
 - **Vitest** - Test runner
@@ -582,7 +582,7 @@ El proyecto está preparado para testing con:
 
 ---
 
-## 📚 Recursos Adicionales
+## Recursos Adicionales
 
 ### Documentación del Proyecto
 - `backend-kilo/README.md` - Documentación del backend
@@ -598,21 +598,21 @@ El proyecto está preparado para testing con:
 
 ---
 
-## 👥 Equipo
+## Equipo
 
 Desarrollado para Rubix Energy Group
 
 ---
 
-## 📝 Changelog
+## Changelog
 
 ### v1.0.0 (Actual)
-- ✅ Dashboard con métricas en tiempo real
-- ✅ Gestión completa de vehículos y pesajes
-- ✅ Sistema de reportes con exportación
-- ✅ Generación de etiquetas con QR
-- ✅ Autenticación con JWT
-- ✅ Diseño responsive
+- Dashboard con métricas en tiempo real
+- Gestión completa de vehículos y pesajes
+- Sistema de reportes con exportación
+- Generación de etiquetas con QR
+- Autenticación con JWT
+- Diseño responsive
 
 ---
 

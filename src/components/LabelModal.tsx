@@ -207,7 +207,7 @@ export function LabelModal({ labelData, onClose }: LabelModalProps) {
               {/* Información de Pesajes */}
               <div className="space-y-4">
                 <h3 className="text-xl font-bold text-gray-900 border-b-2 border-gray-300 pb-2">
-                  ⚖️ Datos de Pesaje
+                  Datos de Pesaje
                 </h3>
                 
                 {/* Peso del Pallet (Original) */}
@@ -263,7 +263,7 @@ export function LabelModal({ labelData, onClose }: LabelModalProps) {
                       )}
                       {variacionPorcentual !== null && Math.abs(variacionPorcentual) > 0.5 && (
                         <div className="mt-2 p-2 bg-red-100 border border-red-300 rounded text-sm">
-                          <span className="font-bold text-red-800">⚠️ ALERTA:</span>
+                          <span className="font-bold text-red-800">ALERTA:</span>
                           <span className="text-red-700"> La variación supera el ±0.5% permitido</span>
                         </div>
                       )}
@@ -281,7 +281,7 @@ export function LabelModal({ labelData, onClose }: LabelModalProps) {
                       ? 'bg-green-200 text-green-900 border-2 border-green-500' 
                       : 'bg-yellow-200 text-yellow-900 border-2 border-yellow-500'
                   }`}>
-                    {labelData.descargado ? '✅ DESPACHADO' : '⏳ PENDIENTE'}
+                    {labelData.descargado ? 'DESPACHADO' : 'PENDIENTE'}
                   </span>
                 </div>
               </div>
@@ -298,7 +298,7 @@ export function LabelModal({ labelData, onClose }: LabelModalProps) {
                   onClick={() => window.print()}
                   className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium"
                 >
-                  🖨️ Imprimir
+                  Imprimir
                 </button>
                 <button
                   onClick={onClose}

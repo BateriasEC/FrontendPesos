@@ -1,0 +1,21 @@
+# Stack FRONTEND — Portainer (misma red que backend y Postgres).
+# BACKEND_HOST = servicio del API en el otro stack (backend-api).
+version: "3.9"
+
+services:
+  frontend-web:
+    image: kevinquishpe1/reciclaje_frontend:v8
+    container_name: frontend-app
+    restart: always
+    ports:
+      - "8080:80"
+    environment:
+      - BACKEND_HOST=backend-api
+      - BACKEND_PORT=3000
+      - VITE_API_BASE_URL=/api
+    networks:
+      - red_reciclaje
+
+networks:
+  red_reciclaje:
+    external: true

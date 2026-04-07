@@ -328,7 +328,7 @@ export default function ReportesAlertas() {
           </div>
         ) : error ? (
           <div className="text-center py-12">
-            <p className="text-red-400 mb-4">⚠️ {error}</p>
+            <p className="text-red-400 mb-4">Error: {error}</p>
             <button
               onClick={loadAlertas}
               className="h-10 px-5 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition font-medium"

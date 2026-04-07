@@ -40,7 +40,7 @@ export default function Repesos() {
 
       <div className={(dentro ? 'bg-green-500/10 border-green-500/30' : 'bg-red-500/10 border-red-500/30') + ' rounded border p-4'}>
         <div className="text-sm text-gray-300">Variación</div>
-        <div className="text-2xl font-semibold">{variacion} kg {dentro ? '✅' : '⚠️'}</div>
+        <div className="text-2xl font-semibold">{variacion} kg {dentro ? '(OK)' : '(AVISO)'}</div>
         <div className="text-sm mt-2">Rango permitido: {minTol} … {maxTol} kg</div>
       </div>
     </div>

@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'
-import loginImg from '../images/login.png'
-import esloganImg from '../images/eslogan.png'
+import loginImg from '../assets/images/login.png'
+import esloganImg from '../assets/images/eslogan.png'
 
 export default function Login() {
   const { login } = useAuth()

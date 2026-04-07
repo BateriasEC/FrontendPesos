@@ -209,7 +209,6 @@ export default function Usuarios() {
                   {ROLE_LABELS[u.role]}
                 </td>
 
-                {/* ✅ PERFECTAMENTE ALINEADO Y RESPONSIVE */}
                 <td className="text-center align-middle">
                   <div className="flex items-center justify-center gap-2 flex-wrap">
                     <button

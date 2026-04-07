@@ -12,14 +12,14 @@ import { useReportData } from "../hooks/useReportData";
 import { useSabanaData } from "../hooks/useSabanaData";
 
 export default function Reportes() {
-  const { loading, load } = useReportData();
+  const { rows: _rows, loading, load } = useReportData();
   const todayIso = new Date().toISOString().slice(0, 10);
   const weekAgoIso = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000)
     .toISOString()
     .slice(0, 10);
 
   const [range, setRange] = useState({ from: weekAgoIso, to: todayIso });
-  const [, setReportRange] = useState({
+  const [_reportRange, setReportRange] = useState({
     from: weekAgoIso,
     to: todayIso,
   });
@@ -124,7 +124,7 @@ export default function Reportes() {
         const fecha = new Date(vehiculo.fecha + 'T00:00:00');
         const diaSemana = fecha.toLocaleDateString('es-EC', { weekday: 'short', timeZone: 'America/Bogota' });
         
-        vehiculo.pallets.forEach((pallet) => {
+        vehiculo.pallets.forEach((pallet, _palletIdx) => {
           tableData.push([
             idx + 1,
             vehiculo.placa,

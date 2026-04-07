@@ -2,7 +2,7 @@ import { useEffect, useState, memo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowRightOnRectangleIcon, Bars3Icon } from '@heroicons/react/24/outline'
 import { useAuth } from '../lib/auth'
-import logoImg from '../images/logo.png'
+import logoImg from '../assets/images/logo.png'
 
 type HeaderProps = {
   onMenuClick?: () => void

@@ -1,11 +1,15 @@
 import axios from 'axios'
 
 // URL del backend: usar variable de entorno (obligatorio)
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
+// En desarrollo usa .env, en producción (Docker) el placeholder será reemplazado por el script
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL === undefined 
+  ? 'VITE_API_BASE_URL_PLACEHOLDER' 
+  : import.meta.env.VITE_API_BASE_URL
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000, // 10 segundos de timeout 
+  // Login / primer arranque del API pueden tardar (DB, bcrypt); imágenes antiguas usaban 10s y provocaban 499 en Nginx
+  timeout: 120000,
 })
 
 // Interceptor para agregar el token automáticamente a todas las peticiones
@@ -28,7 +32,7 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     // Log del error para debugging
-    console.error('❌ [API] Error en petición:', {
+    console.error('[API] Error en petición:', {
       url: error.config?.url,
       method: error.config?.method,
       status: error.response?.status,
@@ -38,7 +42,7 @@ api.interceptors.response.use(
 
     // Si es error de red (sin respuesta del servidor)
     if (!error.response) {
-      console.error('❌ [API] Error de conexión - No se recibió respuesta del servidor')
+      console.error('[API] Error de conexión - No se recibió respuesta del servidor')
       if (error.message?.includes('Network Error') || error.code === 'ERR_NETWORK') {
         error.message = 'Error de conexión. Verifique que el servidor esté disponible y su conexión a internet.'
       }

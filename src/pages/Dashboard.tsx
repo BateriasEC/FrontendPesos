@@ -45,89 +45,91 @@ export default function Dashboard() {
     weighingsLast24h: []
   })
 
-  useEffect(() => {
-    const loadStats = async () => {
-      setLoading(true)
-      try {
-        const res = await api.get('/dashboard/stats')
-        const data = res.data?.data || res.data || {}
+  const loadStats = async () => {
+    setLoading(true)
+    try {
+      const res = await api.get('/dashboard/stats')
+      const data = res.data?.data || res.data || {}
 
-        setStats({
-          vehiclesInPlant: data.vehiclesInPlant || 0,
-          weighingsToday: data.weighingsToday || 0,
-          avgVariation: Number(data.avgVariation || 0),
-          alerts: data.alerts || 0,
-          weighingsLast24h: data.weighingsLast24h || []
+      setStats({
+        vehiclesInPlant: data.vehiclesInPlant || 0,
+        weighingsToday: data.weighingsToday || 0,
+        avgVariation: Number(data.avgVariation || 0),
+        alerts: data.alerts || 0,
+        weighingsLast24h: data.weighingsLast24h || []
+      })
+
+      setWeighings(
+        (data.weighingsLast24h || []).map((w: any, i: number) => ({
+          id: i + 1,
+          fecha: w.fecha || w.updatedAt,
+          variacion: Number(w.variacion || 0)
+        }))
+      )
+    } catch (e) {
+      console.error('Error dashboard:', e)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const loadBalanzas = async () => {
+    try {
+      const res = await api.get('/dashboard/scale-stats')
+      const data = res.data?.data || res.data || {}
+      const map = new Map<number, BalanzaInfo>()
+
+      if (data.scale1) {
+        map.set(1, {
+          operacionesHoy: data.scale1.operacionesHoy || 0,
+          kilosHoy: data.scale1.kilosHoy || 0,
+          lastUpdate: data.scale1.lastUpdate || null
         })
-
-        setWeighings(
-          (data.weighingsLast24h || []).map((w: any, i: number) => ({
-            id: i + 1,
-            fecha: w.fecha || w.updatedAt,
-            variacion: Number(w.variacion || 0)
-          }))
-        )
-      } catch (e) {
-        console.error('Error dashboard:', e)
-      } finally {
-        setLoading(false)
       }
-    }
-
-    const loadBalanzas = async () => {
-      try {
-        console.log('🔍 Cargando datos de balanzas...')
-        const res = await api.get('/dashboard/scale-stats')
-        console.log('📦 Respuesta completa:', res)
-        console.log('📊 Datos recibidos:', res.data)
-        
-        // Los datos vienen en res.data.data
-        const data = res.data?.data || res.data || {}
-        const map = new Map<number, BalanzaInfo>()
-
-        console.log('Scale1:', data.scale1)
-        console.log('Scale2:', data.scale2)
-        console.log('Scale3:', data.scale3)
-
-        if (data.scale1) {
-          map.set(1, {
-            operacionesHoy: data.scale1.operacionesHoy || 0,
-            kilosHoy: data.scale1.kilosHoy || 0,
-            lastUpdate: data.scale1.lastUpdate || null
-          })
-        }
-        if (data.scale2) {
-          map.set(2, {
-            operacionesHoy: data.scale2.operacionesHoy || 0,
-            kilosHoy: data.scale2.kilosHoy || 0,
-            lastUpdate: data.scale2.lastUpdate || null
-          })
-        }
-        if (data.scale3) {
-          map.set(3, {
-            operacionesHoy: data.scale3.operacionesHoy || 0,
-            kilosHoy: data.scale3.kilosHoy || 0,
-            lastUpdate: data.scale3.lastUpdate || null
-          })
-        }
-
-        console.log('🗺️ Map final:', map)
-        setBalanzas(map)
-      } catch (e) {
-        console.error('❌ Error balanzas:', e)
+      if (data.scale2) {
+        map.set(2, {
+          operacionesHoy: data.scale2.operacionesHoy || 0,
+          kilosHoy: data.scale2.kilosHoy || 0,
+          lastUpdate: data.scale2.lastUpdate || null
+        })
       }
-    }
+      if (data.scale3) {
+        map.set(3, {
+          operacionesHoy: data.scale3.operacionesHoy || 0,
+          kilosHoy: data.scale3.kilosHoy || 0,
+          lastUpdate: data.scale3.lastUpdate || null
+        })
+      }
 
+      setBalanzas(map)
+    } catch (e) {
+      console.error('Error balanzas:', e)
+    }
+  }
+
+  useEffect(() => {
     loadStats()
     loadBalanzas()
-
-    const interval = setInterval(loadBalanzas, 30000)
-    return () => clearInterval(interval)
+    // Polling automático removido - solo se actualiza al cargar la página o al recargar manualmente
   }, [])
+
+  const handleRefresh = () => {
+    loadStats()
+    loadBalanzas()
+  }
 
   return (
     <div className="space-y-6 w-full">
-      <h1 className="text-2xl font-bold">DASHBOARD GENERAL</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">DASHBOARD GENERAL</h1>
+        <button
+          onClick={handleRefresh}
+          className="px-4 py-2 text-sm rounded-lg bg-brand-orange hover:bg-orange-600 transition-colors"
+          title="Actualizar datos"
+        >
+          Actualizar Dashboard
+        </button>
+      </div>
 
       {/* Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
