@@ -9,8 +9,8 @@ export default function Login() {
   const { login } = useAuth()
   const navigate = useNavigate()
 
-  const [email, setEmail] = useState('admin@bateriasecuador.com')
-  const [password, setPassword] = useState('admin123')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
@@ -64,7 +64,7 @@ export default function Login() {
               Accede a tu panel administrativo
             </p>
 
-            <form onSubmit={onSubmit} className="space-y-6">
+            <form onSubmit={onSubmit} className="space-y-6" autoComplete="off">
               {/* EMAIL */}
               <div>
                 <label className="block text-sm font-semibold text-black mb-2">
@@ -72,10 +72,11 @@ export default function Login() {
                 </label>
                 <input
                   type="email"
+                  name="login-email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="correo@empresa.com"
-                  autoComplete="username"
+                  autoComplete="off"
                   required
                   className="
                     w-full rounded-xl border border-gray-300 bg-gray-50
@@ -94,10 +95,11 @@ export default function Login() {
                 <div className="relative">
                   <input
                     type={showPassword ? 'text' : 'password'}
+                    name="login-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    autoComplete="current-password"
+                    autoComplete="new-password"
                     required
                     className="
                       w-full rounded-xl border border-gray-300 bg-gray-50

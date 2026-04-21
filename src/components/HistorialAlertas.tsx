@@ -30,22 +30,37 @@ type Alerta = {
   };
 };
 
-export default function HistorialAlertas() {
+interface HistorialAlertasProps {
+  /**
+   * Cambiar este valor fuerza un refresco del historial. Útil para que el
+   * componente padre (por ejemplo, el botón "Actualizar Dashboard") también
+   * refresque las alertas sin duplicar lógica.
+   */
+  refreshKey?: number;
+}
+
+export default function HistorialAlertas({ refreshKey = 0 }: HistorialAlertasProps = {}) {
   const [alertas, setAlertas] = useState<Alerta[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<'todas' | 'activas' | 'resueltas'>('todas');
 
   useEffect(() => {
-    loadAlertas();
-    // Polling automático removido - solo se actualiza al cargar la página o al recargar manualmente
-  }, []);
+    // En el primer render refreshKey=0 → carga normal.
+    // En cambios posteriores se trata como refresco manual para mostrar el spinner.
+    loadAlertas(refreshKey > 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshKey]);
 
-  const loadAlertas = async () => {
+  const loadAlertas = async (isManualRefresh = false) => {
     try {
       setError(null);
+      if (isManualRefresh) {
+        setRefreshing(true);
+      }
       const resAlertas = await api.get('/alertas');
-      
+
       // Procesar alertas generales
       let data = resAlertas.data;
       if (data && typeof data === 'object' && 'data' in data) {
@@ -59,6 +74,7 @@ export default function HistorialAlertas() {
       setAlertas([]);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -112,11 +128,15 @@ export default function HistorialAlertas() {
         
         <div className="flex gap-2">
           <button
-            onClick={loadAlertas}
-            className="px-3 py-1 text-sm rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+            onClick={() => loadAlertas(true)}
+            disabled={refreshing}
+            className="px-3 py-1 text-sm rounded-lg bg-white/5 hover:bg-white/10 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
             title="Recargar alertas"
           >
-            Actualizar
+            {refreshing && (
+              <span className="inline-block h-3 w-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+            )}
+            {refreshing ? 'Actualizando...' : 'Actualizar'}
           </button>
           <button
             onClick={() => setFilter('todas')}
@@ -160,7 +180,7 @@ export default function HistorialAlertas() {
         <div className="h-64 flex flex-col items-center justify-center text-gray-400">
           <p className="text-red-400 mb-2">Error: {error}</p>
           <button
-            onClick={loadAlertas}
+            onClick={() => loadAlertas(true)}
             className="px-4 py-2 bg-brand-orange text-white rounded-lg hover:bg-orange-600 transition-colors"
           >
             Reintentar

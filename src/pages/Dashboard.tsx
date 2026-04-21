@@ -34,6 +34,8 @@ type BalanzaInfo = {
 export default function Dashboard() {
   const [weighings, setWeighings] = useState<Weighing[]>([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const [alertsRefreshKey, setAlertsRefreshKey] = useState(0)
   const [balanzas, setBalanzas] =
     useState<Map<number, BalanzaInfo>>(new Map())
 
@@ -113,9 +115,16 @@ export default function Dashboard() {
     // Polling automático removido - solo se actualiza al cargar la página o al recargar manualmente
   }, [])
 
-  const handleRefresh = () => {
-    loadStats()
-    loadBalanzas()
+  const handleRefresh = async () => {
+    if (refreshing) return
+    setRefreshing(true)
+    try {
+      await Promise.all([loadStats(), loadBalanzas()])
+      // Forzar recarga del Historial de Alertas cambiando la key.
+      setAlertsRefreshKey((k) => k + 1)
+    } finally {
+      setRefreshing(false)
+    }
   }
 
   return (
@@ -124,10 +133,14 @@ export default function Dashboard() {
         <h1 className="text-2xl font-bold">DASHBOARD GENERAL</h1>
         <button
           onClick={handleRefresh}
-          className="px-4 py-2 text-sm rounded-lg bg-brand-orange hover:bg-orange-600 transition-colors"
+          disabled={refreshing}
+          className="px-4 py-2 text-sm rounded-lg bg-brand-orange hover:bg-orange-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
           title="Actualizar datos"
         >
-          Actualizar Dashboard
+          {refreshing && (
+            <span className="inline-block h-3.5 w-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          )}
+          {refreshing ? 'Actualizando...' : 'Actualizar Dashboard'}
         </button>
       </div>
 
@@ -257,7 +270,7 @@ export default function Dashboard() {
       </section>
 
       {/* Historial de Alertas */}
-      <HistorialAlertas />
+      <HistorialAlertas refreshKey={alertsRefreshKey} />
     </div>
   )
 }
