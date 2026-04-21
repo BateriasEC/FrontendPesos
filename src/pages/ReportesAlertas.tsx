@@ -32,8 +32,14 @@ export default function ReportesAlertas() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<'todas' | 'activas' | 'resueltas'>('todas');
-  const [tipoFilter, setTipoFilter] = useState<'todos' | 'VARIACION_PESO' | 'EXCESO_VEHICULO'>('todos');
+  // 'EXCESO' agrupa EXCESO_VEHICULO, EXCESO_ALTO y EXCESO_PROMEDIO ya que
+  // todos representan exceso de peso desde el punto de vista del usuario.
+  const [tipoFilter, setTipoFilter] = useState<'todos' | 'VARIACION_PESO' | 'EXCESO'>('todos');
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Tipos que representan exceso de peso (cualquiera de sus variantes).
+  const TIPOS_EXCESO = ['EXCESO_VEHICULO', 'EXCESO_ALTO', 'EXCESO_PROMEDIO'];
+  const esExceso = (tipo: string) => TIPOS_EXCESO.includes(tipo);
 
   useEffect(() => {
     loadAlertas();
@@ -67,7 +73,8 @@ export default function ReportesAlertas() {
     if (filter === 'resueltas' && a.estado !== 'RESUELTA') return false;
     
     // Filtro por tipo
-    if (tipoFilter !== 'todos' && a.tipo !== tipoFilter) return false;
+    if (tipoFilter === 'VARIACION_PESO' && a.tipo !== 'VARIACION_PESO') return false;
+    if (tipoFilter === 'EXCESO' && !esExceso(a.tipo)) return false;
     
     // Filtro por búsqueda
     if (searchTerm) {
@@ -107,11 +114,41 @@ export default function ReportesAlertas() {
         </span>
       );
     }
+    if (tipo === 'EXCESO_ALTO') {
+      return (
+        <span className="px-2 py-1 text-xs font-medium rounded bg-red-500/20 text-red-400">
+          Exceso alto
+        </span>
+      );
+    }
+    if (tipo === 'EXCESO_PROMEDIO') {
+      return (
+        <span className="px-2 py-1 text-xs font-medium rounded bg-yellow-500/20 text-yellow-400">
+          Exceso promedio
+        </span>
+      );
+    }
+    // EXCESO_VEHICULO o fallback
     return (
       <span className="px-2 py-1 text-xs font-medium rounded bg-purple-500/20 text-purple-400">
-        Exceso
+        Exceso vehículo
       </span>
     );
+  };
+
+  const getTipoLabel = (tipo: string) => {
+    switch (tipo) {
+      case 'VARIACION_PESO':
+        return 'Variación de Peso';
+      case 'EXCESO_ALTO':
+        return 'Exceso Alto';
+      case 'EXCESO_PROMEDIO':
+        return 'Exceso Promedio';
+      case 'EXCESO_VEHICULO':
+        return 'Exceso de Vehículo';
+      default:
+        return tipo;
+    }
   };
 
   const extractPalletNumber = (codigo: string) => {
@@ -143,7 +180,7 @@ export default function ReportesAlertas() {
           second: '2-digit' 
         }),
         'Día de la Semana': fechaCreacion.toLocaleDateString('es-EC', { weekday: 'long' }),
-        'Tipo de Alerta': a.tipo === 'VARIACION_PESO' ? 'Variación de Peso' : 'Exceso de Vehículo',
+        'Tipo de Alerta': getTipoLabel(a.tipo),
         'Estado': a.estado === 'ACTIVA' ? 'Activa' : 'Repesaje',
         'Placa Vehículo': a.pallet?.vehicle?.placa || 'N/A',
         'Cliente': a.pallet?.vehicle?.cliente || 'N/A',
@@ -204,7 +241,7 @@ export default function ReportesAlertas() {
     activas: filteredAlertas.filter(a => a.estado === 'ACTIVA').length,
     resueltas: filteredAlertas.filter(a => a.estado === 'RESUELTA').length,
     variacionPeso: filteredAlertas.filter(a => a.tipo === 'VARIACION_PESO').length,
-    excesoVehiculo: filteredAlertas.filter(a => a.tipo === 'EXCESO_VEHICULO').length,
+    exceso: filteredAlertas.filter(a => esExceso(a.tipo)).length,
   };
 
   return (
@@ -226,7 +263,7 @@ export default function ReportesAlertas() {
         <StatCard title="Activas" value={stats.activas} />
         <StatCard title="Repesaje" value={stats.resueltas} />
         <StatCard title="Variación Peso" value={stats.variacionPeso} />
-        <StatCard title="Exceso Vehículo" value={stats.excesoVehiculo} />
+        <StatCard title="Exceso de Peso" value={stats.exceso} />
       </div>
 
       {/* Filtros */}
@@ -302,14 +339,14 @@ export default function ReportesAlertas() {
                 Variación
               </button>
               <button
-                onClick={() => setTipoFilter('EXCESO_VEHICULO')}
+                onClick={() => setTipoFilter('EXCESO')}
                 className={`h-10 px-4 text-sm rounded-lg transition font-medium ${
-                  tipoFilter === 'EXCESO_VEHICULO'
+                  tipoFilter === 'EXCESO'
                     ? 'bg-brand-orange text-white'
                     : 'bg-gray-600 hover:bg-gray-700 text-white'
                 }`}
               >
-                Exceso
+                Exceso de Peso
               </button>
             </div>
           </div>
