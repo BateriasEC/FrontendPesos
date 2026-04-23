@@ -1,0 +1,2 @@
+# Scripts de arranque: siempre LF para Docker/Alpine (evita "no such file" por CRLF)
+*.sh text eol=lf

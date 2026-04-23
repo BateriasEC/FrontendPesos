@@ -32,13 +32,14 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 # Copiar archivos generados
 COPY --from=build /app/dist /usr/share/nginx/html
 
-# Copiar script de inicio
+# Copiar script de inicio (obligatorio en el contexto de build junto al Dockerfile)
 COPY docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
+# Alpine/Linux: CRLF desde Windows rompe el shebang y produce "no such file or directory"
+RUN sed -i 's/\r$//' /docker-entrypoint.sh && chmod +x /docker-entrypoint.sh
 
 # Exponer puerto
 EXPOSE 80
 
-# Usar el script de inicio
-ENTRYPOINT ["/docker-entrypoint.sh"]
+# Invocar con sh evita depender del bit shebang si el entorno de build altera el archivo
+ENTRYPOINT ["/bin/sh", "/docker-entrypoint.sh"]
 CMD ["nginx", "-g", "daemon off;"]
