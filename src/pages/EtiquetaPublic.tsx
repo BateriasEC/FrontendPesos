@@ -274,7 +274,7 @@ export default function EtiquetaPublic() {
         <div className="flex justify-between items-center border-t-2 border-dashed border-gray-300 pt-4 mb-6">
           <span className="font-bold text-lg">Estado:</span>
           <span className={`px-6 py-3 rounded font-bold text-lg ${pallet.descargado ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-            {pallet.descargado ? 'DESCARGADO' : 'PENDIENTE'}
+            {pallet.descargado ? 'DESPACHADO' : 'PENDIENTE'}
           </span>
         </div>
 
@@ -347,7 +347,7 @@ export default function EtiquetaPublic() {
                       </td>
                       <td className="border border-gray-300 p-3 text-center">
                         <span className={`px-3 py-1 rounded text-xs font-bold ${p.descargado ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                          {p.descargado ? 'DESCARGADO' : 'PENDIENTE'}
+                          {p.descargado ? 'DESPACHADO' : 'PENDIENTE'}
                         </span>
                       </td>
                     </tr>

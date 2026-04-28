@@ -1,6 +1,14 @@
 import { useEffect, useState } from 'react'
 import { api } from '../services/api'
 
+/** Día de calendario YYYY-MM-DD en América/Bogotá (ISO `createdAt` en UTC). */
+function toDateKeyBogota(iso: string | null | undefined): string | null {
+  if (iso == null) return null
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return null
+  return d.toLocaleDateString('en-CA', { timeZone: 'America/Bogota' })
+}
+
 type SabanaPesajesData = {
   placa: string
   codigoTrazabilidad: string
@@ -66,29 +74,7 @@ export function useSabanaData(range: { from: string; to: string }) {
           pallets = responseData
         }
         
-        console.log('[Sabana] Total pallets recibidos:', pallets.length)
-        
-        // Debug: Ver qué datos recibimos
-        if (pallets.length > 0) {
-          console.log('[Sabana] Primer pallet recibido:', {
-            id: pallets[0].id,
-            codigo: pallets[0].codigo,
-            createdAt: pallets[0].createdAt,
-            vehicle: pallets[0].vehicle ? {
-              placa: pallets[0].vehicle.placa,
-              cliente: pallets[0].vehicle.cliente
-            } : null,
-            product: pallets[0].product ? {
-              nombre: pallets[0].product.nombre
-            } : null,
-            pesoTotal: pallets[0].pesoTotal,
-            descargado: pallets[0].descargado,
-            pesoDescarga: pallets[0].pesoDescarga,
-            variacionPeso: pallets[0].variacionPeso
-          })
-        }
-        
-        // Filtrar por rango de fechas
+        // Filtrar por rango de días (calendario en Bogotá; evita perder filas por UTC)
         if (!range.from || !range.to) {
           console.warn('[Sabana] Rango de fechas incompleto:', range)
           setSabanaPesajesData([])
@@ -96,62 +82,15 @@ export function useSabanaData(range: { from: string; to: string }) {
           setLoading(false)
           return
         }
-        
-        // Crear fechas de inicio y fin del día en zona horaria local
-        const startDate = new Date(range.from + 'T00:00:00')
-        startDate.setHours(0, 0, 0, 0)
-        const endDate = new Date(range.to + 'T23:59:59.999')
-        endDate.setHours(23, 59, 59, 999)
-        
-        console.log('[Sabana] Filtrando por rango:', { 
-          from: range.from, 
-          to: range.to, 
-          startDate: startDate.toISOString(), 
-          endDate: endDate.toISOString(),
-          startDateLocal: startDate.toLocaleString('es-CO'),
-          endDateLocal: endDate.toLocaleString('es-CO')
-        })
-        
+
         const filteredPallets = pallets.filter((p: any) => {
           if (!p.createdAt && !p.fecha) {
-            console.warn('[Sabana] Pallet sin fecha:', p.codigo)
             return false
           }
-          
-          const fechaStr = p.createdAt || p.fecha
-          let fecha: Date
-          
-          try {
-            fecha = new Date(fechaStr)
-            
-            // Verificar que la fecha sea válida
-            if (isNaN(fecha.getTime())) {
-              console.warn('[Sabana] Fecha inválida:', fechaStr, 'para pallet:', p.codigo)
-              return false
-            }
-          } catch (error) {
-            console.warn('[Sabana] Error al parsear fecha:', fechaStr, 'para pallet:', p.codigo)
-            return false
-          }
-          
-          // Comparar fechas directamente
-          const isInRange = fecha >= startDate && fecha <= endDate
-          
-          if (!isInRange && pallets.length < 20) {
-            // Solo loggear si hay pocos pallets para no saturar la consola
-            console.log('[Sabana] Pallet fuera de rango:', {
-              codigo: p.codigo,
-              fecha: fecha.toISOString(),
-              fechaLocal: fecha.toLocaleString('es-CO'),
-              startDate: startDate.toISOString(),
-              endDate: endDate.toISOString()
-            })
-          }
-          
-          return isInRange
+          const k = toDateKeyBogota(p.createdAt || p.fecha)
+          if (!k) return false
+          return k >= range.from && k <= range.to
         })
-        
-        console.log('[Sabana] Pallets filtrados:', filteredPallets.length, 'de', pallets.length, 'total')
         
         // Agrupar por vehículo
         const vehiclesMap = new Map<string, any[]>()
@@ -185,15 +124,9 @@ export function useSabanaData(range: { from: string; to: string }) {
           
           const diferencia = pesoIngreso - pesoSalida
           
-          // Obtener fecha en zona horaria local
           const fechaRaw = firstPallet.createdAt || firstPallet.fecha
           const fecha = new Date(fechaRaw)
-          
-          const year = fecha.getFullYear()
-          const month = fecha.getMonth()
-          const day = fecha.getDate()
-          
-          const fechaString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+          const fechaString = toDateKeyBogota(fechaRaw) || 'N/A'
           
           const horaIngreso = fecha.toLocaleTimeString('es-CO', { 
             hour: '2-digit', 
@@ -216,7 +149,7 @@ export function useSabanaData(range: { from: string; to: string }) {
             // Obtener fecha y hora de pesaje del pallet (createdAt)
             const fechaPesajeRaw = p.createdAt || p.fecha
             const fechaPesajeObj = new Date(fechaPesajeRaw)
-            const fechaPesajeString = `${fechaPesajeObj.getFullYear()}-${String(fechaPesajeObj.getMonth() + 1).padStart(2, '0')}-${String(fechaPesajeObj.getDate()).padStart(2, '0')}`
+            const fechaPesajeString = toDateKeyBogota(fechaPesajeRaw) || 'N/A'
             const horaPesaje = fechaPesajeObj.toLocaleTimeString('es-CO', { 
               hour: '2-digit', 
               minute: '2-digit',
@@ -239,7 +172,7 @@ export function useSabanaData(range: { from: string; to: string }) {
               // Obtener fecha y hora de despacho (updatedAt cuando se descarga)
               const fechaDespachoRaw = p.updatedAt || p.fechaDescarga || fechaPesajeRaw
               const fechaDespachoObj = new Date(fechaDespachoRaw)
-              fechaDespachoString = `${fechaDespachoObj.getFullYear()}-${String(fechaDespachoObj.getMonth() + 1).padStart(2, '0')}-${String(fechaDespachoObj.getDate()).padStart(2, '0')}`
+              fechaDespachoString = toDateKeyBogota(fechaDespachoRaw) || ''
               horaDespacho = fechaDespachoObj.toLocaleTimeString('es-CO', { 
                 hour: '2-digit', 
                 minute: '2-digit',

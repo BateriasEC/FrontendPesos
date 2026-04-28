@@ -10,6 +10,8 @@ export default function Tolerancias() {
   const [q, setQ] = useState('')
   const [editing, setEditing] = useState<Tol | null>(null)
   const [form, setForm] = useState<Omit<Tol,'id'>>({ familia: 'Baterías', productoCodigo: '', min: -2, max: 2 })
+  const [minStr, setMinStr] = useState('-2')
+  const [maxStr, setMaxStr] = useState('2')
   const [loading, setLoading] = useState(true)
 
   const load = useCallback(async () => {
@@ -32,11 +34,32 @@ export default function Tolerancias() {
   const pageSize = 10
   const pageRows = useMemo(() => filtered.slice((page-1)*pageSize, page*pageSize), [filtered, page])
 
-  const openNew = () => { setEditing({} as any); setForm({ familia: 'Baterías', productoCodigo: '', min: -2, max: 2 }) }
-  const openEdit = (t: Tol) => { setEditing(t); setForm({ familia: t.familia, productoCodigo: t.productoCodigo, min: t.min, max: t.max }) }
+  const openNew = () => {
+    setEditing({} as any)
+    setForm({ familia: 'Baterías', productoCodigo: '', min: -2, max: 2 })
+    setMinStr('-2')
+    setMaxStr('2')
+  }
+  const openEdit = (t: Tol) => {
+    setEditing(t)
+    setForm({ familia: t.familia, productoCodigo: t.productoCodigo, min: t.min, max: t.max })
+    setMinStr(String(t.min))
+    setMaxStr(String(t.max))
+  }
   const save = async () => {
-    if (editing && (editing as any).id) await api.patch(`/tolerances/${(editing as any).id}`, form)
-    else await api.post(`/tolerances`, form)
+    const parseNum = (s: string, fallback: number) => {
+      const x = s.trim().replace(',', '.')
+      if (x === '' || x === '-' || x === '+') return fallback
+      const n = Number(x)
+      return Number.isFinite(n) ? n : fallback
+    }
+    const payload = {
+      ...form,
+      min: parseNum(minStr, form.min),
+      max: parseNum(maxStr, form.max),
+    }
+    if (editing && (editing as any).id) await api.patch(`/tolerances/${(editing as any).id}`, payload)
+    else await api.post(`/tolerances`, payload)
     await load(); setEditing(null)
   }
   const remove = async (id: number) => { await api.delete(`/tolerances/${id}`); await load() }
@@ -109,11 +132,29 @@ export default function Tolerancias() {
           </div>
           <div>
             <label className="block text-sm">Mín (kg)</label>
-            <input type="number" className="mt-1 input" value={form.min} onChange={e=>setForm({...form, min: Number(e.target.value)})} />
+            <input
+              type="text"
+              inputMode="decimal"
+              className="mt-1 input"
+              value={minStr}
+              onChange={e => {
+                const v = e.target.value.replace(/[^0-9+\-.]/g, '')
+                setMinStr(v)
+              }}
+            />
           </div>
           <div>
             <label className="block text-sm">Máx (kg)</label>
-            <input type="number" className="mt-1 input" value={form.max} onChange={e=>setForm({...form, max: Number(e.target.value)})} />
+            <input
+              type="text"
+              inputMode="decimal"
+              className="mt-1 input"
+              value={maxStr}
+              onChange={e => {
+                const v = e.target.value.replace(/[^0-9+\-.]/g, '')
+                setMaxStr(v)
+              }}
+            />
           </div>
         </div>
         <div className="mt-4 flex justify-end gap-2">

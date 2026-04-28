@@ -37,7 +37,11 @@ export default function Reportes() {
   const { sabanaPesajesData, sabanaDespachoData, loading: sabanaLoading } = useSabanaData(sabanaRange);
 
   useEffect(() => {
-    load();
+    const to = new Date().toISOString().slice(0, 10);
+    const from = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .slice(0, 10);
+    void load(from, to);
   }, [load]);
 
   const byDay = useMemo(() => {
@@ -1048,7 +1052,8 @@ export default function Reportes() {
           onClick={async () => {
             setSearchingReports(true);
             setReportRange(range);
-            await load();
+            setSabanaRange(range);
+            await load(range.from, range.to);
             setTimeout(() => setSearchingReports(false), 500);
           }}
           disabled={searchingReports || loading}
@@ -1080,7 +1085,7 @@ export default function Reportes() {
         <ReportCharts
           byDay={byDay}
           deviationByProduct={deviationByProduct}
-          loading={loading || searchingReports}
+          loading={loading || searchingReports || sabanaLoading}
         />
       </div>
 
