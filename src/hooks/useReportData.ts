@@ -3,19 +3,25 @@ import { api } from '../services/api'
 
 type Row = { id: number; fecha: string; variacion: number; productoId: number; cliente: string }
 
+/** YYYY-MM-DD en zona América/Bogotá (evita desfaces UTC al filtrar). */
+function toDateKeyBogota(iso: string | null | undefined): string | null {
+  if (iso == null) return null
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return null
+  return d.toLocaleDateString('en-CA', { timeZone: 'America/Bogota' })
+}
+
 export function useReportData() {
   const [rows, setRows] = useState<Row[]>([])
   const [loading, setLoading] = useState(false)
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (from?: string, to?: string) => {
     setLoading(true)
     try {
-      // Obtener todos los pesajes del backend
       const response = await api.get('/pallets')
       const responseData = response.data?.data || response.data
       let pallets: any[] = []
       
-      // Si es un objeto paginado, extraer el array de data
       if (responseData && Array.isArray(responseData.data)) {
         pallets = responseData.data
       } else if (Array.isArray(responseData)) {
@@ -23,10 +29,7 @@ export function useReportData() {
       }
       
       if (pallets.length > 0) {
-        // Mapear los pallets a la estructura esperada
         const mappedWeighings = pallets.map((p: any) => {
-          // Calcular variación: si hay pesoSalida del vehículo, usar esa variación
-          // Si no, usar la variación del pallet (pesoTotal - pesoDescarga)
           const pesoIngreso = p.vehicle?.pesoIngreso 
             ? (typeof p.vehicle.pesoIngreso === 'string' ? parseFloat(p.vehicle.pesoIngreso) : Number(p.vehicle.pesoIngreso))
             : (Number(p.pesoTotal) || 0);
@@ -47,7 +50,18 @@ export function useReportData() {
             cliente: p.vehicle?.cliente || ''
           }
         })
-        setRows(mappedWeighings)
+
+        if (from && to) {
+          setRows(
+            mappedWeighings.filter((r) => {
+              const k = toDateKeyBogota(r.fecha)
+              if (!k) return false
+              return k >= from && k <= to
+            }),
+          )
+        } else {
+          setRows(mappedWeighings)
+        }
       } else {
         setRows([])
       }

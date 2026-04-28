@@ -38,7 +38,12 @@ export default function ReportesAlertas() {
   const [searchTerm, setSearchTerm] = useState('');
 
   // Tipos que representan exceso de peso (cualquiera de sus variantes).
-  const TIPOS_EXCESO = ['EXCESO_VEHICULO', 'EXCESO_ALTO', 'EXCESO_PROMEDIO'];
+  const TIPOS_EXCESO = [
+    'EXCESO_VEHICULO',
+    'EXCESO_ALTO',
+    'EXCESO_PROMEDIO',
+    'DIFERENCIA_CARGA',
+  ];
   const esExceso = (tipo: string) => TIPOS_EXCESO.includes(tipo);
 
   useEffect(() => {
