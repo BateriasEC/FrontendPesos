@@ -32,14 +32,22 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 # Copiar archivos generados
 COPY --from=build /app/dist /usr/share/nginx/html
 
-# Copiar script de inicio (obligatorio en el contexto de build junto al Dockerfile)
-COPY docker-entrypoint.sh /docker-entrypoint.sh
-# Alpine/Linux: CRLF desde Windows rompe el shebang y produce "no such file or directory"
-RUN sed -i 's/\r$//' /docker-entrypoint.sh && chmod +x /docker-entrypoint.sh
-
 # Exponer puerto
 EXPOSE 80
 
-# Invocar con sh evita depender del bit shebang si el entorno de build altera el archivo
-ENTRYPOINT ["/bin/sh", "/docker-entrypoint.sh"]
-CMD ["nginx", "-g", "daemon off;"]
+# Configurar variables de entorno y arrancar Nginx directamente sin scripts externos
+CMD ["sh", "-c", "\
+    echo ' Configurando variables de entorno...'; \
+    API_URL=\"\${VITE_API_BASE_URL:-/api}\"; \
+    for file in /usr/share/nginx/html/assets/*.js; do \
+      if [ -f \"\$file\" ]; then \
+        sed -i \"s|VITE_API_BASE_URL_PLACEHOLDER|\${API_URL}|g\" \"\$file\"; \
+      fi; \
+    done; \
+    BACKEND_HOST=\"\${BACKEND_HOST:-backend}\"; \
+    BACKEND_PORT=\"\${BACKEND_PORT:-3000}\"; \
+    sed -i \"s/__BACKEND_HOST__/\${BACKEND_HOST}/g\" /etc/nginx/conf.d/default.conf; \
+    sed -i \"s/__BACKEND_PORT__/\${BACKEND_PORT}/g\" /etc/nginx/conf.d/default.conf; \
+    echo ' Variables configuradas, iniciando Nginx...'; \
+    exec nginx -g 'daemon off;' \
+"]

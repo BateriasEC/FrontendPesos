@@ -1,9 +1,63 @@
-import { useState } from 'react'
+/**
+ * Página de Login (Web)
+ *
+ * Mejoras UX:
+ *  - Mensajes de error diferenciados por tipo (red, auth, servidor, validación)
+ *  - Control de intentos fallidos con aviso progresivo
+ *  - Feedback visual durante carga con texto contextual
+ *  - Enlace de soporte cuando los intentos superan el límite
+ */
+
+import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
-import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'
+import { EyeIcon, EyeSlashIcon, WifiIcon, LockClosedIcon, ServerIcon, ExclamationCircleIcon } from '@heroicons/react/24/outline'
 import loginImg from '../assets/images/login.png'
 import esloganImg from '../assets/images/eslogan.png'
+import { ApiError, ApiErrorKind } from '../services/api'
+
+// ---------------------------------------------------------------------------
+// Constantes
+// ---------------------------------------------------------------------------
+
+const MAX_ATTEMPTS = 5
+const SUPPORT_EMAIL = 'soporte@bateriasecuador.com'
+
+// ---------------------------------------------------------------------------
+// Tipos
+// ---------------------------------------------------------------------------
+
+interface ErrorInfo {
+  kind: ApiErrorKind
+  message: string
+}
+
+// ---------------------------------------------------------------------------
+// Helper: ícono y color según tipo de error
+// ---------------------------------------------------------------------------
+
+function ErrorIcon({ kind }: { kind: ApiErrorKind }) {
+  const cls = 'w-5 h-5 flex-shrink-0'
+  switch (kind) {
+    case 'network':
+      return <WifiIcon className={`${cls} text-orange-500`} />
+    case 'auth':
+      return <LockClosedIcon className={`${cls} text-red-500`} />
+    case 'server':
+      return <ServerIcon className={`${cls} text-red-500`} />
+    default:
+      return <ExclamationCircleIcon className={`${cls} text-orange-500`} />
+  }
+}
+
+function errorBorderColor(kind: ApiErrorKind): string {
+  if (kind === 'auth' || kind === 'server') return 'border-red-200 bg-red-50 text-red-700'
+  return 'border-orange-200 bg-orange-50 text-orange-700'
+}
+
+// ---------------------------------------------------------------------------
+// Componente
+// ---------------------------------------------------------------------------
 
 export default function Login() {
   const { login } = useAuth()
@@ -11,21 +65,72 @@ export default function Login() {
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [loadingText, setLoadingText] = useState('Verificando credenciales...')
+  const [errorInfo, setErrorInfo] = useState<ErrorInfo | null>(null)
+  const [failedAttempts, setFailedAttempts] = useState(0)
+
+  const isBlocked = failedAttempts >= MAX_ATTEMPTS
+
+  const showError = useCallback((kind: ApiErrorKind, message: string) => {
+    setErrorInfo({ kind, message })
+  }, [])
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError(null)
+    setErrorInfo(null)
+
+    // Validación local
+    if (!email.trim() || !password) {
+      showError('validation', 'Por favor completa todos los campos: correo electrónico y contraseña.')
+      return
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email.trim())) {
+      showError('validation', 'El formato del correo electrónico no es válido. Ejemplo: usuario@empresa.com')
+      return
+    }
+
+    if (isBlocked) {
+      showError(
+        'auth',
+        `Has intentado ${failedAttempts} veces sin éxito. Si olvidaste tu contraseña, contacta al administrador del sistema en ${SUPPORT_EMAIL}.`,
+      )
+      return
+    }
+
     setLoading(true)
+    setLoadingText('Verificando credenciales...')
+
     try {
-      await login(email, password)
+      await login(email.trim(), password)
+      setLoadingText('Iniciando sesión...')
+      setFailedAttempts(0)
       navigate('/')
-    } catch (err: any) {
-      setError(err.message || 'Error de autenticación')
+    } catch (err: unknown) {
+      const newAttempts = failedAttempts + 1
+      setFailedAttempts(newAttempts)
+
+      if (err instanceof ApiError) {
+        showError(err.kind, err.userMessage)
+      } else if (err instanceof Error) {
+        // Errores lanzados desde auth.tsx antes de la migración
+        const msg = err.message.toLowerCase()
+        if (msg.includes('conexión') || msg.includes('network') || msg.includes('servidor') || msg.includes('timeout')) {
+          showError('network', err.message)
+        } else if (msg.includes('credenciales') || msg.includes('inválid') || msg.includes('401')) {
+          showError('auth', '¡Vaya! Las credenciales ingresadas no son correctas. Asegúrate de que tu correo y contraseña sean correctos.')
+        } else {
+          showError('unknown', err.message || 'Ocurrió un error inesperado. Intenta nuevamente.')
+        }
+      } else {
+        showError('unknown', 'Ocurrió un error inesperado. Intenta nuevamente.')
+      }
     } finally {
       setLoading(false)
+      setLoadingText('Verificando credenciales...')
     }
   }
 
@@ -43,13 +148,12 @@ export default function Login() {
           <img
             src={loginImg}
             alt="Login"
-            className="max-h-[520px] w-full object-contain animate-fade-in"
+            className="max-h-[520px] w-full object-contain"
           />
         </div>
 
         {/* PANEL DERECHO */}
         <div className="relative flex items-center justify-center p-8 md:p-12">
-          {/* Eslogan */}
           <img
             src={esloganImg}
             alt="Eslogan"
@@ -60,11 +164,23 @@ export default function Login() {
             <h2 className="text-4xl font-extrabold text-center text-black mb-2">
               Bienvenido
             </h2>
-            <p className="text-center text-gray-600 mb-10">
+            <p className="text-center text-gray-600 mb-8">
               Accede a tu panel administrativo
             </p>
 
-            <form onSubmit={onSubmit} className="space-y-6" autoComplete="off">
+            {/* Aviso de intentos fallidos */}
+            {failedAttempts > 0 && failedAttempts < MAX_ATTEMPTS && (
+              <div className="mb-4 flex items-center gap-2 rounded-xl border border-orange-200 bg-orange-50 px-4 py-2.5 text-sm text-orange-700">
+                <ExclamationCircleIcon className="w-4 h-4 flex-shrink-0" />
+                <span>
+                  {failedAttempts === 1
+                    ? 'Intento fallido. Verifica tus credenciales.'
+                    : `${failedAttempts} intentos fallidos. Verifica tus credenciales.`}
+                </span>
+              </div>
+            )}
+
+            <form onSubmit={onSubmit} className="space-y-5" autoComplete="off">
               {/* EMAIL */}
               <div>
                 <label className="block text-sm font-semibold text-black mb-2">
@@ -77,12 +193,12 @@ export default function Login() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="correo@empresa.com"
                   autoComplete="off"
-                  required
+                  disabled={loading || isBlocked}
                   className="
                     w-full rounded-xl border border-gray-300 bg-gray-50
                     px-4 py-3 text-black placeholder-gray-400
                     focus:outline-none focus:ring-2 focus:ring-[#EE3626] focus:border-[#EE3626]
-                    transition-all
+                    transition-all disabled:opacity-50 disabled:cursor-not-allowed
                   "
                 />
               </div>
@@ -100,18 +216,19 @@ export default function Login() {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
                     autoComplete="new-password"
-                    required
+                    disabled={loading || isBlocked}
                     className="
                       w-full rounded-xl border border-gray-300 bg-gray-50
                       px-4 py-3 pr-12 text-black placeholder-gray-400
                       focus:outline-none focus:ring-2 focus:ring-[#EE3626] focus:border-[#EE3626]
-                      transition-all
+                      transition-all disabled:opacity-50 disabled:cursor-not-allowed
                     "
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-black"
+                    disabled={loading || isBlocked}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-black disabled:opacity-50"
                   >
                     {showPassword ? (
                       <EyeSlashIcon className="w-5 h-5" />
@@ -122,53 +239,73 @@ export default function Login() {
                 </div>
               </div>
 
-              {/* ERROR */}
-              {error && (
-                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-                  {error}
+              {/* MENSAJE DE ERROR diferenciado */}
+              {errorInfo && (
+                <div className={`rounded-xl border px-4 py-3 text-sm ${errorBorderColor(errorInfo.kind)}`}>
+                  <div className="flex items-start gap-2">
+                    <ErrorIcon kind={errorInfo.kind} />
+                    <div className="flex-1">
+                      <p className="font-semibold mb-0.5">
+                        {errorInfo.kind === 'network' && 'Problema de conexión'}
+                        {errorInfo.kind === 'auth' && 'Credenciales incorrectas'}
+                        {errorInfo.kind === 'server' && 'Error del servidor'}
+                        {errorInfo.kind === 'validation' && 'Datos inválidos'}
+                        {errorInfo.kind === 'forbidden' && 'Acceso denegado'}
+                        {(errorInfo.kind === 'unknown' || errorInfo.kind === 'parse' || errorInfo.kind === 'not_found') && 'Error inesperado'}
+                      </p>
+                      <p>{errorInfo.message}</p>
+                      {/* Enlace de soporte cuando hay muchos intentos */}
+                      {failedAttempts >= MAX_ATTEMPTS && (
+                        <a
+                          href={`mailto:${SUPPORT_EMAIL}`}
+                          className="mt-1.5 inline-block underline font-medium hover:opacity-80"
+                        >
+                          Contactar soporte: {SUPPORT_EMAIL}
+                        </a>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
 
               {/* BOTÓN */}
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || isBlocked}
                 className="
                   w-full rounded-xl py-3.5 text-white font-semibold
                   shadow-lg transition-all duration-300
                   hover:scale-[1.02] hover:shadow-xl
-                  disabled:opacity-70 disabled:cursor-not-allowed disabled:scale-100
+                  disabled:opacity-60 disabled:cursor-not-allowed disabled:scale-100
                 "
                 style={{ backgroundColor: '#010101' }}
               >
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">
-                    <svg
-                      className="h-5 w-5 animate-spin"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.37 0 0 5.37 0 12h4z"
-                      />
+                    <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.37 0 0 5.37 0 12h4z" />
                     </svg>
-                    Entrando...
+                    {loadingText}
                   </span>
+                ) : isBlocked ? (
+                  'Demasiados intentos'
                 ) : (
                   'Entrar'
                 )}
               </button>
             </form>
+
+            {/* Enlace de soporte siempre visible */}
+            <p className="mt-6 text-center text-xs text-gray-400">
+              ¿Problemas para ingresar?{' '}
+              <a
+                href={`mailto:${SUPPORT_EMAIL}`}
+                className="underline hover:text-gray-600 transition-colors"
+              >
+                Contacta soporte
+              </a>
+            </p>
           </div>
         </div>
       </div>
