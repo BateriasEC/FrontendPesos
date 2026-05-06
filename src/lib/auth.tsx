@@ -174,75 +174,56 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const login = async (email: string, password: string) => {
-    try {
-      // Llamar al endpoint real del backend
-      const response = await api.post(
-        '/auth/login',
-        { email, password },
-        { timeout: 120000 },
-      )
-      
-      // El backend puede devolver: { data: { access_token, user, ... } } o directamente { access_token, user, ... }
-      const responseData = response.data.data || response.data
-      const { access_token, user } = responseData
-      
-      if (!access_token || !user) {
-        console.error('Respuesta del servidor:', response.data)
-        throw new Error('Respuesta inválida del servidor')
-      }
-      
-      // Guardar tokens del backend
-      localStorage.setItem('token', access_token)
-      if (responseData.refresh_token) {
-        localStorage.setItem('refresh_token', responseData.refresh_token)
-      }
-      setToken(access_token)
-      
-      // Mapear el usuario del backend al formato esperado
-      const roleMap: Record<string, Role> = {
-        'ADMIN': 'admin',
-        'SUPERVISOR': 'supervisor',
-        'OPERADOR': 'operador',
-      }
-      
-      // El rol puede venir como objeto { codigo: 'ADMIN' } o como string
-      const roleCode = user.role?.codigo || user.role || 'OPERADOR'
-      const userRole = roleMap[roleCode] || 'operador'
-      
-      // Convertir UUID a número simple para compatibilidad (o usar el UUID directamente)
-      const userId = user.id ? (typeof user.id === 'string' ? 1 : user.id) : 1
-      
-      setUser({
-        id: userId,
-        email: user.email,
-        name: user.fullName || user.username,
-        role: userRole,
-      })
-    } catch (error: any) {
-      console.error('Error en login:', error)
-      console.error('Detalles del error:', error.response?.data)
-      
-      // Si es error de credenciales
-      if (error.response?.status === 401) {
-        throw new Error('Credenciales inválidas')
-      }
-      
-      // Si es error de conexión
-      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout') || !error.response) {
-        //throw new Error('Error al conectar con el servidor. Verifique su conexión a internet y que el backend esté disponible.')
-        throw new Error('No se pudo conectar con el servidor. Inténtalo de nuevo en unos segundos.')
+    const response = await api.post(
+      '/auth/login',
+      { email, password },
+      { timeout: 120000 },
+    )
 
-      }
-      
-      // Si es error de CORS
-      if (error.message?.includes('CORS') || error.message?.includes('Network Error')) {
-        throw new Error('Error de conexión. Verifique la configuración del servidor.')
-      }
-      
-      // Otros errores
-      const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Error al iniciar sesión'
-      throw new Error(errorMessage)
+    const responseData = response.data.data || response.data
+    const { access_token, user } = responseData
+
+    if (!access_token || !user) {
+      console.error('[Auth] Respuesta del servidor inválida:', response.data)
+      throw new Error('Respuesta inválida del servidor')
     }
+
+    // Validar roles permitidos en la web: solo ADMIN y SUPERVISOR
+    const roleCode = (user.role?.codigo || user.role || '').toString().toUpperCase()
+    const WEB_ALLOWED_ROLES = ['ADMIN', 'SUPERVISOR']
+
+    if (!WEB_ALLOWED_ROLES.includes(roleCode)) {
+      console.warn(`[Auth] Acceso denegado para rol "${roleCode}" en la web`)
+      // Lanzar como ApiError para que Login.tsx lo clasifique correctamente
+      const { ApiError } = await import('../services/api')
+      throw new ApiError(
+        'Los operadores no tienen acceso al panel web. Usa la aplicación móvil.',
+        'forbidden',
+        `role=${roleCode} not in web_allowed=[${WEB_ALLOWED_ROLES.join(',')}]`,
+      )
+    }
+
+    localStorage.setItem('token', access_token)
+    if (responseData.refresh_token) {
+      localStorage.setItem('refresh_token', responseData.refresh_token)
+    }
+    setToken(access_token)
+
+    const roleMap: Record<string, Role> = {
+      'ADMIN': 'admin',
+      'SUPERVISOR': 'supervisor',
+    }
+    const userRole = roleMap[roleCode] || 'supervisor'
+    const userId = user.id ? (typeof user.id === 'string' ? 1 : user.id) : 1
+
+    console.log(`[Auth] Login exitoso: ${user.email} (${roleCode})`)
+
+    setUser({
+      id: userId,
+      email: user.email,
+      name: user.fullName || user.username,
+      role: userRole,
+    })
   }
 
   const logout = () => {

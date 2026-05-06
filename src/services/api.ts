@@ -83,8 +83,8 @@ function toUserMessage(raw: string, status: number): string {
     const n = raw.match(/\d+/)?.[0] ?? ''
     return `La contraseña debe tener al menos ${n} caracteres.`
   }
-  if (lower.includes('credenciales inválidas') || lower.includes('invalid credentials') || lower.includes('unauthorized')) {
-    return '¡Vaya! Las credenciales ingresadas no son correctas. Asegúrate de que tu correo y contraseña sean correctos.'
+  if (lower.includes('credenciales inválidas') || lower.includes('invalid credentials') || lower.includes('unauthorized') || lower.includes('credenciales')) {
+    return 'El correo o la contraseña son incorrectos. Verifica tus datos e intenta nuevamente.'
   }
   if (lower.includes('token') && (lower.includes('expirado') || lower.includes('expired') || lower.includes('inválido'))) {
     return 'Tu sesión ha expirado. Por favor inicia sesión nuevamente.'
@@ -137,7 +137,7 @@ api.interceptors.response.use(
       if (isTimeout) {
         return Promise.reject(
           new ApiError(
-            '¡Ups! La solicitud tardó demasiado. Verifica tu conexión a internet e intenta nuevamente.',
+            'La solicitud tardó demasiado tiempo en responder. Verifica tu conexión a internet e intenta nuevamente.',
             'network',
             `timeout url=${error.config?.url}`,
           ),
@@ -147,7 +147,7 @@ api.interceptors.response.use(
       if (isNetwork) {
         return Promise.reject(
           new ApiError(
-            'Parece que hubo un problema al conectarnos con el servidor. Verifica tu conexión a internet y vuelve a intentarlo.',
+            'No hay conexión con el servidor. Verifica que tengas acceso a internet y vuelve a intentarlo.',
             'network',
             `network_error url=${error.config?.url} msg="${msg}"`,
           ),
@@ -156,7 +156,7 @@ api.interceptors.response.use(
 
       return Promise.reject(
         new ApiError(
-          '¡Ups! No pudimos conectar con el servidor. Intenta de nuevo en unos minutos.',
+          'No se pudo conectar con el servidor. Intenta de nuevo en unos minutos.',
           'network',
           `no_response url=${error.config?.url} msg="${msg}"`,
         ),
@@ -209,7 +209,7 @@ api.interceptors.response.use(
 
       return Promise.reject(
         new ApiError(
-          '¡Vaya! Las credenciales ingresadas no son correctas. Asegúrate de que tu correo y contraseña sean correctos.',
+          'El correo o la contraseña son incorrectos. Verifica tus datos e intenta nuevamente.',
           'auth',
           `status=401 url=${error.config?.url} backend="${backendMsg}"`,
         ),
@@ -220,15 +220,24 @@ api.interceptors.response.use(
     const backendMsg = extractBackendMessage(responseData)
     const userMsg = toUserMessage(backendMsg ?? `Error ${status}`, status)
 
+    // Un 400 en el endpoint de login es error de credenciales, no de validación de formulario
+    const isLoginEndpoint = (error.config?.url ?? '').includes('/auth/login')
+
     let kind: ApiErrorKind = 'unknown'
     if (status === 403) kind = 'forbidden'
     else if (status === 404) kind = 'not_found'
+    else if (status === 400 && isLoginEndpoint) kind = 'auth'
     else if (status >= 400 && status < 500) kind = 'validation'
     else if (status >= 500) kind = 'server'
 
+    // Para errores de auth en login, usar siempre el mensaje de credenciales
+    const finalMsg = kind === 'auth'
+      ? 'El correo o la contraseña son incorrectos. Verifica tus datos e intenta nuevamente.'
+      : userMsg
+
     return Promise.reject(
       new ApiError(
-        userMsg,
+        finalMsg,
         kind,
         `status=${status} url=${error.config?.url} backend="${backendMsg ?? ''}"`,
       ),

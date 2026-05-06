@@ -14,14 +14,15 @@ import { useAuth } from '../lib/auth'
 import { EyeIcon, EyeSlashIcon, WifiIcon, LockClosedIcon, ServerIcon, ExclamationCircleIcon } from '@heroicons/react/24/outline'
 import loginImg from '../assets/images/login.png'
 import esloganImg from '../assets/images/eslogan.png'
-import { ApiError, ApiErrorKind } from '../services/api'
+import { ApiError } from '../services/api'
+import type { ApiErrorKind } from '../services/api'
 
 // ---------------------------------------------------------------------------
 // Constantes
 // ---------------------------------------------------------------------------
 
 const MAX_ATTEMPTS = 5
-const SUPPORT_EMAIL = 'soporte@bateriasecuador.com'
+const SUPPORT_MSG = 'Contacta al administrador del sistema.'
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -96,7 +97,7 @@ export default function Login() {
     if (isBlocked) {
       showError(
         'auth',
-        `Has intentado ${failedAttempts} veces sin éxito. Si olvidaste tu contraseña, contacta al administrador del sistema en ${SUPPORT_EMAIL}.`,
+        `Has intentado ${failedAttempts} veces sin éxito. Contacta al administrador del sistema.`,
       )
       return
     }
@@ -168,8 +169,8 @@ export default function Login() {
               Accede a tu panel administrativo
             </p>
 
-            {/* Aviso de intentos fallidos */}
-            {failedAttempts > 0 && failedAttempts < MAX_ATTEMPTS && (
+            {/* Aviso de intentos fallidos — solo visible cuando no está cargando */}
+            {!loading && failedAttempts > 0 && failedAttempts < MAX_ATTEMPTS && (
               <div className="mb-4 flex items-center gap-2 rounded-xl border border-orange-200 bg-orange-50 px-4 py-2.5 text-sm text-orange-700">
                 <ExclamationCircleIcon className="w-4 h-4 flex-shrink-0" />
                 <span>
@@ -239,29 +240,24 @@ export default function Login() {
                 </div>
               </div>
 
-              {/* MENSAJE DE ERROR diferenciado */}
-              {errorInfo && (
+              {/* MENSAJE DE ERROR diferenciado — solo visible cuando no está cargando */}
+              {!loading && errorInfo && (
                 <div className={`rounded-xl border px-4 py-3 text-sm ${errorBorderColor(errorInfo.kind)}`}>
                   <div className="flex items-start gap-2">
                     <ErrorIcon kind={errorInfo.kind} />
                     <div className="flex-1">
                       <p className="font-semibold mb-0.5">
-                        {errorInfo.kind === 'network' && 'Problema de conexión'}
-                        {errorInfo.kind === 'auth' && 'Credenciales incorrectas'}
+                        {errorInfo.kind === 'network' && 'Sin conexión al servidor'}
+                        {errorInfo.kind === 'auth' && 'Correo o contraseña incorrectos'}
                         {errorInfo.kind === 'server' && 'Error del servidor'}
                         {errorInfo.kind === 'validation' && 'Datos inválidos'}
-                        {errorInfo.kind === 'forbidden' && 'Acceso denegado'}
+                        {errorInfo.kind === 'forbidden' && 'Acceso no permitido'}
                         {(errorInfo.kind === 'unknown' || errorInfo.kind === 'parse' || errorInfo.kind === 'not_found') && 'Error inesperado'}
                       </p>
                       <p>{errorInfo.message}</p>
-                      {/* Enlace de soporte cuando hay muchos intentos */}
+                      {/* Mensaje de soporte — sin mailto, solo texto */}
                       {failedAttempts >= MAX_ATTEMPTS && (
-                        <a
-                          href={`mailto:${SUPPORT_EMAIL}`}
-                          className="mt-1.5 inline-block underline font-medium hover:opacity-80"
-                        >
-                          Contactar soporte: {SUPPORT_EMAIL}
-                        </a>
+                        <p className="mt-1.5 font-medium">{SUPPORT_MSG}</p>
                       )}
                     </div>
                   </div>
@@ -296,15 +292,9 @@ export default function Login() {
               </button>
             </form>
 
-            {/* Enlace de soporte siempre visible */}
+            {/* Texto de soporte — sin mailto */}
             <p className="mt-6 text-center text-xs text-gray-400">
-              ¿Problemas para ingresar?{' '}
-              <a
-                href={`mailto:${SUPPORT_EMAIL}`}
-                className="underline hover:text-gray-600 transition-colors"
-              >
-                Contacta soporte
-              </a>
+              ¿Problemas para ingresar? Contacta al administrador del sistema.
             </p>
           </div>
         </div>
