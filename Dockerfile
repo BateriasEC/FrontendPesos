@@ -32,22 +32,12 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 # Copiar archivos generados
 COPY --from=build /app/dist /usr/share/nginx/html
 
+# Copiar y preparar entrypoint
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh && \
+    sed -i 's/\r$//' /docker-entrypoint.sh
+
 # Exponer puerto
 EXPOSE 80
 
-# Configurar variables de entorno y arrancar Nginx directamente sin scripts externos
-CMD ["sh", "-c", "\
-    echo ' Configurando variables de entorno...'; \
-    API_URL=\"\${VITE_API_BASE_URL:-/api}\"; \
-    for file in /usr/share/nginx/html/assets/*.js; do \
-      if [ -f \"\$file\" ]; then \
-        sed -i \"s|VITE_API_BASE_URL_PLACEHOLDER|\${API_URL}|g\" \"\$file\"; \
-      fi; \
-    done; \
-    BACKEND_HOST=\"\${BACKEND_HOST:-backend}\"; \
-    BACKEND_PORT=\"\${BACKEND_PORT:-3000}\"; \
-    sed -i \"s/__BACKEND_HOST__/\${BACKEND_HOST}/g\" /etc/nginx/conf.d/default.conf; \
-    sed -i \"s/__BACKEND_PORT__/\${BACKEND_PORT}/g\" /etc/nginx/conf.d/default.conf; \
-    echo ' Variables configuradas, iniciando Nginx...'; \
-    exec nginx -g 'daemon off;' \
-"]
+ENTRYPOINT ["/docker-entrypoint.sh"]
