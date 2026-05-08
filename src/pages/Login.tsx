@@ -8,7 +8,7 @@
  *  - Enlace de soporte cuando los intentos superan el límite
  */
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { EyeIcon, EyeSlashIcon, WifiIcon, LockClosedIcon, ServerIcon, ExclamationCircleIcon } from '@heroicons/react/24/outline'
@@ -71,8 +71,26 @@ export default function Login() {
   const [loadingText, setLoadingText] = useState('Verificando credenciales...')
   const [errorInfo, setErrorInfo] = useState<ErrorInfo | null>(null)
   const [failedAttempts, setFailedAttempts] = useState(0)
+  const [blockSecondsLeft, setBlockSecondsLeft] = useState(0)
+  const blockTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  const isBlocked = failedAttempts >= MAX_ATTEMPTS
+  const isBlocked = failedAttempts >= MAX_ATTEMPTS && blockSecondsLeft > 0
+
+  const startBlockTimer = useCallback(() => {
+    if (blockTimerRef.current) clearInterval(blockTimerRef.current)
+    setBlockSecondsLeft(10)
+    blockTimerRef.current = setInterval(() => {
+      setBlockSecondsLeft(prev => {
+        if (prev <= 1) {
+          clearInterval(blockTimerRef.current!)
+          blockTimerRef.current = null
+          setFailedAttempts(0)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+  }, [])
 
   const showError = useCallback((kind: ApiErrorKind, message: string) => {
     setErrorInfo({ kind, message })
@@ -113,6 +131,10 @@ export default function Login() {
     } catch (err: unknown) {
       const newAttempts = failedAttempts + 1
       setFailedAttempts(newAttempts)
+
+      if (newAttempts >= MAX_ATTEMPTS) {
+        startBlockTimer()
+      }
 
       if (err instanceof ApiError) {
         showError(err.kind, err.userMessage)
@@ -285,7 +307,7 @@ export default function Login() {
                     {loadingText}
                   </span>
                 ) : isBlocked ? (
-                  'Demasiados intentos'
+                  `Espera ${blockSecondsLeft}s para reintentar`
                 ) : (
                   'Entrar'
                 )}
