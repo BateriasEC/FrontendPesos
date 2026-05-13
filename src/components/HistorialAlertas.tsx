@@ -10,6 +10,7 @@ type Alerta = {
   descripcion: string;
   fechaCreacion: string;
   fechaResolucion: string | null;
+  resueltaPor?: string | null;
   metadata?: {
     pesoIngresoVehiculo: number | null;
     pesoSalidaVehiculo: number | null;
@@ -24,6 +25,7 @@ type Alerta = {
     pesoDescarga: number;
     vehicle: {
       placa: string;
+      cliente?: string;
       pesoIngreso?: number;
       pesoSalida?: number;
     };
@@ -78,10 +80,13 @@ export default function HistorialAlertas({ refreshKey = 0 }: HistorialAlertasPro
     }
   };
 
+  const esResuelta = (estado: string) =>
+    estado === 'RESUELTA' || estado === 'REPESADA' || estado === 'HISTORICA';
+
   const filteredAlertas = useMemo(() => {
     return Array.isArray(alertas) ? alertas.filter((a) => {
       if (filter === 'activas') return a.estado === 'ACTIVA';
-      if (filter === 'resueltas') return a.estado === 'RESUELTA';
+      if (filter === 'resueltas') return esResuelta(a.estado);
       return true;
     }) : [];
   }, [alertas, filter]);
@@ -91,6 +96,7 @@ export default function HistorialAlertas({ refreshKey = 0 }: HistorialAlertasPro
     if (tipo === 'EXCESO_VEHICULO') return 'bg-red-500/20 border-red-500/40';
     if (tipo === 'EXCESO_PROMEDIO') return 'bg-yellow-500/20 border-yellow-500/40';
     if (tipo === 'EXCESO_ALTO') return 'bg-red-600/20 border-red-600/40';
+    if (tipo === 'DIFERENCIA_CARGA') return 'bg-blue-500/20 border-blue-500/40';
     return 'bg-yellow-500/20 border-yellow-500/40';
   };
 
@@ -102,9 +108,16 @@ export default function HistorialAlertas({ refreshKey = 0 }: HistorialAlertasPro
         </span>
       );
     }
+    if (estado === 'REPESADA') {
+      return (
+        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-500/20 text-green-400 border border-green-500/40">
+          REPESADA
+        </span>
+      );
+    }
     return (
       <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-500/20 text-green-400 border border-green-500/40">
-        REPESAJE
+        RESUELTA
       </span>
     );
   };
@@ -204,6 +217,7 @@ export default function HistorialAlertas({ refreshKey = 0 }: HistorialAlertasPro
                 <th className="text-left py-3 px-2 font-semibold">Tipo</th>
                 <th className="text-left py-3 px-2 font-semibold">Fecha</th>
                 <th className="text-center py-3 px-2 font-semibold">Estado</th>
+                <th className="text-left py-3 px-2 font-semibold">Resuelto por</th>
               </tr>
             </thead>
             <tbody>
@@ -253,6 +267,9 @@ export default function HistorialAlertas({ refreshKey = 0 }: HistorialAlertasPro
                   </td>
                   <td className="py-3 px-2 text-center">
                     {getEstadoBadge(alerta.estado)}
+                  </td>
+                  <td className="py-3 px-2 text-xs text-gray-400">
+                    {alerta.resueltaPor || '-'}
                   </td>
                 </tr>
               ))}
