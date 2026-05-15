@@ -249,7 +249,10 @@ export default function Dashboard() {
                 />
                 <YAxis tick={{ fill: '#D1D5DB', fontSize: 12 }} />
                 <Tooltip
-                  formatter={(v: number) => [`${v.toFixed(2)} kg`, 'Variación']}
+                  formatter={(value) => {
+                    const numericValue = Number(value ?? 0)
+                    return [`${numericValue.toFixed(2)} kg`, 'Variación']
+                  }}
                   contentStyle={{
                     backgroundColor: '#1f2937',
                     border: '1px solid #374151',

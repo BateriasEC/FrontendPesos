@@ -3,22 +3,30 @@
 # -----------------------------------------------------------------------------
 # Stage 1: Build (Vite + React)
 # -----------------------------------------------------------------------------
-FROM node:20-alpine AS build
+FROM node:22-alpine AS build
 
 WORKDIR /app
 
-# Instalar dependencias
-COPY package.json package-lock.json* ./
-RUN npm ci
+ARG VITE_API_BASE_URL=/api
+ARG BACKEND_HOST=backend-api
+ARG BACKEND_PORT=3000
+
+ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
+
+# Instalar dependencias con pnpm usando el lockfile del proyecto
+COPY package.json pnpm-lock.yaml ./
+RUN corepack enable && \
+    pnpm config set ignore-scripts false && \
+    pnpm install --frozen-lockfile --config.dangerously-allow-all-builds=true
 
 # Copiar código fuente
 COPY . .
 
-# Build con tolerancia a errores de TypeScript:
-# 1) intenta script normal (tsc -b && vite build)
-# 2) si falla por TS, ejecuta vite build para generar /dist
-RUN npm run build || npx vite build
-RUN npm cache clean --force
+# Preparar la configuración de Nginx en build para que runtime no ejecute scripts
+RUN sed -i "s|__BACKEND_HOST__|${BACKEND_HOST}|g; s|__BACKEND_PORT__|${BACKEND_PORT}|g" nginx.conf
+
+# Build de producción
+RUN pnpm run build
 
 
 # -----------------------------------------------------------------------------
@@ -27,17 +35,10 @@ RUN npm cache clean --force
 FROM nginx:1.27-alpine AS runtime
 
 # Copiar configuración personalizada de Nginx (SPA support)
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /app/nginx.conf /etc/nginx/conf.d/default.conf
 
 # Copiar archivos generados
 COPY --from=build /app/dist /usr/share/nginx/html
 
-# Copiar y preparar entrypoint
-COPY docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh && \
-    sed -i 's/\r$//' /docker-entrypoint.sh
-
 # Exponer puerto
 EXPOSE 80
-
-ENTRYPOINT ["/docker-entrypoint.sh"]

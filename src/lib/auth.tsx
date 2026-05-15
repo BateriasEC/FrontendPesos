@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { jwtDecode } from 'jwt-decode'
-import { api, setAuthToken } from '../services/api'
+import { api, ApiError, setAuthToken } from '../services/api'
 
 type Role = 'admin' | 'supervisor' | 'operador'
 
@@ -195,7 +195,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!WEB_ALLOWED_ROLES.includes(roleCode)) {
       console.warn(`[Auth] Acceso denegado para rol "${roleCode}" en la web`)
       // Lanzar como ApiError para que Login.tsx lo clasifique correctamente
-      const { ApiError } = await import('../services/api')
       throw new ApiError(
         'Los operadores no tienen acceso al panel web. Usa la aplicación móvil.',
         'forbidden',

@@ -9,10 +9,6 @@ services:
     restart: always
     ports:
       - "8080:80"
-    environment:
-      - BACKEND_HOST=backend-api
-      - BACKEND_PORT=3000
-      - VITE_API_BASE_URL=/api
     networks:
       - red_reciclaje
 

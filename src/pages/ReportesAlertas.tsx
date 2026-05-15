@@ -11,6 +11,7 @@ type Alerta = {
   descripcion: string;
   fechaCreacion: string;
   fechaResolucion: string | null;
+  resueltaPor?: string | null;
   pallet: {
     codigoIndependiente: string;
     codigo: string;
@@ -20,6 +21,8 @@ type Alerta = {
       placa: string;
       cliente: string;
       codigoTrazabilidad: string;
+      pesoIngreso?: number;
+      pesoSalida?: number;
     };
     product?: {
       nombre: string;
@@ -74,8 +77,9 @@ export default function ReportesAlertas() {
 
   const filteredAlertas = Array.isArray(alertas) ? alertas.filter((a) => {
     // Filtro por estado
+    const esResuelta = (est: string) => est === 'RESUELTA' || est === 'REPESADA' || est === 'HISTORICA';
     if (filter === 'activas' && a.estado !== 'ACTIVA') return false;
-    if (filter === 'resueltas' && a.estado !== 'RESUELTA') return false;
+    if (filter === 'resueltas' && !esResuelta(a.estado)) return false;
     
     // Filtro por tipo
     if (tipoFilter === 'VARIACION_PESO' && a.tipo !== 'VARIACION_PESO') return false;
@@ -104,9 +108,16 @@ export default function ReportesAlertas() {
         </span>
       );
     }
+    if (estado === 'REPESADA') {
+      return (
+        <span className="px-2 py-1 text-xs font-medium rounded bg-green-500/20 text-green-400">
+          REPESADA
+        </span>
+      );
+    }
     return (
       <span className="px-2 py-1 text-xs font-medium rounded bg-green-500/20 text-green-400">
-        REPESAJE
+        RESUELTA
       </span>
     );
   };
@@ -186,7 +197,7 @@ export default function ReportesAlertas() {
         }),
         'Día de la Semana': fechaCreacion.toLocaleDateString('es-EC', { weekday: 'long' }),
         'Tipo de Alerta': getTipoLabel(a.tipo),
-        'Estado': a.estado === 'ACTIVA' ? 'Activa' : 'Repesaje',
+        'Estado': a.estado === 'ACTIVA' ? 'Activa' : (a.estado === 'REPESADA' ? 'Repesada' : 'Resuelta'),
         'Placa Vehículo': a.pallet?.vehicle?.placa || 'N/A',
         'Cliente': a.pallet?.vehicle?.cliente || 'N/A',
         'Código Trazabilidad': a.pallet?.vehicle?.codigoTrazabilidad || 'N/A',
@@ -206,6 +217,7 @@ export default function ReportesAlertas() {
         'Tiempo de Resolución (horas)': fechaResolucion 
           ? ((fechaResolucion.getTime() - fechaCreacion.getTime()) / (1000 * 60 * 60)).toFixed(2)
           : 'Pendiente',
+        'Resuelto por': a.resueltaPor || 'N/A',
       };
     });
 
@@ -244,7 +256,7 @@ export default function ReportesAlertas() {
   const stats = {
     total: filteredAlertas.length,
     activas: filteredAlertas.filter(a => a.estado === 'ACTIVA').length,
-    resueltas: filteredAlertas.filter(a => a.estado === 'RESUELTA').length,
+    resueltas: filteredAlertas.filter(a => a.estado === 'RESUELTA' || a.estado === 'REPESADA' || a.estado === 'HISTORICA').length,
     variacionPeso: filteredAlertas.filter(a => a.tipo === 'VARIACION_PESO').length,
     exceso: filteredAlertas.filter(a => esExceso(a.tipo)).length,
   };
@@ -395,6 +407,7 @@ export default function ReportesAlertas() {
                   <th className="text-left py-3 px-4 font-semibold text-gray-300">Pallet</th>
                   <th className="text-left py-3 px-4 font-semibold text-gray-300">Descripción</th>
                   <th className="text-left py-3 px-4 font-semibold text-gray-300">Resolución</th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-300">Resuelto por</th>
                 </tr>
               </thead>
               <tbody>
@@ -448,6 +461,9 @@ export default function ReportesAlertas() {
                       ) : (
                         '-'
                       )}
+                    </td>
+                    <td className="py-3 px-4 text-xs text-gray-400">
+                      {alerta.resueltaPor || '-'}
                     </td>
                   </tr>
                 ))}
