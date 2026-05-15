@@ -6,6 +6,10 @@ import axios from 'axios'
 const publicApi = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
   timeout: 30000, // 30 segundos de timeout
+  headers: {
+    'X-Client': 'web',
+    'X-Platform': 'browser',
+  },
 })
 
 type PalletData = {

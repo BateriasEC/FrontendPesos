@@ -22,6 +22,10 @@ export const api = axios.create({
   baseURL: API_BASE_URL,
   // Login / primer arranque del API pueden tardar (DB, bcrypt)
   timeout: 120_000,
+  headers: {
+    'X-Client': 'web',
+    'X-Platform': 'browser',
+  },
 })
 
 // ---------------------------------------------------------------------------
@@ -39,13 +43,20 @@ export type ApiErrorKind =
   | 'unknown'
 
 export class ApiError extends Error {
+  readonly userMessage: string
+  readonly kind: ApiErrorKind
+  readonly diagnostic?: string
+
   constructor(
-    public readonly userMessage: string,
-    public readonly kind: ApiErrorKind,
-    public readonly diagnostic?: string,
+    userMessage: string,
+    kind: ApiErrorKind,
+    diagnostic?: string,
   ) {
     super(userMessage)
     this.name = 'ApiError'
+    this.userMessage = userMessage
+    this.kind = kind
+    this.diagnostic = diagnostic
   }
 }
 
