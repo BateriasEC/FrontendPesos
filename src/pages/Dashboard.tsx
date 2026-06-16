@@ -21,8 +21,11 @@ type DashboardStats = {
   vehiclesInPlant: number
   weighingsToday: number
   avgVariation: number
+  recepcionesHoy: number
+  avgRecepcionDiff: number
   alerts: number
   weighingsLast24h: Array<{ fecha: string; variacion: number }>
+  recepcionesLast24h: Array<{ fecha: string; diferencia: number }>
 }
 
 type BalanzaInfo = {
@@ -43,8 +46,11 @@ export default function Dashboard() {
     vehiclesInPlant: 0,
     weighingsToday: 0,
     avgVariation: 0,
+    recepcionesHoy: 0,
+    avgRecepcionDiff: 0,
     alerts: 0,
-    weighingsLast24h: []
+    weighingsLast24h: [],
+    recepcionesLast24h: [],
   })
 
   const loadStats = async () => {
@@ -57,8 +63,11 @@ export default function Dashboard() {
         vehiclesInPlant: data.vehiclesInPlant || 0,
         weighingsToday: data.weighingsToday || 0,
         avgVariation: Number(data.avgVariation || 0),
+        recepcionesHoy: data.recepcionesHoy || 0,
+        avgRecepcionDiff: Number(data.avgRecepcionDiff || 0),
         alerts: data.alerts || 0,
-        weighingsLast24h: data.weighingsLast24h || []
+        weighingsLast24h: data.weighingsLast24h || [],
+        recepcionesLast24h: data.recepcionesLast24h || [],
       })
 
       setWeighings(
@@ -145,10 +154,12 @@ export default function Dashboard() {
       </div>
 
       {/* Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         <StatCard title="Vehículos en planta" value={stats.vehiclesInPlant} />
         <StatCard title="Pesajes hoy" value={stats.weighingsToday} />
+        <StatCard title="Recepciones hoy" value={stats.recepcionesHoy} />
         <StatCard title="Variación promedio" value={`${Number(stats.avgVariation).toFixed(2)} kg`} />
+        <StatCard title="Dif. recepción prom." value={`${Number(stats.avgRecepcionDiff).toFixed(2)} kg`} />
         <StatCard title="Alertas" value={stats.alerts} />
       </div>
 

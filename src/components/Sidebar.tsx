@@ -9,6 +9,7 @@ import {
   TruckIcon,
   ExclamationTriangleIcon,
   ArrowsRightLeftIcon,
+  InboxArrowDownIcon,
 } from '@heroicons/react/24/outline'
 
 const baseLink =
@@ -79,6 +80,13 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
             to="/pesajes"
             icon={ScaleIcon}
             label="Pesajes"
+            onNavigate={onNavigate}
+          />
+
+          <SidebarLink
+            to="/recepcion"
+            icon={InboxArrowDownIcon}
+            label="Recepción Pallets"
             onNavigate={onNavigate}
           />
 

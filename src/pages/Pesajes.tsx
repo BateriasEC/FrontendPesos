@@ -33,6 +33,10 @@ type Row = {
   variacionPeso?: number | null;
   descargado?: boolean;
   operador?: string;
+  codigoRecepcion?: string | null;
+  pesoRecibido?: number | null;
+  diferenciaRecepcion?: number | null;
+  estadoRecepcion?: string;
 };
 
 export default function Pesajes() {
@@ -74,6 +78,10 @@ export default function Pesajes() {
             variacionPeso: Number(p.variacionPeso) || null,
             descargado: Boolean(p.descargado),
             operador: p.vehicle?.user?.fullName || p.user?.fullName || 'N/A',
+            codigoRecepcion: p.recepcion?.codigoRecepcion ?? null,
+            pesoRecibido: p.recepcion?.pesoRecibido != null ? Number(p.recepcion.pesoRecibido) : null,
+            diferenciaRecepcion: p.recepcion?.diferenciaPeso != null ? Number(p.recepcion.diferenciaPeso) : null,
+            estadoRecepcion: p.recepcion ? 'Recibido' : p.descargado ? 'Pendiente recepción' : 'N/A',
             niveles: [],
           };
         }),
@@ -142,6 +150,10 @@ export default function Pesajes() {
           'Peso Despacho Pallet (kg)': row.pesoDescarga ? Number(row.pesoDescarga).toFixed(2) : 'Pendiente',
           'Variación Pallet (kg)': row.variacionPeso ? Number(row.variacionPeso).toFixed(2) : 'N/A',
           'Estado Despacho': row.descargado ? 'Despachado' : 'Pendiente',
+          'Cód. Recepción': row.codigoRecepcion || 'N/A',
+          'Peso Recibido (kg)': row.pesoRecibido != null ? Number(row.pesoRecibido).toFixed(2) : 'N/A',
+          'Diferencia Recepción (kg)': row.diferenciaRecepcion != null ? Number(row.diferenciaRecepcion).toFixed(2) : 'N/A',
+          'Estado Recepción': row.estadoRecepcion || 'N/A',
         };
       });
 
@@ -251,13 +263,15 @@ export default function Pesajes() {
                 <th>Número de Pallet</th>
                 <th className="text-right">Peso del Pallet</th>
                 <th className="text-right">Peso de Despacho</th>
+                <th className="text-right">Peso Recibido</th>
+                <th className="text-right">Dif. Recepción</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
               {pageRows.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-10 text-gray-400">
+                  <td colSpan={8} className="text-center py-10 text-gray-400">
                     No existen registros de pesaje
                   </td>
                 </tr>
@@ -274,6 +288,24 @@ export default function Pesajes() {
                       {r.pesoDescarga ? (
                         <span className="font-semibold text-blue-400">
                           {r.pesoDescarga.toLocaleString()} kg
+                        </span>
+                      ) : (
+                        <span className="text-gray-500">-</span>
+                      )}
+                    </td>
+                    <td className="text-right">
+                      {r.pesoRecibido != null ? (
+                        <span className="font-semibold text-emerald-400">
+                          {r.pesoRecibido.toLocaleString()} kg
+                        </span>
+                      ) : (
+                        <span className="text-gray-500">-</span>
+                      )}
+                    </td>
+                    <td className="text-right">
+                      {r.diferenciaRecepcion != null ? (
+                        <span className={`font-semibold ${Math.abs(r.diferenciaRecepcion) > 0.01 ? 'text-red-400' : 'text-green-400'}`}>
+                          {r.diferenciaRecepcion > 0 ? '+' : ''}{r.diferenciaRecepcion.toFixed(2)} kg
                         </span>
                       ) : (
                         <span className="text-gray-500">-</span>

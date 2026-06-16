@@ -21,6 +21,14 @@ export type ReportPallet = {
   horaPesaje: string
   fechaDespacho: string | null
   horaDespacho: string | null
+  codigoRecepcion?: string | null
+  pesoRecibido?: number | null
+  diferenciaRecepcion?: number | null
+  diferenciaRecepcionPorcentaje?: number | null
+  estadoRecepcion?: 'recibido' | 'pendiente_recepcion' | null
+  fechaRecepcion?: string | null
+  horaRecepcion?: string | null
+  recibidoPor?: string | null
 }
 
 export type ReportVehicle = {

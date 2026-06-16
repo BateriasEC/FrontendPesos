@@ -322,6 +322,17 @@ function VehicleCard({ vehicle }: { vehicle: ReportVehicle }) {
                     <PalletMetric label="Despacho" value={formatKg(pallet.pesoDespacho)} />
                     <PalletMetric label="Diferencia" value={formatKg(pallet.diferencia)} />
                   </div>
+                  {(pallet.estadoRecepcion === 'recibido' || pallet.pesoRecibido != null) && (
+                    <div className="mt-2 grid grid-cols-3 gap-2 text-xs text-gray-300 border-t border-white/10 pt-2">
+                      <PalletMetric label="Recibido" value={formatKg(pallet.pesoRecibido)} />
+                      <PalletMetric
+                        label="Dif. recepción"
+                        value={formatKg(pallet.diferenciaRecepcion)}
+                        highlight={pallet.diferenciaRecepcion != null && Math.abs(pallet.diferenciaRecepcion) > 0.01}
+                      />
+                      <PalletMetric label="Cód. RECP" value={pallet.codigoRecepcion || '—'} />
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -352,11 +363,11 @@ function SummaryMetric({ label, value }: { label: string; value: string | number
   )
 }
 
-function PalletMetric({ label, value }: { label: string; value: string }) {
+function PalletMetric({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
     <div>
-      <span className="text-gray-500">{label}:</span>
-      <div className="font-medium">{value}</div>
+      <div className="text-[10px] uppercase tracking-wide text-gray-500">{label}</div>
+      <div className={`font-semibold ${highlight ? 'text-red-400' : ''}`}>{value}</div>
     </div>
   )
 }
