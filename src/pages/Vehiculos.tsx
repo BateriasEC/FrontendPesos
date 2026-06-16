@@ -1,11 +1,15 @@
 import { useEffect, useMemo, useState, useCallback } from 'react'
 import { api } from '../services/api'
 import { Pagination } from '../components/Pagination'
+import { PlacaSearchInput } from '../components/PlacaSearchInput'
 
 type Vehiculo = { 
   id: number; 
   placa: string; 
   cliente: string; 
+  producto?: string;
+  canalVehiculo?: string;
+  tipoOperacion?: string;
   estado: 'en_planta' | 'salido'; 
   ingresoAt: string; 
   salidaAt?: string 
@@ -36,6 +40,9 @@ export default function Vehiculos() {
           id: v.id,
           placa: v.placa || v.codigoTrazabilidad || '',
           cliente: v.cliente || '',
+          producto: v.product?.nombre || v.producto?.nombre || 'N/A',
+          canalVehiculo: v.canalVehiculo?.nombre || v.canalVehiculo?.nombre || 'N/A',
+          tipoOperacion: v.tipoRecepcion?.nombre || 'N/A',
           estado: estadoMapped,
           ingresoAt: v.ingresoAt || v.createdAt || new Date().toISOString(),
           salidaAt: estadoCodigo === 'SALIDO' ? (v.salidaAt || v.updatedAt) : undefined
@@ -100,12 +107,12 @@ export default function Vehiculos() {
       <div className="rounded-xl border border-white/10 bg-white/5 p-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="flex flex-col gap-1 justify-end w-full">
-            <label className="text-xs text-gray-400 font-medium">Buscar</label>
-            <input
-              className="input h-11 w-full text-sm"
-              placeholder="Placa"
+            <label className="text-xs text-gray-400 font-medium">Placa</label>
+            <PlacaSearchInput
               value={q}
-              onChange={(e) => setQ(e.target.value)}
+              onChange={setQ}
+              placeholder="Buscar placa..."
+              inPlant={false}
             />
           </div>
 
@@ -145,6 +152,9 @@ export default function Vehiculos() {
               <tr>
                 <th>Código</th>
                 <th>Placa</th>
+                <th>Producto</th>
+                <th>Tipo operación</th>
+                <th>Canal</th>
                 <th>Estado</th>
                 <th>Ingreso</th>
                 <th>Salida</th>
@@ -153,7 +163,7 @@ export default function Vehiculos() {
             <tbody>
               {pageRows.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="text-center py-10 text-gray-400">
+                  <td colSpan={8} className="text-center py-10 text-gray-400">
                     No hay vehículos registrados
                   </td>
                 </tr>
@@ -162,6 +172,9 @@ export default function Vehiculos() {
                   <tr key={v.id} className="hover:bg-white/5 transition">
                     <td className="font-mono text-sm">{`COD-${String(v.id).padStart(3,'0')}`}</td>
                     <td className="font-medium">{v.placa}</td>
+                    <td className="text-sm text-gray-300">{v.producto || 'N/A'}</td>
+                    <td>{v.tipoOperacion || 'N/A'}</td>
+                    <td className="text-sm">{v.canalVehiculo || 'N/A'}</td>
                     <td>
                       <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
                         v.estado === 'en_planta' 

@@ -7,7 +7,8 @@ import {
   ScaleIcon,
   ChartBarIcon,
   TruckIcon,
-  ExclamationTriangleIcon
+  ExclamationTriangleIcon,
+  ArrowsRightLeftIcon,
 } from '@heroicons/react/24/outline'
 
 const baseLink =
@@ -52,6 +53,20 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
             to="/catalogo"
             icon={Squares2X2Icon}
             label="Catálogo"
+            onNavigate={onNavigate}
+          />
+
+          <SidebarLink
+            to="/tipos-operacion"
+            icon={ArrowsRightLeftIcon}
+            label="Tipos de Operación"
+            onNavigate={onNavigate}
+          />
+
+          <SidebarLink
+            to="/canales-vehiculo"
+            icon={ArrowsRightLeftIcon}
+            label="Canales del Vehículo"
             onNavigate={onNavigate}
           />
         </nav>

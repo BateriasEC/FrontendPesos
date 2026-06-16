@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Pagination } from '../components/Pagination'
 import { ReportCharts } from '../components/ReportCharts'
 import { api } from '../services/api'
+import { PlacaSearchInput } from '../components/PlacaSearchInput'
 import {
   defaultReportFilters,
   useVehicleReports,
@@ -150,15 +151,11 @@ export default function Reportes() {
 
           <label className="space-y-1 text-xs font-semibold text-gray-300">
             Placa
-            <input
-              type="search"
+            <PlacaSearchInput
+              value={draft.placa || ''}
+              onChange={(placa) => setDraft((current) => ({ ...current, placa }))}
               placeholder="Buscar placa..."
-              className="w-full rounded-lg border border-white/10 bg-neutral-800 px-3 py-2 text-sm text-gray-100 placeholder:text-gray-500"
-              value={draft.placa}
-              onChange={(event) => setDraft((current) => ({ ...current, placa: event.target.value }))}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') applyFilters()
-              }}
+              inPlant={false}
             />
           </label>
 
@@ -252,6 +249,12 @@ function VehicleCard({ vehicle }: { vehicle: ReportVehicle }) {
           </h3>
           <p className="text-sm text-gray-400">
             {vehicle.placa} · {vehicle.cliente} · {vehicle.producto}
+          </p>
+          <p className="text-xs text-gray-500">
+            Tipo operación: {vehicle.tipoOperacion || 'N/A'}
+          </p>
+          <p className="text-xs text-gray-500">
+            Canal: {vehicle.canalVehiculo || 'N/A'}
           </p>
           <p className="text-xs text-gray-500">Trazabilidad: {vehicle.codigoTrazabilidad}</p>
           <p className="text-xs text-gray-500">Operador: {vehicle.operador}</p>

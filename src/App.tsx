@@ -20,6 +20,8 @@ import Gestiones from './pages/Gestiones'
 import Tolerancias from './pages/Tolerancias'
 import Repesos from './pages/Repesos'
 import Productos from './pages/Productos'
+import TiposOperacion from './pages/TiposOperacion'
+import CanalesVehiculo from './pages/CanalesVehiculo'
 
 function App() {
   return (
@@ -46,6 +48,8 @@ function App() {
             <Route path="tolerancias" element={<Tolerancias />} />
             <Route path="repesos" element={<Repesos />} />
             <Route path="productos" element={<Productos />} />
+            <Route path="tipos-operacion" element={<TiposOperacion />} />
+            <Route path="canales-vehiculo" element={<CanalesVehiculo />} />
           </Route>
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

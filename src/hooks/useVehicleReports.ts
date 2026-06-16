@@ -29,7 +29,11 @@ export type ReportVehicle = {
   placa: string
   cliente: string
   producto: string
+  canalVehiculo?: string
   tipoVehiculo: string
+  tipoOperacion?: string
+  codigoTipoOperacion?: string
+  codigoCanalVehiculo?: string
   codigoTrazabilidad: string
   operador: string
   fechaRegistro: string
