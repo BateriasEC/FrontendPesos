@@ -29,7 +29,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
     <div className="flex flex-col h-full text-sm">
       
       {/* ================= CONTENIDO ================= */}
-      <div className="flex-1 space-y-6 overflow-y-auto">
+      <div className="flex-1 space-y-6 overflow-y-auto custom-scrollbar">
 
         {/* ===== PRINCIPAL ===== */}
         <nav className="space-y-1">

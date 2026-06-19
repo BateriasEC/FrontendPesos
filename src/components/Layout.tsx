@@ -38,7 +38,7 @@ export function Layout() {
           style={{ top: '83px' }}
         >
           {/* CONTENEDOR INTERNO */}
-          <div className="h-full flex flex-col p-4 overflow-y-auto">
+          <div className="h-full flex flex-col p-4 overflow-y-auto custom-scrollbar">
             
             {/* HEADER MOBILE */}
             <div className="flex items-center justify-between mb-4 md:hidden">
