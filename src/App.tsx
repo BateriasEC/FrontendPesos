@@ -22,6 +22,7 @@ import Repesos from './pages/Repesos'
 import Productos from './pages/Productos'
 import TiposOperacion from './pages/TiposOperacion'
 import CanalesVehiculo from './pages/CanalesVehiculo'
+import ConfiguracionDispositivos from './pages/ConfiguracionDispositivos'
 
 function App() {
   return (
@@ -50,6 +51,9 @@ function App() {
             <Route path="productos" element={<Productos />} />
             <Route path="tipos-operacion" element={<TiposOperacion />} />
             <Route path="canales-vehiculo" element={<CanalesVehiculo />} />
+            <Route element={<ProtectedRoute roles={["admin", "supervisor"]} />}>
+              <Route path="configuracion-dispositivos" element={<ConfiguracionDispositivos />} />
+            </Route>
           </Route>
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

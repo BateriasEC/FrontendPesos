@@ -10,6 +10,7 @@ import {
   ExclamationTriangleIcon,
   ArrowsRightLeftIcon,
   InboxArrowDownIcon,
+  Cog6ToothIcon,
 } from '@heroicons/react/24/outline'
 
 const baseLink =
@@ -97,6 +98,20 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
             onNavigate={onNavigate}
           />
         </nav>
+
+        <div className="h-px bg-white/10 mx-2" />
+
+        {/* ===== CONFIGURACIÓN ===== */}
+        {(hasRole('admin') || hasRole('supervisor')) && (
+          <nav className="space-y-1">
+            <SidebarLink
+              to="/configuracion-dispositivos"
+              icon={Cog6ToothIcon}
+              label="Config. dispositivos"
+              onNavigate={onNavigate}
+            />
+          </nav>
+        )}
 
         <div className="h-px bg-white/10 mx-2" />
 
