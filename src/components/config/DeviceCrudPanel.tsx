@@ -205,6 +205,11 @@ export function DeviceCrudPanel({ tipo, title, description }: Props) {
   }
 
   const testConnection = async (id: string) => {
+    const row = rows.find((r) => r.id === id)
+    if (row && !row.habilitado) {
+      window.alert('Debes habilitar el dispositivo antes de probar la conexión.')
+      return
+    }
     setTestingId(id)
     try {
       const response = await api.post(`/configuracion-dispositivos/dispositivos/${id}/probar-conexion`)
@@ -233,6 +238,11 @@ export function DeviceCrudPanel({ tipo, title, description }: Props) {
   }
 
   const testPrint = async (id: string, deviceName: string) => {
+    const row = rows.find((r) => r.id === id)
+    if (row && !row.habilitado) {
+      window.alert('Debes habilitar el dispositivo antes de probar la impresión.')
+      return
+    }
     setPrintingId(id)
     try {
       const response = await api.post(`/configuracion-dispositivos/dispositivos/${id}/probar-impresion`)
@@ -351,7 +361,7 @@ export function DeviceCrudPanel({ tipo, title, description }: Props) {
                           <button
                             type="button"
                             className="btn btn-ghost btn-sm"
-                            disabled={!row.habilitado || testingId === row.id}
+                            disabled={testingId === row.id}
                             onClick={() => testConnection(row.id)}
                           >
                             {testingId === row.id ? 'Probando...' : 'Probar'}
@@ -361,7 +371,7 @@ export function DeviceCrudPanel({ tipo, title, description }: Props) {
                           <button
                             type="button"
                             className="btn btn-ghost btn-sm"
-                            disabled={!row.habilitado || printingId === row.id}
+                            disabled={printingId === row.id}
                             onClick={() => testPrint(row.id, row.nombre)}
                           >
                             {printingId === row.id ? 'Imprimiendo...' : 'Probar impresión'}

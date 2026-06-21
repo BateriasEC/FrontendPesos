@@ -1,6 +1,6 @@
 export type TipoDispositivo = 'IMPRESORA' | 'BALANZA' | 'PDA'
 
-export type RolBalanza = 'INGRESO_SALIDA' | 'PALLETS' | 'DESPACHO' | 'OTRO'
+export type RolBalanza = 'INGRESO_SALIDA' | 'PALLETS' | 'DESPACHO' | 'REPESAJE' | 'RECEPCION' | 'OTRO'
 
 export interface DispositivoConfig {
   id: string
@@ -29,5 +29,7 @@ export const ROL_BALANZA_LABELS: Record<RolBalanza, string> = {
   INGRESO_SALIDA: 'Balanza 1 (Ingreso/Salida)',
   PALLETS: 'Balanza 2 (Pallets)',
   DESPACHO: 'Balanza 3 (Despacho)',
+  REPESAJE: 'Balanza 4 (Repesaje)',
+  RECEPCION: 'Balanza 5 (Recepción)',
   OTRO: 'Otra / adicional',
 }
