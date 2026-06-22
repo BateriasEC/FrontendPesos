@@ -76,6 +76,7 @@ export function DeviceCrudPanel({ tipo, title, description }: Props) {
   const [form, setForm] = useState<DeviceForm>(() => defaultForm(tipo))
   const [testingId, setTestingId] = useState<string | null>(null)
   const [printingId, setPrintingId] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
   const [connectionMap, setConnectionMap] = useState<Record<string, StoredConnectionEntry>>(() =>
     loadConnectionMap(),
   )
@@ -160,40 +161,46 @@ export function DeviceCrudPanel({ tipo, title, description }: Props) {
   }
 
   const save = async () => {
-    const payload: Record<string, unknown> = {
-      tipo,
-      nombre: form.nombre.trim(),
-      habilitado: form.habilitado,
-      descripcion: form.descripcion.trim() || undefined,
-    }
-
-    if (tipo === 'PDA') {
-      payload.identificador = form.identificador.trim() || undefined
-    } else {
-      payload.ip = form.ip.trim()
-      payload.puerto = parseInt(form.puerto, 10) || (tipo === 'IMPRESORA' ? 9100 : 5000)
-    }
-
-    if (tipo === 'BALANZA') {
-      payload.rolBalanza = form.rolBalanza
-    }
-
-    if (editing?.id) {
-      await api.patch(`/configuracion-dispositivos/dispositivos/${editing.id}`, payload)
-      const disabledNow = !form.habilitado
-      const networkChanged =
-        form.ip.trim() !== (editing.ip || '').trim() ||
-        (parseInt(form.puerto, 10) || 0) !== (editing.puerto ?? 0)
-      if (disabledNow || networkChanged) {
-        removeConnectionEntry(editing.id)
-        setConnectionMap(loadConnectionMap())
+    if (saving) return
+    setSaving(true)
+    try {
+      const payload: Record<string, unknown> = {
+        tipo,
+        nombre: form.nombre.trim(),
+        habilitado: form.habilitado,
+        descripcion: form.descripcion.trim() || undefined,
       }
-    } else {
-      await api.post('/configuracion-dispositivos/dispositivos', payload)
-    }
 
-    await load()
-    setEditing(null)
+      if (tipo === 'PDA') {
+        payload.identificador = form.identificador.trim() || undefined
+      } else {
+        payload.ip = form.ip.trim()
+        payload.puerto = parseInt(form.puerto, 10) || (tipo === 'IMPRESORA' ? 9100 : 5000)
+      }
+
+      if (tipo === 'BALANZA') {
+        payload.rolBalanza = form.rolBalanza
+      }
+
+      if (editing?.id) {
+        await api.patch(`/configuracion-dispositivos/dispositivos/${editing.id}`, payload)
+        const disabledNow = !form.habilitado
+        const networkChanged =
+          form.ip.trim() !== (editing.ip || '').trim() ||
+          (parseInt(form.puerto, 10) || 0) !== (editing.puerto ?? 0)
+        if (disabledNow || networkChanged) {
+          removeConnectionEntry(editing.id)
+          setConnectionMap(loadConnectionMap())
+        }
+      } else {
+        await api.post('/configuracion-dispositivos/dispositivos', payload)
+      }
+
+      await load()
+      setEditing(null)
+    } finally {
+      setSaving(false)
+    }
   }
 
   const remove = async (id: string) => {
@@ -479,16 +486,16 @@ export function DeviceCrudPanel({ tipo, title, description }: Props) {
           </label>
 
           <div className="flex justify-end gap-2 pt-2">
-            <button type="button" className="btn btn-ghost" onClick={() => setEditing(null)}>
+            <button type="button" className="btn btn-ghost" disabled={saving} onClick={() => setEditing(null)}>
               Cancelar
             </button>
             <button
               type="button"
               className="btn btn-primary"
-              disabled={!form.nombre.trim() || (showNetworkFields && !form.ip.trim())}
+              disabled={saving || !form.nombre.trim() || (showNetworkFields && !form.ip.trim())}
               onClick={save}
             >
-              Guardar
+              {saving ? 'Guardando...' : 'Guardar'}
             </button>
           </div>
         </div>
