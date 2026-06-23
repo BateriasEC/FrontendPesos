@@ -13,43 +13,52 @@ type Producto = {
 export default function Catalogo() {
   const [rows, setRows] = useState<Producto[]>([]);
   const [q, setQ] = useState("");
+  const [debouncedQ, setDebouncedQ] = useState("");
   const [loading, setLoading] = useState(true);
+  const [total, setTotal] = useState(0);
+
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+
+  // Debounce search query
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedQ(q);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [q]);
+
+  // Reset to page 1 on search change
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedQ]);
 
   // ================== CARGAR ==================
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await api.get("/products");
-      setRows(response.data?.data || response.data || []);
+      const response = await api.get("/products", {
+        params: {
+          page,
+          limit: pageSize,
+          search: debouncedQ || undefined,
+        },
+      });
+      const responseData = response.data;
+      setRows(responseData?.data || []);
+      setTotal(responseData?.total ?? 0);
     } catch (err: any) {
       alert(err.response?.data?.message || "Error al cargar productos");
       setRows([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page, debouncedQ]);
 
   useEffect(() => {
     load();
   }, [load]);
-
-  // ================== FILTRO ==================
-  const filtered = useMemo(() => {
-    return rows.filter(
-      (r) =>
-        !q ||
-        r.codigo.toLowerCase().includes(q.toLowerCase()) ||
-        r.nombre.toLowerCase().includes(q.toLowerCase())
-    );
-  }, [rows, q]);
-
-  const [page, setPage] = useState(1);
-  const pageSize = 10;
-
-  const pageRows = useMemo(
-    () => filtered.slice((page - 1) * pageSize, page * pageSize),
-    [filtered, page]
-  );
 
   // ================== MODAL ==================
   const [editing, setEditing] = useState<Producto | null>(null);
@@ -140,39 +149,52 @@ export default function Catalogo() {
           </thead>
 
           <tbody>
-            {pageRows.map((p) => (
-              <tr key={p.id}>
-                <td>{p.codigo}</td>
-                <td>{p.nombre}</td>
-                <td>{p.descripcion}</td>
-
-                <td className="text-center space-x-2">
-                  <button
-                    onClick={() => openEdit(p)}
-                    className="btn btn-ghost btn-sm"
-                  >
-                    Editar
-                  </button>
-
-                  <button
-                    onClick={() => setDeleteProduct(p)}
-                    className="btn btn-sm bg-red-500/20 text-red-300"
-                  >
-                    Eliminar
-                  </button>
+            {rows.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="text-center py-10 text-gray-400">
+                  No existen registros de productos
                 </td>
               </tr>
-            ))}
+            ) : (
+              rows.map((p) => (
+                <tr key={p.id}>
+                  <td>{p.codigo}</td>
+                  <td>{p.nombre}</td>
+                  <td>{p.descripcion}</td>
+
+                  <td className="text-center space-x-2">
+                    <button
+                      onClick={() => openEdit(p)}
+                      className="btn btn-ghost btn-sm"
+                    >
+                      Editar
+                    </button>
+
+                    <button
+                      onClick={() => setDeleteProduct(p)}
+                      className="btn btn-sm bg-red-500/20 text-red-300"
+                    >
+                      Eliminar
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       )}
 
-      <Pagination
-        page={page}
-        pageSize={pageSize}
-        total={filtered.length}
-        onChange={setPage}
-      />
+      <div className="flex items-center justify-between mt-4">
+        <span className="text-sm text-gray-400">
+          {total > 0 ? `Mostrando ${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, total)} de ${total} registros` : 'No hay registros'}
+        </span>
+        <Pagination
+          page={page}
+          pageSize={pageSize}
+          total={total}
+          onChange={setPage}
+        />
+      </div>
 
       {/* ================== MODAL CREAR / EDITAR ================== */}
       <Modal

@@ -22,14 +22,46 @@ function formatDate(s?: string) {
 export default function Vehiculos() {
   const [rows, setRows] = useState<Vehiculo[]>([])
   const [q, setQ] = useState('')
+  const [debouncedQ, setDebouncedQ] = useState('')
   const [estado, setEstado] = useState<Vehiculo['estado'] | ''>('')
   const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState(1)
+  const [total, setTotal] = useState(0)
+  const [totalEnPlanta, setTotalEnPlanta] = useState(0)
+  const [totalSalido, setTotalSalido] = useState(0)
+
+  const pageSize = 10
+
+  // Debounce search query
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedQ(q);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [q]);
+
+  // Reset to page 1 on filter or search change
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedQ, estado]);
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const response = await api.get('/vehicles')
-      const vehicles = response.data?.data || response.data || []
+      const response = await api.get('/vehicles', {
+        params: {
+          page,
+          limit: pageSize,
+          search: debouncedQ || undefined,
+          estado: estado || undefined,
+        }
+      })
+      const responseData = response.data
+      const vehicles = responseData?.data || []
+      const totalCount = responseData?.total ?? 0
+      const enPlantaCount = responseData?.totalEnPlanta ?? 0
+      const salidoCount = responseData?.totalSalido ?? 0
+
       const mappedVehicles = vehicles.map((v: any) => {
         const estadoCodigo = v.estado?.codigo || v.estado || 'EN_PLANTA'
         let estadoMapped: 'en_planta' | 'salido' = 'en_planta'
@@ -49,24 +81,21 @@ export default function Vehiculos() {
         }
       })
       setRows(mappedVehicles)
+      setTotal(totalCount)
+      setTotalEnPlanta(enPlantaCount)
+      setTotalSalido(salidoCount)
     } catch (error: any) {
       console.error('Error cargando vehículos:', error)
       setRows([])
+      setTotal(0)
+      setTotalEnPlanta(0)
+      setTotalSalido(0)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [page, debouncedQ, estado])
   
   useEffect(() => { load() }, [load])
-
-  const filtered = useMemo(() => rows.filter(r => (
-    (!q || r.placa.toLowerCase().includes(q.toLowerCase())) &&
-    (!estado || r.estado === estado)
-  )), [rows, q, estado])
-
-  const [page, setPage] = useState(1)
-  const pageSize = 10
-  const pageRows = useMemo(() => filtered.slice((page-1)*pageSize, page*pageSize), [filtered, page])
 
   return (
     <div className="space-y-6 w-full">
@@ -80,7 +109,7 @@ export default function Vehiculos() {
             Total Vehículos
           </p>
           <p className="mt-1 text-2xl font-semibold">
-            {filtered.length}
+            {total}
           </p>
         </div>
 
@@ -89,7 +118,7 @@ export default function Vehiculos() {
             En Proceso
           </p>
           <p className="mt-1 text-2xl font-semibold text-green-400">
-            {filtered.filter(v => v.estado === 'en_planta').length}
+            {totalEnPlanta}
           </p>
         </div>
 
@@ -98,7 +127,7 @@ export default function Vehiculos() {
             Descargados
           </p>
           <p className="mt-1 text-2xl font-semibold text-gray-400">
-            {filtered.filter(v => v.estado === 'salido').length}
+            {totalSalido}
           </p>
         </div>
       </div>
@@ -161,14 +190,14 @@ export default function Vehiculos() {
               </tr>
             </thead>
             <tbody>
-              {pageRows.length === 0 ? (
+              {rows.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="text-center py-10 text-gray-400">
                     No hay vehículos registrados
                   </td>
                 </tr>
               ) : (
-                pageRows.map((v) => (
+                rows.map((v) => (
                   <tr key={v.id} className="hover:bg-white/5 transition">
                     <td className="font-mono text-sm">{`COD-${String(v.id).padStart(3,'0')}`}</td>
                     <td className="font-medium">{v.placa}</td>
@@ -194,11 +223,14 @@ export default function Vehiculos() {
         </div>
       )}
 
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between mt-4">
+        <span className="text-sm text-gray-400">
+          {total > 0 ? `Mostrando ${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, total)} de ${total} registros` : 'No hay registros'}
+        </span>
         <Pagination
           page={page}
           pageSize={pageSize}
-          total={filtered.length}
+          total={total}
           onChange={setPage}
         />
       </div>

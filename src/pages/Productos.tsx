@@ -21,27 +21,57 @@ export default function Productos() {
   const [sortField, setSortField] = useState<keyof Producto | null>(null)
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
 
+  const [page, setPage] = useState(1)
+  const pageSize = 10
+  const [total, setTotal] = useState(0)
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+
+  // Debounce search input
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(filterDescripcion)
+    }, 300)
+    return () => clearTimeout(handler)
+  }, [filterDescripcion])
+
+  // Reset page to 1 when search query changes
+  useEffect(() => {
+    setPage(1)
+  }, [debouncedSearch])
+
   const load = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const response = await api.get('/products')
-      const products = response.data?.data || response.data || []
+      const response = await api.get('/products', {
+        params: {
+          page,
+          limit: pageSize,
+          search: debouncedSearch || undefined,
+        }
+      })
+      const responseData = response.data
+      const products = responseData?.data || []
+      const totalCount = responseData?.total ?? 0
+
       const mappedProducts = products.map((p: any) => ({
         id: p.id,
         descripcion: p.nombre || p.descripcion || '',
+        weight: Number(p.pesoEsperado || p.peso || 0), // Use same mapping key
         peso: Number(p.pesoEsperado || p.peso || 0),
         caja: p.tipoProducto?.nombre || p.caja || ''
       }))
       setRows(mappedProducts)
+      setTotal(totalCount)
     } catch (error: any) {
       console.error('Error al cargar productos:', error)
       setError('Error al cargar productos. Por favor, intente nuevamente.')
       setRows([])
+      setTotal(0)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [page, debouncedSearch])
   
   useEffect(() => { 
     load() 
@@ -56,12 +86,11 @@ export default function Productos() {
     }
   }
 
-  const filtered = useMemo(() => {
+  const pageRows = useMemo(() => {
     let result = rows.filter(r => {
-      const matchDescripcion = !filterDescripcion || r.descripcion.toLowerCase().includes(filterDescripcion.toLowerCase())
       const matchPeso = !filterPeso || r.peso.toString().includes(filterPeso)
       const matchCaja = !filterCaja || r.caja.toLowerCase().includes(filterCaja.toLowerCase())
-      return matchDescripcion && matchPeso && matchCaja
+      return matchPeso && matchCaja
     })
 
     if (sortField) {
@@ -74,11 +103,7 @@ export default function Productos() {
     }
 
     return result
-  }, [rows, filterDescripcion, filterPeso, filterCaja, sortField, sortDirection])
-
-  const [page, setPage] = useState(1)
-  const pageSize = 10
-  const pageRows = useMemo(() => filtered.slice((page-1)*pageSize, page*pageSize), [filtered, page])
+  }, [rows, filterPeso, filterCaja, sortField, sortDirection])
 
   const openNew = () => { 
     setEditing({} as any)
@@ -220,8 +245,11 @@ export default function Productos() {
             </table>
           </div>
 
-          <div className="flex justify-end">
-            <Pagination page={page} pageSize={pageSize} total={filtered.length} onChange={setPage} />
+          <div className="flex items-center justify-between mt-4">
+            <span className="text-sm text-gray-400">
+              {total > 0 ? `Mostrando ${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, total)} de ${total} registros` : 'No hay registros'}
+            </span>
+            <Pagination page={page} pageSize={pageSize} total={total} onChange={setPage} />
           </div>
         </>
       )}

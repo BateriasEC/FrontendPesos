@@ -21,13 +21,42 @@ const ROLE_LABELS: Record<Usuario["role"], string> = {
 export default function Usuarios() {
   const [rows, setRows] = useState<Usuario[]>([]);
   const [q, setQ] = useState("");
+  const [debouncedQ, setDebouncedQ] = useState("");
   const [role, setRole] = useState<Usuario["role"] | "">("");
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(false);
+
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+
+  // Debounce search query
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedQ(q);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [q]);
+
+  // Reset to page 1 on filter or search change
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedQ, role]);
 
   // ================== CARGAR USUARIOS ==================
   const load = useCallback(async () => {
+    setLoading(true);
     try {
-      const response = await api.get("/users");
-      const users = response.data?.data || response.data || [];
+      const response = await api.get("/users", {
+        params: {
+          page,
+          limit: pageSize,
+          search: debouncedQ || undefined,
+          role: role || undefined,
+        },
+      });
+      const responseData = response.data;
+      const users = responseData?.data || [];
+      const totalCount = responseData?.total ?? 0;
 
       const mappedUsers: Usuario[] = users.map((u: any) => ({
         id: u.id,
@@ -39,34 +68,19 @@ export default function Usuarios() {
       }));
 
       setRows(mappedUsers);
+      setTotal(totalCount);
     } catch (error: any) {
       alert(error.response?.data?.message || "Error al cargar usuarios");
       setRows([]);
+      setTotal(0);
+    } finally {
+      setLoading(false);
     }
-  }, []);
+  }, [page, debouncedQ, role]);
 
   useEffect(() => {
     load();
   }, [load]);
-
-  // ================== FILTROS ==================
-  const filtered = useMemo(() => {
-    return rows.filter(
-      (r) =>
-        (!q ||
-          r.name.toLowerCase().includes(q.toLowerCase()) ||
-          r.email.toLowerCase().includes(q.toLowerCase())) &&
-        (!role || r.role === role)
-    );
-  }, [rows, q, role]);
-
-  const [page, setPage] = useState(1);
-  const pageSize = 10;
-
-  const pageRows = useMemo(
-    () => filtered.slice((page - 1) * pageSize, page * pageSize),
-    [filtered, page]
-  );
 
   // ================== MODAL CREAR / EDITAR ==================
   const [editing, setEditing] = useState<Usuario | null>(null);
@@ -197,52 +211,73 @@ export default function Usuarios() {
           </thead>
 
           <tbody>
-            {pageRows.map((u) => (
-              <tr key={u.id}>
-                <td className="align-middle whitespace-nowrap">{u.name}</td>
-                <td className="align-middle">
-                  <span className="block truncate max-w-[200px] md:max-w-none" title={u.email}>
-                    {u.email}
-                  </span>
-                </td>
-                <td className="align-middle font-semibold whitespace-nowrap">
-                  {ROLE_LABELS[u.role]}
-                </td>
-
-                <td className="text-center align-middle">
-                  <div className="flex items-center justify-center gap-2 flex-wrap">
-                    <button
-                      onClick={() => openEdit(u)}
-                      className="btn btn-ghost btn-sm whitespace-nowrap"
-                    >
-                      Editar
-                    </button>
-
-                    <button
-                      disabled={u.role === "admin"}
-                      onClick={() => setDeleteUser(u)}
-                      className={
-                        u.role === "admin"
-                          ? "btn btn-sm bg-red-500/10 text-red-300 opacity-40 cursor-not-allowed whitespace-nowrap"
-                          : "btn btn-sm bg-red-500/20 text-red-300 whitespace-nowrap"
-                      }
-                    >
-                      Eliminar
-                    </button>
+            {loading ? (
+              <tr>
+                <td colSpan={4} className="text-center py-10">
+                  <div className="flex justify-center">
+                    <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-brand-orange" />
                   </div>
                 </td>
               </tr>
-            ))}
+            ) : rows.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="text-center py-10 text-gray-400">
+                  No existen registros de usuarios
+                </td>
+              </tr>
+            ) : (
+              rows.map((u) => (
+                <tr key={u.id}>
+                  <td className="align-middle whitespace-nowrap">{u.name}</td>
+                  <td className="align-middle">
+                    <span className="block truncate max-w-[200px] md:max-w-none" title={u.email}>
+                      {u.email}
+                    </span>
+                  </td>
+                  <td className="align-middle font-semibold whitespace-nowrap">
+                    {ROLE_LABELS[u.role]}
+                  </td>
+
+                  <td className="text-center align-middle">
+                    <div className="flex items-center justify-center gap-2 flex-wrap">
+                      <button
+                        onClick={() => openEdit(u)}
+                        className="btn btn-ghost btn-sm whitespace-nowrap"
+                      >
+                        Editar
+                      </button>
+
+                      <button
+                        disabled={u.role === "admin"}
+                        onClick={() => setDeleteUser(u)}
+                        className={
+                          u.role === "admin"
+                            ? "btn btn-sm bg-red-500/10 text-red-300 opacity-40 cursor-not-allowed whitespace-nowrap"
+                            : "btn btn-sm bg-red-500/20 text-red-300 whitespace-nowrap"
+                        }
+                      >
+                        Eliminar
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
 
-      <Pagination
-        page={page}
-        pageSize={pageSize}
-        total={filtered.length}
-        onChange={setPage}
-      />
+      <div className="flex items-center justify-between mt-4">
+        <span className="text-sm text-gray-400">
+          {total > 0 ? `Mostrando ${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, total)} de ${total} registros` : 'No hay registros'}
+        </span>
+        <Pagination
+          page={page}
+          pageSize={pageSize}
+          total={total}
+          onChange={setPage}
+        />
+      </div>
 
       {/* ================== MODAL CREAR / EDITAR ================== */}
       <Modal

@@ -42,18 +42,46 @@ type Row = {
 export default function Pesajes() {
   const [rows, setRows] = useState<Row[]>([]);
   const [q, setQ] = useState("");
+  const [debouncedQ, setDebouncedQ] = useState("");
   const [range, setRange] = useState({ from: "", to: "" });
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [totalWeight, setTotalWeight] = useState(0);
   const [labelRow, setLabelRow] = useState<Row | null>(null);
 
   const pageSize = 10;
 
+  // Debounce search query
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedQ(q);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [q]);
+
+  // Reset to page 1 on filter or search change
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedQ, range]);
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.get("/pallets");
-      const data = res.data?.data?.data || res.data?.data || [];
+      const res = await api.get("/pallets", {
+        params: {
+          page,
+          limit: pageSize,
+          search: debouncedQ || undefined,
+          fecha_inicio: range.from || undefined,
+          fecha_fin: range.to || undefined,
+        },
+      });
+
+      const responseData = res.data;
+      const data = responseData?.data || [];
+      const totalCount = responseData?.total ?? 0;
+      const weightSum = responseData?.totalWeight ?? 0;
 
       setRows(
         data.map((p: any) => {
@@ -86,40 +114,62 @@ export default function Pesajes() {
           };
         }),
       );
+      setTotal(totalCount);
+      setTotalWeight(weightSum);
     } catch (error: any) {
       console.error('[Pesajes] Error al cargar datos:', error);
       setRows([]);
+      setTotal(0);
+      setTotalWeight(0);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page, debouncedQ, range]);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  const filtered = useMemo(() => {
-    return rows.filter((r) => {
-      const match =
-        !q ||
-        r.placa.toLowerCase().includes(q.toLowerCase()) ||
-        r.codigoPallet.toLowerCase().includes(q.toLowerCase());
-
-      const d = new Date(r.fecha);
-
-      return (
-        match &&
-        (!range.from || d >= new Date(range.from)) &&
-        (!range.to || d <= new Date(range.to + "T23:59:59"))
-      );
-    });
-  }, [rows, q, range]);
-
-  const pageRows = filtered.slice((page - 1) * pageSize, page * pageSize);
-
-  const exportExcel = () => {
+  const exportExcel = async () => {
     try {
-      const excelData = filtered.map((row, idx) => {
+      const res = await api.get("/pallets", {
+        params: {
+          search: debouncedQ || undefined,
+          fecha_inicio: range.from || undefined,
+          fecha_fin: range.to || undefined,
+        },
+      });
+      const data = res.data?.data || res.data || [];
+      const exportRows = data.map((p: any) => {
+        const ingreso = Number(p.vehicle?.pesoIngreso || p.pesoTotal || 0);
+        const salida =
+          p.vehicle?.pesoSalida != null ? Number(p.vehicle.pesoSalida) : null;
+
+        return {
+          id: p.id,
+          fecha: p.createdAt,
+          placa: p.vehicle?.placa || "",
+          codigoPallet: p.codigo || "",
+          pesoIngreso: ingreso,
+          pesoSalida: salida,
+          variacion: salida != null ? ingreso - salida : 0,
+          cliente: p.vehicle?.cliente || "",
+          vehicleId: p.vehicleId,
+          codigoTrazabilidad: p.vehicle?.codigoTrazabilidad,
+          productNombre: p.product?.nombre,
+          pesoTotal: Number(p.pesoTotal) || 0,
+          pesoDescarga: p.descargado ? Number(p.pesoDescarga) : null,
+          variacionPeso: Number(p.variacionPeso) || null,
+          descargado: Boolean(p.descargado),
+          operador: p.vehicle?.user?.fullName || p.user?.fullName || 'N/A',
+          codigoRecepcion: p.recepcion?.codigoRecepcion ?? null,
+          pesoRecibido: p.recepcion?.pesoRecibido != null ? Number(p.recepcion.pesoRecibido) : null,
+          diferenciaRecepcion: p.recepcion?.diferenciaPeso != null ? Number(p.recepcion.diferenciaPeso) : null,
+          estadoRecepcion: p.recepcion ? 'Recibido' : p.descargado ? 'Pendiente recepción' : 'N/A',
+        };
+      });
+
+      const excelData = exportRows.map((row: any, idx: number) => {
         const fecha = new Date(row.fecha);
         const diaSemana = fecha.toLocaleDateString('es-EC', { weekday: 'long', timeZone: 'America/Bogota' });
         
@@ -202,14 +252,14 @@ export default function Pesajes() {
             Total Pallets Registrados
           </p>
           <p className="mt-1 text-2xl font-semibold">
-            {filtered.length}
+            {total}
           </p>
         </div>
 
         <div className="rounded-xl border border-white/10 bg-white/5 p-5">
           <p className="text-xs text-gray-400 uppercase">Peso Total Pallets</p>
           <p className="mt-1 text-2xl font-semibold">
-            {filtered.reduce((a, b) => a + (b.pesoTotal || 0), 0).toLocaleString()} kg
+            {totalWeight.toLocaleString()} kg
           </p>
         </div>
       </div>
@@ -269,14 +319,14 @@ export default function Pesajes() {
               </tr>
             </thead>
             <tbody>
-              {pageRows.length === 0 ? (
+              {rows.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="text-center py-10 text-gray-400">
                     No existen registros de pesaje
                   </td>
                 </tr>
               ) : (
-                pageRows.map((r) => (
+                rows.map((r) => (
                   <tr key={r.id} className="hover:bg-white/5 transition">
                     <td>{new Date(r.fecha).toLocaleString()}</td>
                     <td className="font-medium">{r.placa}</td>
@@ -327,11 +377,14 @@ export default function Pesajes() {
         </div>
       )}
 
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between mt-4">
+        <span className="text-sm text-gray-400">
+          {total > 0 ? `Mostrando ${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, total)} de ${total} registros` : 'No hay registros'}
+        </span>
         <Pagination
           page={page}
           pageSize={pageSize}
-          total={filtered.length}
+          total={total}
           onChange={setPage}
         />
       </div>

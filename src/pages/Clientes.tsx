@@ -26,7 +26,10 @@ const ESTADO_IDS: Record<Cliente["estado"], string> = {
 export default function Clientes() {
   const [rows, setRows] = useState<Cliente[]>([]);
   const [q, setQ] = useState("");
+  const [debouncedQ, setDebouncedQ] = useState("");
   const [estado, setEstado] = useState<Cliente["estado"] | "">("");
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(false);
 
   /* ================== MODAL ================== */
   const [openForm, setOpenForm] = useState(false);
@@ -39,11 +42,37 @@ export default function Clientes() {
     estado: "activo" as Cliente["estado"],
   });
 
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+
+  // Debounce search query
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedQ(q);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [q]);
+
+  // Reset to page 1 on filter or search change
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedQ, estado]);
+
   /* ================== CARGAR CLIENTES ================== */
   const load = useCallback(async () => {
+    setLoading(true);
     try {
-      const res = await api.get("/clients");
-      const clients = res.data?.data || res.data || [];
+      const res = await api.get("/clients", {
+        params: {
+          page,
+          limit: pageSize,
+          search: debouncedQ || undefined,
+          estado: estado || undefined,
+        },
+      });
+      const responseData = res.data;
+      const clients = responseData?.data || [];
+      const totalCount = responseData?.total ?? 0;
 
       const mapped: Cliente[] = clients.map((c: any) => ({
         id: c.id,
@@ -54,33 +83,19 @@ export default function Clientes() {
       }));
 
       setRows(mapped);
+      setTotal(totalCount);
     } catch (err: any) {
       alert(err.response?.data?.message || "Error al cargar clientes");
+      setRows([]);
+      setTotal(0);
+    } finally {
+      setLoading(false);
     }
-  }, []);
+  }, [page, debouncedQ, estado]);
 
   useEffect(() => {
     load();
   }, [load]);
-
-  /* ================== FILTROS ================== */
-  const filtered = useMemo(() => {
-    return rows.filter(
-      (r) =>
-        (!q ||
-          r.nombre.toLowerCase().includes(q.toLowerCase()) ||
-          r.ruc?.toLowerCase().includes(q.toLowerCase())) &&
-        (!estado || r.estado === estado),
-    );
-  }, [rows, q, estado]);
-
-  const [page, setPage] = useState(1);
-  const pageSize = 10;
-
-  const pageRows = useMemo(
-    () => filtered.slice((page - 1) * pageSize, page * pageSize),
-    [filtered, page],
-  );
 
   /* ================== ABRIR MODALES ================== */
   const openNew = () => {
@@ -185,37 +200,58 @@ export default function Clientes() {
         </thead>
 
         <tbody>
-          {pageRows.map((c) => (
-            <tr key={c.id}>
-              <td>{c.nombre}</td>
-              <td>{c.ruc}</td>
-              <td>{c.contacto}</td>
-              <td className="font-semibold">{ESTADO_LABELS[c.estado]}</td>
-              <td className="text-center space-x-2">
-                <button
-                  onClick={() => openEdit(c)}
-                  className="btn btn-ghost btn-sm"
-                >
-                  Editar
-                </button>
-                <button
-                  onClick={() => setDeleteClient(c)}
-                  className="btn btn-sm bg-red-500/20 text-red-300"
-                >
-                  Eliminar
-                </button>
+          {loading ? (
+            <tr>
+              <td colSpan={5} className="text-center py-10">
+                <div className="flex justify-center">
+                  <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-brand-orange" />
+                </div>
               </td>
             </tr>
-          ))}
+          ) : rows.length === 0 ? (
+            <tr>
+              <td colSpan={5} className="text-center py-10 text-gray-400">
+                No existen registros de clientes
+              </td>
+            </tr>
+          ) : (
+            rows.map((c) => (
+              <tr key={c.id}>
+                <td>{c.nombre}</td>
+                <td>{c.ruc}</td>
+                <td>{c.contacto}</td>
+                <td className="font-semibold">{ESTADO_LABELS[c.estado]}</td>
+                <td className="text-center space-x-2">
+                  <button
+                    onClick={() => openEdit(c)}
+                    className="btn btn-ghost btn-sm"
+                  >
+                    Editar
+                  </button>
+                  <button
+                    onClick={() => setDeleteClient(c)}
+                    className="btn btn-sm bg-red-500/20 text-red-300"
+                  >
+                    Eliminar
+                  </button>
+                </td>
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
 
-      <Pagination
-        page={page}
-        pageSize={pageSize}
-        total={filtered.length}
-        onChange={setPage}
-      />
+      <div className="flex items-center justify-between mt-4">
+        <span className="text-sm text-gray-400">
+          {total > 0 ? `Mostrando ${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, total)} de ${total} registros` : 'No hay registros'}
+        </span>
+        <Pagination
+          page={page}
+          pageSize={pageSize}
+          total={total}
+          onChange={setPage}
+        />
+      </div>
 
       {/* ===== MODAL CREAR / EDITAR ===== */}
       <Modal

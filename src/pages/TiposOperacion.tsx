@@ -27,43 +27,51 @@ export default function TiposOperacion() {
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(1)
   const pageSize = 10
+  const [total, setTotal] = useState(0)
+  const [debouncedQ, setDebouncedQ] = useState('')
+
+  // Debounce search query
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedQ(q);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [q]);
+
+  // Reset page to 1 on search or filter change
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedQ, estado]);
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const response = await api.get('/tipos-operacion')
-      const items = response.data?.data || response.data || []
+      const response = await api.get('/tipos-operacion', {
+        params: {
+          page,
+          limit: pageSize,
+          search: debouncedQ || undefined,
+          activo: estado === 'all' ? undefined : (estado === 'active'),
+        }
+      })
+      const responseData = response.data
+      const items = responseData?.data || []
+      const totalCount = responseData?.total ?? 0
+      
       setRows(Array.isArray(items) ? items : [])
+      setTotal(totalCount)
     } catch (error) {
       console.error('Error cargando tipos de operación:', error)
       setRows([])
+      setTotal(0)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [page, debouncedQ, estado])
 
   useEffect(() => {
     load()
   }, [load])
-
-  const filtered = useMemo(() => {
-    return rows.filter((row) => {
-      const matchesQuery =
-        !q ||
-        row.nombre.toLowerCase().includes(q.toLowerCase()) ||
-        row.codigo.toLowerCase().includes(q.toLowerCase())
-      const matchesEstado =
-        estado === 'all' ||
-        (estado === 'active' && row.activo) ||
-        (estado === 'inactive' && !row.activo)
-      return matchesQuery && matchesEstado
-    })
-  }, [rows, q, estado])
-
-  const pageRows = useMemo(
-    () => filtered.slice((page - 1) * pageSize, page * pageSize),
-    [filtered, page],
-  )
 
   const openNew = () => {
     setEditing({} as TipoOperacion)
@@ -166,41 +174,52 @@ export default function TiposOperacion() {
               </tr>
             </thead>
             <tbody>
-              {pageRows.map((item, i) => (
-                <tr key={item.id} className={i % 2 === 0 ? 'bg-white/5' : ''}>
-                  <td className="p-2 font-mono text-sm">{item.codigo}</td>
-                  <td className="p-2">{item.nombre}</td>
-                  <td className="p-2 text-gray-300">{item.descripcion || '-'}</td>
-                  <td className="p-2">{item.activo ? 'Sí' : 'No'}</td>
-                  <td className="p-2">
-                    <div className="flex justify-center items-center gap-2">
-                      <button onClick={() => openEdit(item)} className="text-xs btn btn-ghost w-20">
-                        Editar
-                      </button>
-                      <button
-                        onClick={() => toggleActivo(item)}
-                        className="text-xs btn btn-ghost w-24"
-                      >
-                        {item.activo ? 'Desactivar' : 'Activar'}
-                      </button>
-                      <button
-                        onClick={() => remove(item.id)}
-                        className="text-xs btn w-20 bg-red-500/20 text-red-300 hover:bg-red-500/30"
-                      >
-                        Eliminar
-                      </button>
-                    </div>
+              {rows.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="p-4 text-center text-gray-400">
+                    No hay tipos de operación registrados
                   </td>
                 </tr>
-              ))}
+              ) : (
+                rows.map((item, i) => (
+                  <tr key={item.id} className={i % 2 === 0 ? 'bg-white/5' : ''}>
+                    <td className="p-2 font-mono text-sm">{item.codigo}</td>
+                    <td className="p-2">{item.nombre}</td>
+                    <td className="p-2 text-gray-300">{item.descripcion || '-'}</td>
+                    <td className="p-2">{item.activo ? 'Sí' : 'No'}</td>
+                    <td className="p-2">
+                      <div className="flex justify-center items-center gap-2">
+                        <button onClick={() => openEdit(item)} className="text-xs btn btn-ghost w-20">
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => toggleActivo(item)}
+                          className="text-xs btn btn-ghost w-24"
+                        >
+                          {item.activo ? 'Desactivar' : 'Activar'}
+                        </button>
+                        <button
+                          onClick={() => remove(item.id)}
+                          className="text-xs btn w-20 bg-red-500/20 text-red-300 hover:bg-red-500/30"
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
       )}
 
       {!loading && (
-        <div className="flex justify-end">
-          <Pagination page={page} pageSize={pageSize} total={filtered.length} onChange={setPage} />
+        <div className="flex items-center justify-between mt-4">
+          <span className="text-sm text-gray-400">
+            {total > 0 ? `Mostrando ${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, total)} de ${total} registros` : 'No hay registros'}
+          </span>
+          <Pagination page={page} pageSize={pageSize} total={total} onChange={setPage} />
         </div>
       )}
 
