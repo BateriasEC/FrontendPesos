@@ -4,6 +4,7 @@ import * as XLSX from "xlsx";
 import { Pagination } from "../components/Pagination";
 import { DateRange } from "../components/DateRange";
 import { LabelModal } from "../components/LabelModal";
+import { resolvePesoProductoNetoDisplay } from "../utils/palletNeto";
 
 type Nivel = {
   nivel: number;
@@ -37,6 +38,12 @@ type Row = {
   pesoRecibido?: number | null;
   diferenciaRecepcion?: number | null;
   estadoRecepcion?: string;
+  tipoOperacion?: string;
+  codigoTipoOperacion?: string;
+  pesoPalletEstandar?: number | null;
+  pesoPalletAplicado?: number | null;
+  productoConPallet?: boolean | null;
+  pesoProductoNeto?: number | null;
 };
 
 export default function Pesajes() {
@@ -110,6 +117,18 @@ export default function Pesajes() {
             pesoRecibido: p.recepcion?.pesoRecibido != null ? Number(p.recepcion.pesoRecibido) : null,
             diferenciaRecepcion: p.recepcion?.diferenciaPeso != null ? Number(p.recepcion.diferenciaPeso) : null,
             estadoRecepcion: p.recepcion ? 'Recibido' : p.descargado ? 'Pendiente recepción' : 'N/A',
+            tipoOperacion: p.vehicle?.tipoRecepcion?.nombre || 'N/A',
+            codigoTipoOperacion: p.vehicle?.tipoRecepcion?.codigo || undefined,
+            pesoPalletEstandar: p.pesoPalletEstandar != null ? Number(p.pesoPalletEstandar) : null,
+            pesoPalletAplicado: p.pesoPalletAplicado != null ? Number(p.pesoPalletAplicado) : null,
+            productoConPallet: p.productoConPallet ?? null,
+            pesoProductoNeto: resolvePesoProductoNetoDisplay({
+              pesoTotal: Number(p.pesoTotal) || 0,
+              pesoPalletAplicado:
+                p.pesoPalletAplicado != null ? Number(p.pesoPalletAplicado) : null,
+              productoConPallet: p.productoConPallet ?? null,
+              codigoTipoOperacion: p.vehicle?.tipoRecepcion?.codigo,
+            }),
             niveles: [],
           };
         }),
@@ -166,6 +185,18 @@ export default function Pesajes() {
           pesoRecibido: p.recepcion?.pesoRecibido != null ? Number(p.recepcion.pesoRecibido) : null,
           diferenciaRecepcion: p.recepcion?.diferenciaPeso != null ? Number(p.recepcion.diferenciaPeso) : null,
           estadoRecepcion: p.recepcion ? 'Recibido' : p.descargado ? 'Pendiente recepción' : 'N/A',
+          tipoOperacion: p.vehicle?.tipoRecepcion?.nombre || 'N/A',
+          codigoTipoOperacion: p.vehicle?.tipoRecepcion?.codigo || undefined,
+          pesoPalletEstandar: p.pesoPalletEstandar != null ? Number(p.pesoPalletEstandar) : null,
+          pesoPalletAplicado: p.pesoPalletAplicado != null ? Number(p.pesoPalletAplicado) : null,
+          productoConPallet: p.productoConPallet ?? null,
+          pesoProductoNeto: resolvePesoProductoNetoDisplay({
+            pesoTotal: Number(p.pesoTotal) || 0,
+            pesoPalletAplicado:
+              p.pesoPalletAplicado != null ? Number(p.pesoPalletAplicado) : null,
+            productoConPallet: p.productoConPallet ?? null,
+            codigoTipoOperacion: p.vehicle?.tipoRecepcion?.codigo,
+          }),
         };
       });
 
@@ -197,6 +228,11 @@ export default function Pesajes() {
           'Peso Salida Vehículo (kg)': row.pesoSalida ? Number(row.pesoSalida).toFixed(2) : 'Pendiente',
           'Diferencia Vehículo (kg)': Number(row.variacion).toFixed(2),
           'Peso Pallet (kg)': Number(row.pesoTotal || 0).toFixed(2),
+          'Peso Pallet Estándar (kg)': row.pesoPalletEstandar != null ? Number(row.pesoPalletEstandar).toFixed(2) : 'N/A',
+          'Peso Pallet Aplicado (kg)': row.pesoPalletAplicado != null ? Number(row.pesoPalletAplicado).toFixed(2) : 'N/A',
+          'Peso Neto Producto (kg)': row.pesoProductoNeto != null ? Number(row.pesoProductoNeto).toFixed(2) : 'N/A',
+          'Producto con Pallet': row.productoConPallet == null ? 'N/A' : row.productoConPallet ? 'Sí' : 'No',
+          'Tipo Operación': row.tipoOperacion || 'N/A',
           'Peso Despacho Pallet (kg)': row.pesoDescarga ? Number(row.pesoDescarga).toFixed(2) : 'Pendiente',
           'Variación Pallet (kg)': row.variacionPeso ? Number(row.variacionPeso).toFixed(2) : 'N/A',
           'Estado Despacho': row.descargado ? 'Despachado' : 'Pendiente',
@@ -310,8 +346,14 @@ export default function Pesajes() {
               <tr>
                 <th>Fecha</th>
                 <th>Placa</th>
+                <th>Tipo operación</th>
+                <th>Producto</th>
                 <th>Número de Pallet</th>
                 <th className="text-right">Peso del Pallet</th>
+                <th className="text-right">Pallet estándar</th>
+                <th className="text-right">Pallet aplicado</th>
+                <th className="text-right">Peso neto</th>
+                <th>Con pallet</th>
                 <th className="text-right">Peso de Despacho</th>
                 <th className="text-right">Peso Recibido</th>
                 <th className="text-right">Dif. Recepción</th>
@@ -321,7 +363,7 @@ export default function Pesajes() {
             <tbody>
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="text-center py-10 text-gray-400">
+                  <td colSpan={14} className="text-center py-10 text-gray-400">
                     No existen registros de pesaje
                   </td>
                 </tr>
@@ -330,9 +372,43 @@ export default function Pesajes() {
                   <tr key={r.id} className="hover:bg-white/5 transition">
                     <td>{new Date(r.fecha).toLocaleString()}</td>
                     <td className="font-medium">{r.placa}</td>
+                    <td>{r.tipoOperacion || 'N/A'}</td>
+                    <td>{r.productNombre || 'N/A'}</td>
                     <td className="font-mono">{r.codigoPallet}</td>
                     <td className="text-right font-semibold">
                       {(r.pesoTotal || 0).toLocaleString()} kg
+                    </td>
+                    <td className="text-right">
+                      {r.pesoPalletEstandar != null ? (
+                        <span>{r.pesoPalletEstandar.toLocaleString()} kg</span>
+                      ) : (
+                        <span className="text-gray-500">-</span>
+                      )}
+                    </td>
+                    <td className="text-right">
+                      {r.pesoPalletAplicado != null ? (
+                        <span>{r.pesoPalletAplicado.toLocaleString()} kg</span>
+                      ) : (
+                        <span className="text-gray-500">-</span>
+                      )}
+                    </td>
+                    <td className="text-right">
+                      {r.pesoProductoNeto != null ? (
+                        <span className="font-semibold text-emerald-400">
+                          {r.pesoProductoNeto.toLocaleString()} kg
+                        </span>
+                      ) : (
+                        <span className="text-gray-500">-</span>
+                      )}
+                    </td>
+                    <td>
+                      {r.productoConPallet == null ? (
+                        <span className="text-gray-500">-</span>
+                      ) : r.productoConPallet ? (
+                        <span>Sí</span>
+                      ) : (
+                        <span>No</span>
+                      )}
                     </td>
                     <td className="text-right">
                       {r.pesoDescarga ? (
@@ -403,6 +479,11 @@ export default function Pesajes() {
                 pesoDescarga: labelRow.pesoDescarga ?? null,
                 variacionPallet: labelRow.variacionPeso ?? null,
                 descargado: labelRow.descargado || false,
+                tipoOperacion: labelRow.tipoOperacion,
+                pesoPalletEstandar: labelRow.pesoPalletEstandar ?? null,
+                pesoPalletAplicado: labelRow.pesoPalletAplicado ?? null,
+                productoConPallet: labelRow.productoConPallet ?? null,
+                pesoProductoNeto: labelRow.pesoProductoNeto ?? null,
               }
             : null
         }

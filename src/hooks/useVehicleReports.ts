@@ -29,6 +29,10 @@ export type ReportPallet = {
   fechaRecepcion?: string | null
   horaRecepcion?: string | null
   recibidoPor?: string | null
+  pesoPalletEstandar?: number | null
+  pesoPalletAplicado?: number | null
+  productoConPallet?: boolean | null
+  pesoProductoNeto?: number | null
 }
 
 export type ReportVehicle = {

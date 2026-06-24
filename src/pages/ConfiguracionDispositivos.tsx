@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { DeviceCrudPanel } from '../components/config/DeviceCrudPanel'
+import { PesoEstandarPalletPanel } from '../components/config/PesoEstandarPalletPanel'
 import { ToleranciasPesajePanel } from '../components/config/ToleranciasPesajePanel'
 
-type TabId = 'impresoras' | 'balanzas' | 'pdas' | 'tolerancias'
+type TabId = 'impresoras' | 'pesoPallet' | 'balanzas' | 'pdas' | 'tolerancias'
 
 const TABS: { id: TabId; label: string }[] = [
   { id: 'impresoras', label: 'Impresoras' },
+  { id: 'pesoPallet', label: 'Peso estándar pallet' },
   { id: 'balanzas', label: 'Balanzas' },
   { id: 'pdas', label: 'PDAs' },
   { id: 'tolerancias', label: 'Tolerancias de peso' },
@@ -48,6 +50,9 @@ export default function ConfiguracionDispositivos() {
             title="Impresoras de tickets"
             description="Impresoras térmicas Zebra vía TCP (puerto habitual 9100). Puede registrar varias impresoras."
           />
+        </div>
+        <div className={tab === 'pesoPallet' ? '' : 'hidden'}>
+          <PesoEstandarPalletPanel />
         </div>
         <div className={tab === 'balanzas' ? '' : 'hidden'}>
           <DeviceCrudPanel

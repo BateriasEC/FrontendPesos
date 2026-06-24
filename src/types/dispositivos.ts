@@ -22,6 +22,7 @@ export interface ToleranciaPesajeConfig {
   margenPalletSimetricoKg: number
   variacionRepesajeAlertaPorcentaje: number
   toleranciaCuadreCargaKg: number
+  pesoEstandarPalletKg: number
   activo: boolean
 }
 

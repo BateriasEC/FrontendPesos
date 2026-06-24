@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { api } from '../services/api'
+import { api, ApiError } from '../services/api'
 import { Pagination } from '../components/Pagination'
 import { Modal } from '../components/Modal'
 
@@ -96,14 +96,22 @@ export default function TiposOperacion() {
       descripcion: form.descripcion?.trim() || undefined,
     }
 
-    if (editing?.id) {
-      await api.patch(`/tipos-operacion/${editing.id}`, payload)
-    } else {
-      await api.post('/tipos-operacion', payload)
+    try {
+      if (editing?.id) {
+        await api.patch(`/tipos-operacion/${editing.id}`, payload)
+      } else {
+        await api.post('/tipos-operacion', payload)
+      }
+      await load()
+      setEditing(null)
+    } catch (err: unknown) {
+      const msg =
+        err instanceof ApiError
+          ? err.userMessage
+          : (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+            'No se pudo guardar el tipo de operación'
+      alert(msg)
     }
-
-    await load()
-    setEditing(null)
   }
 
   const toggleActivo = async (item: TipoOperacion) => {
@@ -113,8 +121,17 @@ export default function TiposOperacion() {
 
   const remove = async (id: string) => {
     if (!window.confirm('¿Eliminar este tipo de operación?')) return
-    await api.delete(`/tipos-operacion/${id}`)
-    await load()
+    try {
+      await api.delete(`/tipos-operacion/${id}`)
+      await load()
+    } catch (err: unknown) {
+      const msg =
+        err instanceof ApiError
+          ? err.userMessage
+          : (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+            'No se puede eliminar: existen vehículos registrados con este tipo de operación.'
+      alert(msg)
+    }
   }
 
   return (

@@ -11,6 +11,10 @@ import type {
   ReportVehicle,
   VehicleGeneralFilter,
 } from '../hooks/useVehicleReports'
+import {
+  formatNullableKg,
+  shouldShowPalletOperationDetails,
+} from '../utils/palletNeto'
 import '../styles/report-sabanas.css'
 
 const vehicleFilterOptions: Array<{ value: VehicleGeneralFilter; label: string }> = [
@@ -322,6 +326,34 @@ function VehicleCard({ vehicle }: { vehicle: ReportVehicle }) {
                     <PalletMetric label="Despacho" value={formatKg(pallet.pesoDespacho)} />
                     <PalletMetric label="Diferencia" value={formatKg(pallet.diferencia)} />
                   </div>
+                  {shouldShowPalletOperationDetails(vehicle.codigoTipoOperacion, pallet) && (
+                    <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-gray-300 border-t border-white/10 pt-2 md:grid-cols-5">
+                      <PalletMetric
+                        label="Pallet estándar"
+                        value={formatNullableKg(pallet.pesoPalletEstandar)}
+                      />
+                      <PalletMetric
+                        label="Pallet aplicado"
+                        value={formatNullableKg(pallet.pesoPalletAplicado)}
+                      />
+                      <PalletMetric
+                        label="Peso neto"
+                        value={formatNullableKg(pallet.pesoProductoNeto)}
+                        highlight={pallet.pesoProductoNeto != null}
+                      />
+                      <PalletMetric
+                        label="Con pallet"
+                        value={
+                          pallet.productoConPallet == null
+                            ? '—'
+                            : pallet.productoConPallet
+                              ? 'Sí'
+                              : 'No'
+                        }
+                      />
+                      <PalletMetric label="Tipo operación" value={vehicle.tipoOperacion || 'N/A'} />
+                    </div>
+                  )}
                   {(pallet.estadoRecepcion === 'recibido' || pallet.pesoRecibido != null) && (
                     <div className="mt-2 grid grid-cols-3 gap-2 text-xs text-gray-300 border-t border-white/10 pt-2">
                       <PalletMetric label="Recibido" value={formatKg(pallet.pesoRecibido)} />

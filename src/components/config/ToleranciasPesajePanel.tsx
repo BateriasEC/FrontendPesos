@@ -9,6 +9,7 @@ type FormState = {
   margenPalletSimetricoKg: string
   variacionRepesajeAlertaPorcentaje: string
   toleranciaCuadreCargaKg: string
+  pesoEstandarPalletKg: string
   activo: boolean
 }
 
@@ -17,6 +18,7 @@ const emptyForm: FormState = {
   margenPalletSimetricoKg: '0',
   variacionRepesajeAlertaPorcentaje: '0.5',
   toleranciaCuadreCargaKg: '5',
+  pesoEstandarPalletKg: '25',
   activo: true,
 }
 
@@ -70,6 +72,7 @@ export function ToleranciasPesajePanel() {
       margenPalletSimetricoKg: String(item.margenPalletSimetricoKg),
       variacionRepesajeAlertaPorcentaje: String(item.variacionRepesajeAlertaPorcentaje),
       toleranciaCuadreCargaKg: String(item.toleranciaCuadreCargaKg),
+      pesoEstandarPalletKg: String(item.pesoEstandarPalletKg ?? 25),
       activo: item.activo,
     })
   }
@@ -81,6 +84,7 @@ export function ToleranciasPesajePanel() {
       margenPalletSimetricoKg: margen,
       variacionRepesajeAlertaPorcentaje: parseNum(form.variacionRepesajeAlertaPorcentaje, 0.5),
       toleranciaCuadreCargaKg: parseNum(form.toleranciaCuadreCargaKg, margen > 0 ? margen : 5),
+      pesoEstandarPalletKg: parseNum(form.pesoEstandarPalletKg, 25),
       activo: form.activo,
     }
 
@@ -130,6 +134,7 @@ export function ToleranciasPesajePanel() {
                   <th>Rango ± kg</th>
                   <th>Alerta repesaje %</th>
                   <th>Cuadre carga kg</th>
+                  <th>Peso estándar pallet (kg)</th>
                   <th>Estado</th>
                   <th className="text-right">Acciones</th>
                 </tr>
@@ -137,7 +142,7 @@ export function ToleranciasPesajePanel() {
               <tbody>
                 {pageRows.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="text-center text-white/50 py-8">
+                    <td colSpan={7} className="text-center text-white/50 py-8">
                       No hay tolerancias registradas.
                     </td>
                   </tr>
@@ -148,6 +153,7 @@ export function ToleranciasPesajePanel() {
                       <td>{row.margenPalletSimetricoKg}</td>
                       <td>{row.variacionRepesajeAlertaPorcentaje}%</td>
                       <td>{row.toleranciaCuadreCargaKg}</td>
+                      <td>{row.pesoEstandarPalletKg ?? 25}</td>
                       <td>{row.activo ? 'Activa' : 'Inactiva'}</td>
                       <td className="text-right space-x-2">
                         <button type="button" className="btn btn-ghost btn-sm" onClick={() => openEdit(row)}>
@@ -205,6 +211,18 @@ export function ToleranciasPesajePanel() {
               value={form.toleranciaCuadreCargaKg}
               onChange={(e) => setForm((f) => ({ ...f, toleranciaCuadreCargaKg: e.target.value }))}
             />
+          </div>
+          <div>
+            <label className="block text-sm mb-1">Peso estándar del pallet (kg)</label>
+            <input
+              className="input w-full"
+              value={form.pesoEstandarPalletKg}
+              onChange={(e) => setForm((f) => ({ ...f, pesoEstandarPalletKg: e.target.value }))}
+              placeholder="25"
+            />
+            <p className="text-xs text-white/50 mt-1">
+              Valor por defecto en recepción sin pallet y mixto. Cada pesaje puede ajustarse sin cambiar esta configuración.
+            </p>
           </div>
           <label className="flex items-center gap-2 text-sm">
             <input
