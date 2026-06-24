@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { api } from "../services/api";
 import * as XLSX from "xlsx";
 import { Pagination } from "../components/Pagination";
@@ -78,7 +78,7 @@ export default function Pesajes() {
         },
       });
 
-      const responseData = res.data;
+      const responseData = res.data?.data ?? res.data;
       const data = responseData?.data || [];
       const totalCount = responseData?.total ?? 0;
       const weightSum = responseData?.totalWeight ?? 0;

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { api } from "../services/api";
 import { Pagination } from "../components/Pagination";
 import { Modal } from "../components/Modal";
@@ -70,7 +70,7 @@ export default function Clientes() {
           estado: estado || undefined,
         },
       });
-      const responseData = res.data;
+      const responseData = res.data?.data ?? res.data;
       const clients = responseData?.data || [];
       const totalCount = responseData?.total ?? 0;
 

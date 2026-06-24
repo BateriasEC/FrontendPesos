@@ -50,7 +50,7 @@ export default function Productos() {
           search: debouncedSearch || undefined,
         }
       })
-      const responseData = response.data
+      const responseData = response.data?.data ?? response.data
       const products = responseData?.data || []
       const totalCount = responseData?.total ?? 0
 

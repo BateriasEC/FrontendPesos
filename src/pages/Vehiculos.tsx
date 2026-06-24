@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { api } from '../services/api'
 import { Pagination } from '../components/Pagination'
 import { PlacaSearchInput } from '../components/PlacaSearchInput'
@@ -56,7 +56,7 @@ export default function Vehiculos() {
           estado: estado || undefined,
         }
       })
-      const responseData = response.data
+      const responseData = response.data?.data ?? response.data
       const vehicles = responseData?.data || []
       const totalCount = responseData?.total ?? 0
       const enPlantaCount = responseData?.totalEnPlanta ?? 0

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { api } from "../services/api";
 import { Modal } from "../components/Modal";
 import { Pagination } from "../components/Pagination";
@@ -54,7 +54,7 @@ export default function Usuarios() {
           role: role || undefined,
         },
       });
-      const responseData = response.data;
+      const responseData = response.data?.data ?? response.data;
       const users = responseData?.data || [];
       const totalCount = responseData?.total ?? 0;
 

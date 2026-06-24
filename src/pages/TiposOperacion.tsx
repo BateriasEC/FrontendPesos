@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { api } from '../services/api'
 import { Pagination } from '../components/Pagination'
 import { Modal } from '../components/Modal'
@@ -54,7 +54,7 @@ export default function TiposOperacion() {
           activo: estado === 'all' ? undefined : (estado === 'active'),
         }
       })
-      const responseData = response.data
+      const responseData = response.data?.data ?? response.data
       const items = responseData?.data || []
       const totalCount = responseData?.total ?? 0
       

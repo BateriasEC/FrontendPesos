@@ -4,7 +4,7 @@ version: "3.9"
 
 services:
   frontend-web:
-    image: kevinquishpe1/reciclaje_frontend:v8
+    image: alek21/brandonpesantez-reciclaje-frontend:v4
     container_name: frontend-app
     restart: always
     ports:

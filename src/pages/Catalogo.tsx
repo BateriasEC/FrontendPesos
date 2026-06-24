@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { api } from "../services/api";
 import { Modal } from "../components/Modal";
 import { Pagination } from "../components/Pagination";
@@ -44,7 +44,7 @@ export default function Catalogo() {
           search: debouncedQ || undefined,
         },
       });
-      const responseData = response.data;
+      const responseData = response.data?.data ?? response.data;
       setRows(responseData?.data || []);
       setTotal(responseData?.total ?? 0);
     } catch (err: any) {
