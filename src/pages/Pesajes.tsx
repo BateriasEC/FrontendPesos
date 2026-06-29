@@ -4,6 +4,8 @@ import * as XLSX from "xlsx";
 import { Pagination } from "../components/Pagination";
 import { DateRange } from "../components/DateRange";
 import { LabelModal } from "../components/LabelModal";
+import { CambiarIngresoModal } from "../components/CambiarIngresoModal";
+import { DocumentTextIcon, ArrowsRightLeftIcon } from "@heroicons/react/24/outline";
 
 type Nivel = {
   nivel: number;
@@ -49,6 +51,7 @@ export default function Pesajes() {
   const [total, setTotal] = useState(0);
   const [totalWeight, setTotalWeight] = useState(0);
   const [labelRow, setLabelRow] = useState<Row | null>(null);
+  const [cambiarIngresoRow, setCambiarIngresoRow] = useState<Row | null>(null);
 
   const pageSize = 10;
 
@@ -315,7 +318,7 @@ export default function Pesajes() {
                 <th className="text-right">Peso de Despacho</th>
                 <th className="text-right">Peso Recibido</th>
                 <th className="text-right">Dif. Recepción</th>
-                <th></th>
+                <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -362,12 +365,24 @@ export default function Pesajes() {
                       )}
                     </td>
                     <td>
-                      <button
-                        onClick={() => setLabelRow(r)}
-                        className="btn btn-ghost btn-xs"
-                      >
-                        Ver Reporte
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setLabelRow(r)}
+                          title="Ver Reporte"
+                          aria-label="Ver Reporte"
+                          className="btn btn-ghost btn-xs"
+                        >
+                          <DocumentTextIcon className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => setCambiarIngresoRow(r)}
+                          title="Cambiar de Ingreso"
+                          aria-label="Cambiar de Ingreso"
+                          className="btn btn-ghost btn-xs"
+                        >
+                          <ArrowsRightLeftIcon className="h-4 w-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -407,6 +422,20 @@ export default function Pesajes() {
             : null
         }
         onClose={() => setLabelRow(null)}
+      />
+
+      <CambiarIngresoModal
+        pallet={
+          cambiarIngresoRow
+            ? {
+                id: cambiarIngresoRow.id,
+                placa: cambiarIngresoRow.placa,
+                vehicleId: cambiarIngresoRow.vehicleId,
+              }
+            : null
+        }
+        onClose={() => setCambiarIngresoRow(null)}
+        onChanged={() => void load()}
       />
     </div>
   );
