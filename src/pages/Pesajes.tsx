@@ -5,6 +5,11 @@ import { Pagination } from "../components/Pagination";
 import { DateRange } from "../components/DateRange";
 import { LabelModal } from "../components/LabelModal";
 import { resolvePesoProductoNetoDisplay } from "../utils/palletNeto";
+import { CambiarIngresoModal } from "../components/CambiarIngresoModal";
+import {
+  DocumentTextIcon,
+  ArrowsRightLeftIcon,
+} from "@heroicons/react/24/outline";
 
 type Nivel = {
   nivel: number;
@@ -56,6 +61,7 @@ export default function Pesajes() {
   const [total, setTotal] = useState(0);
   const [totalWeight, setTotalWeight] = useState(0);
   const [labelRow, setLabelRow] = useState<Row | null>(null);
+  const [cambiarIngresoRow, setCambiarIngresoRow] = useState<Row | null>(null);
 
   const pageSize = 10;
 
@@ -112,20 +118,38 @@ export default function Pesajes() {
             pesoDescarga: p.descargado ? Number(p.pesoDescarga) : null,
             variacionPeso: Number(p.variacionPeso) || null,
             descargado: Boolean(p.descargado),
-            operador: p.vehicle?.user?.fullName || p.user?.fullName || 'N/A',
+            operador: p.vehicle?.user?.fullName || p.user?.fullName || "N/A",
             codigoRecepcion: p.recepcion?.codigoRecepcion ?? null,
-            pesoRecibido: p.recepcion?.pesoRecibido != null ? Number(p.recepcion.pesoRecibido) : null,
-            diferenciaRecepcion: p.recepcion?.diferenciaPeso != null ? Number(p.recepcion.diferenciaPeso) : null,
-            estadoRecepcion: p.recepcion ? 'Recibido' : p.descargado ? 'Pendiente recepción' : 'N/A',
-            tipoOperacion: p.vehicle?.tipoRecepcion?.nombre || 'N/A',
+            pesoRecibido:
+              p.recepcion?.pesoRecibido != null
+                ? Number(p.recepcion.pesoRecibido)
+                : null,
+            diferenciaRecepcion:
+              p.recepcion?.diferenciaPeso != null
+                ? Number(p.recepcion.diferenciaPeso)
+                : null,
+            estadoRecepcion: p.recepcion
+              ? "Recibido"
+              : p.descargado
+                ? "Pendiente recepción"
+                : "N/A",
+            tipoOperacion: p.vehicle?.tipoRecepcion?.nombre || "N/A",
             codigoTipoOperacion: p.vehicle?.tipoRecepcion?.codigo || undefined,
-            pesoPalletEstandar: p.pesoPalletEstandar != null ? Number(p.pesoPalletEstandar) : null,
-            pesoPalletAplicado: p.pesoPalletAplicado != null ? Number(p.pesoPalletAplicado) : null,
+            pesoPalletEstandar:
+              p.pesoPalletEstandar != null
+                ? Number(p.pesoPalletEstandar)
+                : null,
+            pesoPalletAplicado:
+              p.pesoPalletAplicado != null
+                ? Number(p.pesoPalletAplicado)
+                : null,
             productoConPallet: p.productoConPallet ?? null,
             pesoProductoNeto: resolvePesoProductoNetoDisplay({
               pesoTotal: Number(p.pesoTotal) || 0,
               pesoPalletAplicado:
-                p.pesoPalletAplicado != null ? Number(p.pesoPalletAplicado) : null,
+                p.pesoPalletAplicado != null
+                  ? Number(p.pesoPalletAplicado)
+                  : null,
               productoConPallet: p.productoConPallet ?? null,
               codigoTipoOperacion: p.vehicle?.tipoRecepcion?.codigo,
             }),
@@ -136,7 +160,7 @@ export default function Pesajes() {
       setTotal(totalCount);
       setTotalWeight(weightSum);
     } catch (error: any) {
-      console.error('[Pesajes] Error al cargar datos:', error);
+      console.error("[Pesajes] Error al cargar datos:", error);
       setRows([]);
       setTotal(0);
       setTotalWeight(0);
@@ -180,20 +204,34 @@ export default function Pesajes() {
           pesoDescarga: p.descargado ? Number(p.pesoDescarga) : null,
           variacionPeso: Number(p.variacionPeso) || null,
           descargado: Boolean(p.descargado),
-          operador: p.vehicle?.user?.fullName || p.user?.fullName || 'N/A',
+          operador: p.vehicle?.user?.fullName || p.user?.fullName || "N/A",
           codigoRecepcion: p.recepcion?.codigoRecepcion ?? null,
-          pesoRecibido: p.recepcion?.pesoRecibido != null ? Number(p.recepcion.pesoRecibido) : null,
-          diferenciaRecepcion: p.recepcion?.diferenciaPeso != null ? Number(p.recepcion.diferenciaPeso) : null,
-          estadoRecepcion: p.recepcion ? 'Recibido' : p.descargado ? 'Pendiente recepción' : 'N/A',
-          tipoOperacion: p.vehicle?.tipoRecepcion?.nombre || 'N/A',
+          pesoRecibido:
+            p.recepcion?.pesoRecibido != null
+              ? Number(p.recepcion.pesoRecibido)
+              : null,
+          diferenciaRecepcion:
+            p.recepcion?.diferenciaPeso != null
+              ? Number(p.recepcion.diferenciaPeso)
+              : null,
+          estadoRecepcion: p.recepcion
+            ? "Recibido"
+            : p.descargado
+              ? "Pendiente recepción"
+              : "N/A",
+          tipoOperacion: p.vehicle?.tipoRecepcion?.nombre || "N/A",
           codigoTipoOperacion: p.vehicle?.tipoRecepcion?.codigo || undefined,
-          pesoPalletEstandar: p.pesoPalletEstandar != null ? Number(p.pesoPalletEstandar) : null,
-          pesoPalletAplicado: p.pesoPalletAplicado != null ? Number(p.pesoPalletAplicado) : null,
+          pesoPalletEstandar:
+            p.pesoPalletEstandar != null ? Number(p.pesoPalletEstandar) : null,
+          pesoPalletAplicado:
+            p.pesoPalletAplicado != null ? Number(p.pesoPalletAplicado) : null,
           productoConPallet: p.productoConPallet ?? null,
           pesoProductoNeto: resolvePesoProductoNetoDisplay({
             pesoTotal: Number(p.pesoTotal) || 0,
             pesoPalletAplicado:
-              p.pesoPalletAplicado != null ? Number(p.pesoPalletAplicado) : null,
+              p.pesoPalletAplicado != null
+                ? Number(p.pesoPalletAplicado)
+                : null,
             productoConPallet: p.productoConPallet ?? null,
             codigoTipoOperacion: p.vehicle?.tipoRecepcion?.codigo,
           }),
@@ -202,52 +240,81 @@ export default function Pesajes() {
 
       const excelData = exportRows.map((row: any, idx: number) => {
         const fecha = new Date(row.fecha);
-        const diaSemana = fecha.toLocaleDateString('es-EC', { weekday: 'long', timeZone: 'America/Bogota' });
-        
+        const diaSemana = fecha.toLocaleDateString("es-EC", {
+          weekday: "long",
+          timeZone: "America/Bogota",
+        });
+
         return {
-          'N°': idx + 1,
-          'Fecha': fecha.toLocaleDateString('es-EC', { 
-            year: 'numeric', 
-            month: '2-digit', 
-            day: '2-digit',
-            timeZone: 'America/Bogota'
+          "N°": idx + 1,
+          Fecha: fecha.toLocaleDateString("es-EC", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            timeZone: "America/Bogota",
           }),
-          'Día de la Semana': diaSemana,
-          'Hora': fecha.toLocaleTimeString('es-EC', { 
-            hour: '2-digit', 
-            minute: '2-digit', 
-            second: '2-digit',
-            timeZone: 'America/Bogota'
+          "Día de la Semana": diaSemana,
+          Hora: fecha.toLocaleTimeString("es-EC", {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            timeZone: "America/Bogota",
           }),
-          'Placa Vehículo': row.placa,
-          'Código Trazabilidad': row.codigoTrazabilidad || 'N/A',
-          'Operador': row.operador || 'N/A',
-          'Código Pallet': row.codigoPallet,
-          'Producto': row.productNombre || 'N/A',
-          'Peso Ingreso Vehículo (kg)': Number(row.pesoIngreso).toFixed(2),
-          'Peso Salida Vehículo (kg)': row.pesoSalida ? Number(row.pesoSalida).toFixed(2) : 'Pendiente',
-          'Diferencia Vehículo (kg)': Number(row.variacion).toFixed(2),
-          'Peso Pallet (kg)': Number(row.pesoTotal || 0).toFixed(2),
-          'Peso Pallet Estándar (kg)': row.pesoPalletEstandar != null ? Number(row.pesoPalletEstandar).toFixed(2) : 'N/A',
-          'Peso Pallet Aplicado (kg)': row.pesoPalletAplicado != null ? Number(row.pesoPalletAplicado).toFixed(2) : 'N/A',
-          'Peso Neto Producto (kg)': row.pesoProductoNeto != null ? Number(row.pesoProductoNeto).toFixed(2) : 'N/A',
-          'Producto con Pallet': row.productoConPallet == null ? 'N/A' : row.productoConPallet ? 'Sí' : 'No',
-          'Tipo Operación': row.tipoOperacion || 'N/A',
-          'Peso Despacho Pallet (kg)': row.pesoDescarga ? Number(row.pesoDescarga).toFixed(2) : 'Pendiente',
-          'Variación Pallet (kg)': row.variacionPeso ? Number(row.variacionPeso).toFixed(2) : 'N/A',
-          'Estado Despacho': row.descargado ? 'Despachado' : 'Pendiente',
-          'Cód. Recepción': row.codigoRecepcion || 'N/A',
-          'Peso Recibido (kg)': row.pesoRecibido != null ? Number(row.pesoRecibido).toFixed(2) : 'N/A',
-          'Diferencia Recepción (kg)': row.diferenciaRecepcion != null ? Number(row.diferenciaRecepcion).toFixed(2) : 'N/A',
-          'Estado Recepción': row.estadoRecepcion || 'N/A',
+          "Placa Vehículo": row.placa,
+          "Código Trazabilidad": row.codigoTrazabilidad || "N/A",
+          Operador: row.operador || "N/A",
+          "Código Pallet": row.codigoPallet,
+          Producto: row.productNombre || "N/A",
+          "Peso Ingreso Vehículo (kg)": Number(row.pesoIngreso).toFixed(2),
+          "Peso Salida Vehículo (kg)": row.pesoSalida
+            ? Number(row.pesoSalida).toFixed(2)
+            : "Pendiente",
+          "Diferencia Vehículo (kg)": Number(row.variacion).toFixed(2),
+          "Peso Pallet (kg)": Number(row.pesoTotal || 0).toFixed(2),
+          "Peso Pallet Estándar (kg)":
+            row.pesoPalletEstandar != null
+              ? Number(row.pesoPalletEstandar).toFixed(2)
+              : "N/A",
+          "Peso Pallet Aplicado (kg)":
+            row.pesoPalletAplicado != null
+              ? Number(row.pesoPalletAplicado).toFixed(2)
+              : "N/A",
+          "Peso Neto Producto (kg)":
+            row.pesoProductoNeto != null
+              ? Number(row.pesoProductoNeto).toFixed(2)
+              : "N/A",
+          "Producto con Pallet":
+            row.productoConPallet == null
+              ? "N/A"
+              : row.productoConPallet
+                ? "Sí"
+                : "No",
+          "Tipo Operación": row.tipoOperacion || "N/A",
+          "Peso Despacho Pallet (kg)": row.pesoDescarga
+            ? Number(row.pesoDescarga).toFixed(2)
+            : "Pendiente",
+          "Variación Pallet (kg)": row.variacionPeso
+            ? Number(row.variacionPeso).toFixed(2)
+            : "N/A",
+          "Estado Despacho": row.descargado ? "Despachado" : "Pendiente",
+          "Cód. Recepción": row.codigoRecepcion || "N/A",
+          "Peso Recibido (kg)":
+            row.pesoRecibido != null
+              ? Number(row.pesoRecibido).toFixed(2)
+              : "N/A",
+          "Diferencia Recepción (kg)":
+            row.diferenciaRecepcion != null
+              ? Number(row.diferenciaRecepcion).toFixed(2)
+              : "N/A",
+          "Estado Recepción": row.estadoRecepcion || "N/A",
         };
       });
 
       const ws = XLSX.utils.json_to_sheet(excelData);
-      
+
       // Ajustar anchos de columna
-      ws['!cols'] = [
-        { wch: 8 },  // N°
+      ws["!cols"] = [
+        { wch: 8 }, // N°
         { wch: 12 }, // Fecha
         { wch: 15 }, // Día
         { wch: 12 }, // Hora
@@ -264,10 +331,10 @@ export default function Pesajes() {
         { wch: 20 }, // Variación Pallet
         { wch: 18 }, // Estado
       ];
-      
+
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Pesajes");
-      
+
       const fechaActual = new Date().toISOString().slice(0, 10);
       XLSX.writeFile(wb, `pesajes_${fechaActual}.xlsx`);
     } catch (error) {
@@ -287,9 +354,7 @@ export default function Pesajes() {
           <p className="text-xs text-gray-400 uppercase">
             Total Pallets Registrados
           </p>
-          <p className="mt-1 text-2xl font-semibold">
-            {total}
-          </p>
+          <p className="mt-1 text-2xl font-semibold">{total}</p>
         </div>
 
         <div className="rounded-xl border border-white/10 bg-white/5 p-5">
@@ -357,7 +422,7 @@ export default function Pesajes() {
                 <th className="text-right">Peso de Despacho</th>
                 <th className="text-right">Peso Recibido</th>
                 <th className="text-right">Dif. Recepción</th>
-                <th></th>
+                <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -372,8 +437,8 @@ export default function Pesajes() {
                   <tr key={r.id} className="hover:bg-white/5 transition">
                     <td>{new Date(r.fecha).toLocaleString()}</td>
                     <td className="font-medium">{r.placa}</td>
-                    <td>{r.tipoOperacion || 'N/A'}</td>
-                    <td>{r.productNombre || 'N/A'}</td>
+                    <td>{r.tipoOperacion || "N/A"}</td>
+                    <td>{r.productNombre || "N/A"}</td>
                     <td className="font-mono">{r.codigoPallet}</td>
                     <td className="text-right font-semibold">
                       {(r.pesoTotal || 0).toLocaleString()} kg
@@ -430,20 +495,35 @@ export default function Pesajes() {
                     </td>
                     <td className="text-right">
                       {r.diferenciaRecepcion != null ? (
-                        <span className={`font-semibold ${Math.abs(r.diferenciaRecepcion) > 0.01 ? 'text-red-400' : 'text-green-400'}`}>
-                          {r.diferenciaRecepcion > 0 ? '+' : ''}{r.diferenciaRecepcion.toFixed(2)} kg
+                        <span
+                          className={`font-semibold ${Math.abs(r.diferenciaRecepcion) > 0.01 ? "text-red-400" : "text-green-400"}`}
+                        >
+                          {r.diferenciaRecepcion > 0 ? "+" : ""}
+                          {r.diferenciaRecepcion.toFixed(2)} kg
                         </span>
                       ) : (
                         <span className="text-gray-500">-</span>
                       )}
                     </td>
                     <td>
-                      <button
-                        onClick={() => setLabelRow(r)}
-                        className="btn btn-ghost btn-xs"
-                      >
-                        Ver Reporte
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setLabelRow(r)}
+                          title="Ver Reporte"
+                          aria-label="Ver Reporte"
+                          className="btn btn-ghost btn-xs"
+                        >
+                          <DocumentTextIcon className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => setCambiarIngresoRow(r)}
+                          title="Cambiar de Ingreso"
+                          aria-label="Cambiar de Ingreso"
+                          className="btn btn-ghost btn-xs"
+                        >
+                          <ArrowsRightLeftIcon className="h-4 w-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -455,7 +535,9 @@ export default function Pesajes() {
 
       <div className="flex items-center justify-between mt-4">
         <span className="text-sm text-gray-400">
-          {total > 0 ? `Mostrando ${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, total)} de ${total} registros` : 'No hay registros'}
+          {total > 0
+            ? `Mostrando ${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, total)} de ${total} registros`
+            : "No hay registros"}
         </span>
         <Pagination
           page={page}
@@ -488,6 +570,20 @@ export default function Pesajes() {
             : null
         }
         onClose={() => setLabelRow(null)}
+      />
+
+      <CambiarIngresoModal
+        pallet={
+          cambiarIngresoRow
+            ? {
+                id: cambiarIngresoRow.id,
+                placa: cambiarIngresoRow.placa,
+                vehicleId: cambiarIngresoRow.vehicleId,
+              }
+            : null
+        }
+        onClose={() => setCambiarIngresoRow(null)}
+        onChanged={() => void load()}
       />
     </div>
   );
