@@ -203,7 +203,7 @@ export default function Login() {
               </div>
             )}
 
-            <form onSubmit={onSubmit} className="space-y-5" autoComplete="off">
+            <form onSubmit={onSubmit} className="space-y-5">
               {/* EMAIL */}
               <div>
                 <label className="block text-sm font-semibold text-black mb-2">
@@ -215,7 +215,7 @@ export default function Login() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="correo@empresa.com"
-                  autoComplete="off"
+                  autoComplete="username"
                   disabled={loading || isBlocked}
                   className="
                     w-full rounded-xl border border-gray-300 bg-gray-50
@@ -238,7 +238,7 @@ export default function Login() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    autoComplete="new-password"
+                    autoComplete="current-password"
                     disabled={loading || isBlocked}
                     className="
                       w-full rounded-xl border border-gray-300 bg-gray-50

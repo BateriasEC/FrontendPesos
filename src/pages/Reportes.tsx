@@ -99,15 +99,63 @@ export default function Reportes() {
 
   return (
     <div className="report-sabanas space-y-6">
-      <header>
-        <h1 className="text-2xl font-bold text-gray-100">Reportes</h1>
-        <p className="text-sm text-gray-400">
-          Consulta consolidada de vehículos, pallets y despachos con datos actualizados desde la base.
-        </p>
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-100">Reportes</h1>
+          <p className="text-sm text-gray-400">
+            Consulta consolidada de vehículos, pallets y despachos con datos actualizados desde la base.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 sm:mt-1.5">
+          <button
+            className="flex min-h-10 items-center justify-center rounded-lg bg-neutral-800 border border-white/10 px-4 py-2 text-center text-sm font-semibold leading-tight text-gray-200 transition hover:bg-neutral-700 hover:text-white disabled:opacity-60 shadow-md"
+            onClick={() => void reload()}
+            disabled={loading}
+            title="Refrescar datos de la pantalla"
+          >
+            <svg className={`mr-1.5 h-4 w-4 shrink-0 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 7.89M9 11l3-3m0 0l3 3m-3-3v8" />
+            </svg>
+            Actualizar
+          </button>
+          <button
+            className="flex min-h-10 items-center justify-center rounded-lg bg-emerald-600 px-4 py-2 text-center text-sm font-semibold leading-tight text-white transition hover:bg-emerald-500 disabled:opacity-60 shadow-md"
+            onClick={() => void downloadReport('excel')}
+            disabled={downloading !== null}
+            title="Exportar Excel filtrado"
+          >
+            <svg className="mr-1.5 h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Excel
+          </button>
+          <button
+            className="flex min-h-10 items-center justify-center rounded-lg bg-red-600 px-4 py-2 text-center text-sm font-semibold leading-tight text-white transition hover:bg-red-500 disabled:opacity-60 shadow-md"
+            onClick={() => void downloadReport('pdf')}
+            disabled={downloading !== null}
+            title="Exportar PDF filtrado"
+          >
+            <svg className="mr-1.5 h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+            PDF
+          </button>
+          <button
+            className="flex min-h-10 items-center justify-center rounded-lg bg-brand-orange px-4 py-2 text-center text-sm font-semibold leading-tight text-white transition hover:brightness-110 disabled:opacity-60 shadow-md"
+            onClick={() => void downloadReport('general-excel')}
+            disabled={downloading !== null}
+            title="Reporte general Excel sin filtros"
+          >
+            <svg className="mr-1.5 h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Reporte general
+          </button>
+        </div>
       </header>
 
       <section className="sticky top-0 z-20 rounded-2xl border border-white/10 bg-neutral-900/95 p-4 shadow-xl backdrop-blur">
-        <div className="grid grid-cols-1 gap-3 xl:grid-cols-[repeat(2,minmax(140px,1fr))_120px_minmax(280px,1.4fr)_minmax(180px,1fr)_auto] xl:items-end">
+        <div className="grid grid-cols-1 gap-3 xl:grid-cols-[repeat(2,minmax(140px,1fr))_120px_minmax(280px,1.4fr)_minmax(180px,1fr)] xl:items-end">
           <label className="space-y-1 text-xs font-semibold text-gray-300">
             Desde
             <input
@@ -162,33 +210,6 @@ export default function Reportes() {
               inPlant={false}
             />
           </label>
-
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 xl:w-36 xl:grid-cols-1 xl:justify-self-end">
-            <button
-              className="flex min-h-11 w-full items-center justify-center rounded-lg bg-emerald-600 px-3 py-2 text-center text-sm font-semibold leading-tight text-white transition hover:bg-emerald-500 disabled:opacity-60"
-              onClick={() => void downloadReport('excel')}
-              disabled={downloading !== null}
-              title="Exportar Excel filtrado"
-            >
-              Excel
-            </button>
-            <button
-              className="flex min-h-11 w-full items-center justify-center rounded-lg bg-red-600 px-3 py-2 text-center text-sm font-semibold leading-tight text-white transition hover:bg-red-500 disabled:opacity-60"
-              onClick={() => void downloadReport('pdf')}
-              disabled={downloading !== null}
-              title="Exportar PDF filtrado"
-            >
-              PDF
-            </button>
-            <button
-              className="flex min-h-11 w-full items-center justify-center rounded-lg bg-brand-orange px-3 py-2 text-center text-sm font-semibold leading-tight text-white transition hover:brightness-110 disabled:opacity-60"
-              onClick={() => void downloadReport('general-excel')}
-              disabled={downloading !== null}
-              title="Reporte general Excel sin filtros"
-            >
-              Reporte general
-            </button>
-          </div>
         </div>
       </section>
 
@@ -243,7 +264,80 @@ export default function Reportes() {
   )
 }
 
+function getWeighingDetails(vehicle: ReportVehicle) {
+  // Use fields calculated in the backend, falling back to local calculations if not present
+  const opCodigo = (vehicle.codigoTipoOperacion || '').trim().toUpperCase()
+  
+  let tipoPesaje: 'con_pallet' | 'sin_pallet' | 'mixto' = vehicle.tipoPesaje || 'con_pallet'
+  if (!vehicle.tipoPesaje) {
+    if (opCodigo === 'RECEPCION_SIN_PALLET') {
+      tipoPesaje = 'sin_pallet'
+    } else if (opCodigo === 'RECEPCION_MIXTO') {
+      tipoPesaje = 'mixto'
+    }
+  }
+
+  const pesoIngreso = vehicle.pesoIngreso || 0
+  const pesoSalida = vehicle.pesoSalida || 0
+  const diferencia = Number((pesoIngreso - pesoSalida).toFixed(2))
+
+  const cantidadPallets = vehicle.cantidadPallets ?? vehicle.resumen?.totalPalletsRegistrados ?? vehicle.pallets?.length ?? 0
+  const pesoPalletsPromedio = vehicle.pesoPalletsPromedio ?? (cantidadPallets * 25)
+
+  const basePesoTotalPallets = vehicle.pesoTotalPallets || 0
+
+  const pesoTotalPalletsCalculado = vehicle.pesoTotalPalletsCalculado ?? basePesoTotalPallets
+  let pesoNetoProductos = vehicle.pesoNetoProductos
+
+  if (pesoNetoProductos == null) {
+    if (tipoPesaje === 'con_pallet' || tipoPesaje === 'sin_pallet') {
+      pesoNetoProductos = Number((basePesoTotalPallets - pesoPalletsPromedio).toFixed(2))
+    } else if (tipoPesaje === 'mixto') {
+      let sumNet = 0
+      const palletsList = vehicle.pallets || []
+      palletsList.forEach((p: any) => {
+        const pesoInicial = Number(p.pesoInicial ?? p.pesoTotal ?? p.peso ?? 0)
+        const pesoPalletAplicado = p.pesoPalletAplicado != null ? Number(p.pesoPalletAplicado) : 0
+        const conPallet = p.productoConPallet !== false
+        if (conPallet) {
+          sumNet += pesoInicial
+        } else {
+          sumNet += (pesoInicial - pesoPalletAplicado)
+        }
+      })
+      pesoNetoProductos = Number(sumNet.toFixed(2))
+    } else {
+      pesoNetoProductos = Number((basePesoTotalPallets - pesoPalletsPromedio).toFixed(2))
+    }
+  }
+
+  let cantidadPalletsConPallet = 0
+  if (tipoPesaje === 'con_pallet') {
+    cantidadPalletsConPallet = cantidadPallets
+  } else if (tipoPesaje === 'mixto') {
+    const palletsList = vehicle.pallets || []
+    cantidadPalletsConPallet = palletsList.filter((p: any) => p.productoConPallet !== false).length
+  }
+  const pesoWoodLeftInPlant = cantidadPalletsConPallet * 25
+  const diferenciaNeta = vehicle.diferenciaNeta ?? Number((diferencia - pesoNetoProductos - pesoWoodLeftInPlant).toFixed(2))
+
+  return {
+    tipoPesaje,
+    pesoIngreso,
+    pesoSalida,
+    diferencia,
+    diferenciaNeta,
+    pesoTotalPalletsCalculado,
+    cantidadPallets,
+    pesoPalletsPromedio,
+    pesoNetoProductos,
+  }
+}
+
 function VehicleCard({ vehicle }: { vehicle: ReportVehicle }) {
+  const details = getWeighingDetails(vehicle)
+  const hasExit = vehicle.pesoSalida > 0
+
   return (
     <article className="overflow-hidden rounded-2xl border border-white/10 bg-white/5 shadow-sm">
       <header className="flex flex-col gap-3 border-b border-white/10 p-4 sm:flex-row sm:items-start sm:justify-between">
@@ -270,14 +364,59 @@ function VehicleCard({ vehicle }: { vehicle: ReportVehicle }) {
       </header>
 
       <div className="grid grid-cols-1 divide-y divide-white/10 xl:grid-cols-2 xl:divide-x xl:divide-y-0">
-        <section className="space-y-3 p-4">
+        <section className="space-y-4 p-4">
           <h4 className="text-xs uppercase tracking-wide text-gray-300">Pesaje del Vehículo</h4>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-            <Metric label="Peso Ingreso" value={formatKg(vehicle.pesoIngreso)} />
-            <Metric label="Peso Salida" value={vehicle.pesoSalida > 0 ? formatKg(vehicle.pesoSalida) : 'Pendiente'} />
-            <Metric label="Diferencia" value={formatKg(vehicle.diferencia)} />
+          
+          <div className="overflow-x-auto rounded-xl border border-white/10 bg-neutral-900/40 p-1">
+            <table className="w-full border-collapse text-center text-xs">
+              <thead>
+                {/* Title Row */}
+                <tr>
+                  <th colSpan={4} className="border-b border-white/10 bg-white/5 py-2.5 font-bold text-gray-200">
+                    {details.tipoPesaje === 'con_pallet' && (
+                      <span>Pesaje del Vehículo <span className="text-[#EE3626] font-extrabold">con Pallet</span></span>
+                    )}
+                    {details.tipoPesaje === 'sin_pallet' && (
+                      <span>Pesaje del Vehículo <span className="text-[#EE3626] font-extrabold">Sin Pallet</span></span>
+                    )}
+                    {details.tipoPesaje === 'mixto' && (
+                      <span>Pesaje del Vehículo <span className="text-[#EE3626] font-extrabold">Pallet Mixto</span></span>
+                    )}
+                  </th>
+                </tr>
+                {/* Row 1 Headers */}
+                <tr className="bg-neutral-800/60 font-semibold text-gray-300">
+                  <th className="border-b border-r border-white/10 p-2 text-left">Peso Ingreso</th>
+                  <th className="border-b border-r border-white/10 p-2 text-left">Peso Salida</th>
+                  <th className="border-b border-r border-white/10 p-2 text-left">Diferencia Entrada vs Salida</th>
+                  <th className="border-b border-white/10 p-2 bg-emerald-950/40 text-emerald-300 font-bold text-left">Diferencia Neta</th>
+                </tr>
+              </thead>
+              <tbody>
+                {/* Row 1 Values */}
+                <tr className="text-gray-200 border-b border-white/10">
+                  <td className="border-r border-white/10 p-2 text-left font-medium">{formatKg(details.pesoIngreso)}</td>
+                  <td className="border-r border-white/10 p-2 text-left font-medium">{hasExit ? formatKg(details.pesoSalida) : 'Pendiente'}</td>
+                  <td className="border-r border-white/10 p-2 text-left font-medium">{hasExit ? formatKg(details.diferencia) : 'Pendiente'}</td>
+                  <td className="p-2 text-left font-bold bg-emerald-900/20 text-emerald-300">{hasExit ? formatKg(details.diferenciaNeta) : 'Pendiente'}</td>
+                </tr>
+                {/* Row 2 Headers */}
+                <tr className="bg-neutral-800/60 font-semibold text-gray-300">
+                  <th className="border-b border-r border-white/10 p-2 text-left">Peso Total Pallets</th>
+                  <th className="border-b border-r border-white/10 p-2 bg-emerald-950/40 text-emerald-300 font-bold text-left"># Pallet</th>
+                  <th className="border-b border-r border-white/10 p-2 bg-emerald-950/40 text-emerald-300 font-bold text-left">Peso Pallets (25 kg promedio)</th>
+                  <th className="border-b border-white/10 p-2 bg-emerald-950/40 text-emerald-300 font-bold text-left">Peso Neto Productos</th>
+                </tr>
+                {/* Row 2 Values */}
+                <tr className="text-gray-200">
+                  <td className="border-r border-white/10 p-2 text-left font-medium">{formatKg(details.pesoTotalPalletsCalculado)}</td>
+                  <td className="border-r border-white/10 p-2 text-left font-bold bg-emerald-900/20 text-emerald-300">{details.cantidadPallets}</td>
+                  <td className="border-r border-white/10 p-2 text-left font-bold bg-emerald-900/20 text-emerald-300">{formatKg(details.pesoPalletsPromedio)}</td>
+                  <td className="p-2 text-left font-bold bg-emerald-900/20 text-emerald-300">{formatKg(details.pesoNetoProductos)}</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-          <Metric label="Peso Total Pallets" value={formatKg(vehicle.pesoTotalPallets)} strong />
 
           <div className="grid grid-cols-1 gap-2 text-sm md:grid-cols-3">
             <SummaryMetric label="Total pallets registrados" value={vehicle.resumen.totalPalletsRegistrados} />

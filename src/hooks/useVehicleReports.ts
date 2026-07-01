@@ -54,6 +54,12 @@ export type ReportVehicle = {
   pesoSalida: number
   diferencia: number
   pesoTotalPallets: number
+  tipoPesaje?: 'con_pallet' | 'sin_pallet' | 'mixto'
+  cantidadPallets?: number
+  pesoPalletsPromedio?: number
+  pesoTotalPalletsCalculado?: number
+  pesoNetoProductos?: number
+  diferenciaNeta?: number
   pallets: ReportPallet[]
   resumen: {
     totalPalletsRegistrados: number

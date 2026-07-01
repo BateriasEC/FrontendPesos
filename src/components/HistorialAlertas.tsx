@@ -23,11 +23,13 @@ type Alerta = {
     codigo: string;
     pesoTotal: number;
     pesoDescarga: number;
+    productId?: string;
     vehicle: {
       placa: string;
       cliente?: string;
       pesoIngreso?: number;
       pesoSalida?: number;
+      canalVehiculoId?: string;
     };
   };
 };
@@ -39,9 +41,15 @@ interface HistorialAlertasProps {
    * refresque las alertas sin duplicar lógica.
    */
   refreshKey?: number;
+  selectedProduct?: string;
+  selectedChannel?: string;
 }
 
-export default function HistorialAlertas({ refreshKey = 0 }: HistorialAlertasProps = {}) {
+export default function HistorialAlertas({
+  refreshKey = 0,
+  selectedProduct = '',
+  selectedChannel = '',
+}: HistorialAlertasProps = {}) {
   const [alertas, setAlertas] = useState<Alerta[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -85,11 +93,19 @@ export default function HistorialAlertas({ refreshKey = 0 }: HistorialAlertasPro
 
   const filteredAlertas = useMemo(() => {
     return Array.isArray(alertas) ? alertas.filter((a) => {
-      if (filter === 'activas') return a.estado === 'ACTIVA';
-      if (filter === 'resueltas') return esResuelta(a.estado);
+      // Filtrar por estado de resolución
+      if (filter === 'activas' && a.estado !== 'ACTIVA') return false;
+      if (filter === 'resueltas' && !esResuelta(a.estado)) return false;
+
+      // Filtrar por producto
+      if (selectedProduct && a.pallet?.productId !== selectedProduct) return false;
+
+      // Filtrar por canal
+      if (selectedChannel && a.pallet?.vehicle?.canalVehiculoId !== selectedChannel) return false;
+
       return true;
     }) : [];
-  }, [alertas, filter]);
+  }, [alertas, filter, selectedProduct, selectedChannel]);
 
   const getAlertColor = (tipo: string) => {
     if (tipo === 'VARIACION_PESO') return 'bg-orange-500/20 border-orange-500/40';

@@ -34,6 +34,18 @@ type BalanzaInfo = {
   lastUpdate?: string | null
 }
 
+type Producto = {
+  id: string
+  codigo: string
+  nombre: string
+}
+
+type CanalVehiculo = {
+  id: string
+  codigo: string
+  nombre: string
+}
+
 export default function Dashboard() {
   const [weighings, setWeighings] = useState<Weighing[]>([])
   const [loading, setLoading] = useState(true)
@@ -41,6 +53,11 @@ export default function Dashboard() {
   const [alertsRefreshKey, setAlertsRefreshKey] = useState(0)
   const [balanzas, setBalanzas] =
     useState<Map<number, BalanzaInfo>>(new Map())
+
+  const [selectedProduct, setSelectedProduct] = useState('')
+  const [selectedChannel, setSelectedChannel] = useState('')
+  const [products, setProducts] = useState<Producto[]>([])
+  const [channels, setChannels] = useState<CanalVehiculo[]>([])
 
   const [stats, setStats] = useState<DashboardStats>({
     vehiclesInPlant: 0,
@@ -53,10 +70,35 @@ export default function Dashboard() {
     recepcionesLast24h: [],
   })
 
-  const loadStats = async () => {
+  const loadFiltersData = async () => {
+    try {
+      const [prodRes, chanRes] = await Promise.all([
+        api.get('/products', { params: { page: 1, limit: 100 } }),
+        api.get('/canales-vehiculo', { params: { page: 1, limit: 100 } }),
+      ])
+      
+      const prodData = prodRes.data?.data ?? prodRes.data
+      const chanData = chanRes.data?.data ?? chanRes.data
+      
+      const prodArray = Array.isArray(prodData) ? prodData : (prodData?.data || [])
+      const chanArray = Array.isArray(chanData) ? chanData : (chanData?.data || [])
+      
+      setProducts(prodArray)
+      setChannels(chanArray)
+    } catch (e) {
+      console.error('Error al cargar datos de filtros:', e)
+    }
+  }
+
+  const loadStats = async (productId?: string, canalVehiculoId?: string) => {
     setLoading(true)
     try {
-      const res = await api.get('/dashboard/stats')
+      const res = await api.get('/dashboard/stats', {
+        params: {
+          productId: productId || undefined,
+          canalVehiculoId: canalVehiculoId || undefined,
+        }
+      })
       const data = res.data?.data || res.data || {}
 
       setStats({
@@ -84,9 +126,14 @@ export default function Dashboard() {
     }
   }
 
-  const loadBalanzas = async () => {
+  const loadBalanzas = async (productId?: string, canalVehiculoId?: string) => {
     try {
-      const res = await api.get('/dashboard/scale-stats')
+      const res = await api.get('/dashboard/scale-stats', {
+        params: {
+          productId: productId || undefined,
+          canalVehiculoId: canalVehiculoId || undefined,
+        }
+      })
       const data = res.data?.data || res.data || {}
       const map = new Map<number, BalanzaInfo>()
 
@@ -119,16 +166,22 @@ export default function Dashboard() {
   }
 
   useEffect(() => {
-    loadStats()
-    loadBalanzas()
-    // Polling automático removido - solo se actualiza al cargar la página o al recargar manualmente
+    loadFiltersData()
   }, [])
+
+  useEffect(() => {
+    loadStats(selectedProduct, selectedChannel)
+    loadBalanzas(selectedProduct, selectedChannel)
+  }, [selectedProduct, selectedChannel])
 
   const handleRefresh = async () => {
     if (refreshing) return
     setRefreshing(true)
     try {
-      await Promise.all([loadStats(), loadBalanzas()])
+      await Promise.all([
+        loadStats(selectedProduct, selectedChannel),
+        loadBalanzas(selectedProduct, selectedChannel)
+      ])
       // Forzar recarga del Historial de Alertas cambiando la key.
       setAlertsRefreshKey((k) => k + 1)
     } finally {
@@ -138,12 +191,51 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6 w-full">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <h1 className="text-2xl font-bold">DASHBOARD GENERAL</h1>
+      </div>
+
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between bg-white/5 border border-white/10 p-4 rounded-xl shadow-md">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-1">
+          {/* PRODUCT FILTER */}
+          <div className="flex flex-col gap-1 flex-1">
+            <span className="text-xs font-semibold text-gray-400">Producto</span>
+            <select
+              value={selectedProduct}
+              onChange={(e) => setSelectedProduct(e.target.value)}
+              className="rounded-lg border border-white/10 bg-neutral-800 px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#EE3626] w-full"
+            >
+              <option value="">Todos los productos</option>
+              {products.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.nombre} ({p.codigo})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* CHANNEL FILTER */}
+          <div className="flex flex-col gap-1 flex-1">
+            <span className="text-xs font-semibold text-gray-400">Canal de Vehículo</span>
+            <select
+              value={selectedChannel}
+              onChange={(e) => setSelectedChannel(e.target.value)}
+              className="rounded-lg border border-white/10 bg-neutral-800 px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#EE3626] w-full"
+            >
+              <option value="">Todos los canales</option>
+              {channels.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
         <button
           onClick={handleRefresh}
           disabled={refreshing}
-          className="px-4 py-2 text-sm rounded-lg bg-brand-orange hover:bg-orange-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
+          className="self-end lg:self-center px-5 py-2.5 text-sm font-semibold rounded-lg bg-brand-orange hover:bg-orange-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2 shadow-md h-fit mt-1 sm:mt-0"
           title="Actualizar datos"
         >
           {refreshing && (
@@ -284,7 +376,11 @@ export default function Dashboard() {
       </section>
 
       {/* Historial de Alertas */}
-      <HistorialAlertas refreshKey={alertsRefreshKey} />
+      <HistorialAlertas
+        refreshKey={alertsRefreshKey}
+        selectedProduct={selectedProduct}
+        selectedChannel={selectedChannel}
+      />
     </div>
   )
 }
