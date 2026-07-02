@@ -8,8 +8,11 @@ function normalizeCodigo(codigo?: string | null): string {
 }
 
 /**
- * - Sin pallet / mixto sin pallet: neto = peso báscula − pallet aplicado
- * - Con pallet / mixto con pallet: neto = peso báscula (sin descuento de tara)
+ * Todo pallet nuevo (con pallet, sin pallet o mixto) trae `pesoPalletAplicado`
+ * ya resuelto desde el backend, así que el neto siempre es peso báscula − aplicado.
+ * El bloque de abajo (esConPalletDirecto / esMixtoConPallet) es solo un fallback
+ * para pallets históricos creados antes de que "con pallet" restara el estándar,
+ * cuyo `pesoPalletAplicado` quedó nulo en la base de datos.
  */
 export function resolvePesoProductoNetoDisplay(params: {
   pesoTotal: number
