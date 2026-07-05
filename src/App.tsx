@@ -23,6 +23,7 @@ import Productos from './pages/Productos'
 import TiposOperacion from './pages/TiposOperacion'
 import CanalesVehiculo from './pages/CanalesVehiculo'
 import ConfiguracionDispositivos from './pages/ConfiguracionDispositivos'
+import Auditoria from './pages/Auditoria'
 
 function App() {
   return (
@@ -53,6 +54,7 @@ function App() {
             <Route path="canales-vehiculo" element={<CanalesVehiculo />} />
             <Route element={<ProtectedRoute roles={["admin", "supervisor"]} />}>
               <Route path="configuracion-dispositivos" element={<ConfiguracionDispositivos />} />
+              <Route path="auditoria" element={<Auditoria />} />
             </Route>
           </Route>
         </Route>

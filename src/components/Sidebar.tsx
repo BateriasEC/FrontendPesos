@@ -11,6 +11,7 @@ import {
   ArrowsRightLeftIcon,
   InboxArrowDownIcon,
   Cog6ToothIcon,
+  ClipboardDocumentListIcon,
 } from '@heroicons/react/24/outline'
 
 const baseLink =
@@ -108,6 +109,13 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
               to="/configuracion-dispositivos"
               icon={Cog6ToothIcon}
               label="Config. dispositivos"
+              onNavigate={onNavigate}
+            />
+
+            <SidebarLink
+              to="/auditoria"
+              icon={ClipboardDocumentListIcon}
+              label="Auditoría"
               onNavigate={onNavigate}
             />
           </nav>
