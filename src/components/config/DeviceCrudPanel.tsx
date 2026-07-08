@@ -11,6 +11,13 @@ import {
   type StoredConnectionEntry,
 } from '../../lib/deviceConnectionStorage'
 
+type PrintFormat = 'standard' | 'large'
+
+const PRINT_FORMAT_OPTIONS: { value: PrintFormat; label: string }[] = [
+  { value: 'standard', label: 'Pequeña' },
+  { value: 'large', label: 'Grande' },
+]
+
 type DeviceForm = {
   nombre: string
   ip: string
@@ -76,6 +83,7 @@ export function DeviceCrudPanel({ tipo, title, description }: Props) {
   const [form, setForm] = useState<DeviceForm>(() => defaultForm(tipo))
   const [testingId, setTestingId] = useState<string | null>(null)
   const [printingId, setPrintingId] = useState<string | null>(null)
+  const [printFormat, setPrintFormat] = useState<Record<string, PrintFormat>>({})
   const [saving, setSaving] = useState(false)
   const [connectionMap, setConnectionMap] = useState<Record<string, StoredConnectionEntry>>(() =>
     loadConnectionMap(),
@@ -252,7 +260,10 @@ export function DeviceCrudPanel({ tipo, title, description }: Props) {
     }
     setPrintingId(id)
     try {
-      const response = await api.post(`/configuracion-dispositivos/dispositivos/${id}/probar-impresion`)
+      const formato = printFormat[id] ?? 'standard'
+      const response = await api.post(
+        `/configuracion-dispositivos/dispositivos/${id}/probar-impresion?formato=${formato}`,
+      )
       const data = response.data?.data || response.data
       setPrintResult({
         deviceName,
@@ -375,14 +386,33 @@ export function DeviceCrudPanel({ tipo, title, description }: Props) {
                           </button>
                         )}
                         {tipo === 'IMPRESORA' && (
-                          <button
-                            type="button"
-                            className="btn btn-ghost btn-sm"
-                            disabled={printingId === row.id}
-                            onClick={() => testPrint(row.id, row.nombre)}
-                          >
-                            {printingId === row.id ? 'Imprimiendo...' : 'Probar impresión'}
-                          </button>
+                          <>
+                            <select
+                              className="inline-block w-20 shrink-0 bg-white text-black text-xs rounded-lg border border-gray-300 px-2 py-1 shadow-sm focus:outline-none focus:ring-1 focus:ring-brand-orange focus:border-brand-orange"
+                              value={printFormat[row.id] ?? 'standard'}
+                              onChange={(e) =>
+                                setPrintFormat((prev) => ({
+                                  ...prev,
+                                  [row.id]: e.target.value as PrintFormat,
+                                }))
+                              }
+                              disabled={printingId === row.id}
+                            >
+                              {PRINT_FORMAT_OPTIONS.map((opt) => (
+                                <option key={opt.value} value={opt.value}>
+                                  {opt.label}
+                                </option>
+                              ))}
+                            </select>
+                            <button
+                              type="button"
+                              className="btn btn-ghost btn-sm"
+                              disabled={printingId === row.id}
+                              onClick={() => testPrint(row.id, row.nombre)}
+                            >
+                              {printingId === row.id ? 'Imprimiendo...' : 'Probar impresión'}
+                            </button>
+                          </>
                         )}
                         <button type="button" className="btn btn-ghost btn-sm" onClick={() => openEdit(row)}>
                           Editar
