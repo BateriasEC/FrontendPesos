@@ -10,7 +10,7 @@ type Vehiculo = {
   producto?: string;
   canalVehiculo?: string;
   tipoOperacion?: string;
-  estado: 'en_planta' | 'salido'; 
+  estado: 'en_planta' | 'salido' | 'completado'; 
   ingresoAt: string; 
   salidaAt?: string 
 }
@@ -64,9 +64,11 @@ export default function Vehiculos() {
 
       const mappedVehicles = vehicles.map((v: any) => {
         const estadoCodigo = v.estado?.codigo || v.estado || 'EN_PLANTA'
-        let estadoMapped: 'en_planta' | 'salido' = 'en_planta'
+        let estadoMapped: 'en_planta' | 'salido' | 'completado' = 'en_planta'
         if (estadoCodigo === 'SALIDO' || estadoCodigo === 'salido') {
           estadoMapped = 'salido'
+        } else if (estadoCodigo === 'COMPLETADO' || estadoCodigo === 'completado') {
+          estadoMapped = 'completado'
         }
         return {
           id: v.id,
@@ -77,7 +79,7 @@ export default function Vehiculos() {
           tipoOperacion: v.tipoRecepcion?.nombre || 'N/A',
           estado: estadoMapped,
           ingresoAt: v.ingresoAt || v.createdAt || new Date().toISOString(),
-          salidaAt: estadoCodigo === 'SALIDO' ? (v.salidaAt || v.updatedAt) : undefined
+          salidaAt: (estadoCodigo === 'SALIDO' || estadoCodigo === 'salido') ? (v.salidaAt || v.updatedAt) : undefined
         }
       })
       setRows(mappedVehicles)
@@ -208,9 +210,11 @@ export default function Vehiculos() {
                       <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
                         v.estado === 'en_planta' 
                           ? 'bg-green-500/20 text-green-400' 
+                          : v.estado === 'completado'
+                          ? 'bg-blue-500/20 text-blue-400'
                           : 'bg-gray-500/20 text-gray-400'
                       }`}>
-                        {v.estado === 'en_planta' ? 'EN PROCESO' : 'DESCARGADO'}
+                        {v.estado === 'en_planta' ? 'EN PROCESO' : v.estado === 'completado' ? 'PESO COMPLETADO' : 'DESCARGADO'}
                       </span>
                     </td>
                     <td className="text-sm">{formatDate(v.ingresoAt)}</td>

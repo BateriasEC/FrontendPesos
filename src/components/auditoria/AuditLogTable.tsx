@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import * as XLSX from 'xlsx'
 import { api } from '../../services/api'
 import { Pagination } from '../Pagination'
 import { DateRange } from '../DateRange'
@@ -50,6 +51,12 @@ function formatDate(value: string | null) {
   })
 }
 
+function entityTypeLabel(value: string) {
+  return ENTITY_TYPES.find((opt) => opt.value === value)?.label ?? value
+}
+
+const EXPORT_PAGE_SIZE = 500
+
 export function AuditLogTable() {
   const [rows, setRows] = useState<AuditLogRow[]>([])
   const [total, setTotal] = useState(0)
@@ -59,6 +66,7 @@ export function AuditLogTable() {
   const [action, setAction] = useState('')
   const [syncStatus, setSyncStatus] = useState('')
   const [range, setRange] = useState({ from: '', to: '' })
+  const [exporting, setExporting] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -89,6 +97,79 @@ export function AuditLogTable() {
   useEffect(() => {
     load()
   }, [load])
+
+  const exportExcel = async () => {
+    setExporting(true)
+    try {
+      const params = {
+        entityType: entityType || undefined,
+        action: action || undefined,
+        syncStatus: syncStatus || undefined,
+        from: range.from || undefined,
+        to: range.to || undefined,
+      }
+
+      // El backend limita "limit" a 500 por página, así que paginamos hasta traer todo lo filtrado.
+      const allRows: AuditLogRow[] = []
+      let offset = 0
+      let total = Infinity
+      while (offset < total) {
+        const res = await api.get('/auditoria/logs', {
+          params: { ...params, limit: EXPORT_PAGE_SIZE, offset },
+        })
+        const pageRows: AuditLogRow[] = res.data?.data?.data ?? []
+        total = res.data?.data?.total ?? pageRows.length
+        allRows.push(...pageRows)
+        offset += EXPORT_PAGE_SIZE
+        if (pageRows.length === 0) break
+      }
+
+      if (allRows.length === 0) {
+        alert('No hay registros de auditoría con estos filtros para exportar.')
+        return
+      }
+
+      const excelData = allRows.map((row, idx) => ({
+        'N°': idx + 1,
+        'Fecha servidor': formatDate(row.createdAt),
+        'Fecha en PDA': formatDate(row.clientCreatedAt),
+        Entidad: entityTypeLabel(row.entityType),
+        'ID Entidad': row.entityId ?? 'N/A',
+        Acción: auditActionLabel(row.action),
+        Usuario: row.user?.fullName ?? 'N/A',
+        Dispositivo: row.device
+          ? `${row.device.nombre}${row.device.registrado ? '' : ' (no registrado)'}`
+          : 'N/A',
+        Estado: row.syncStatus === 'SYNCED' ? 'Sincronizado' : 'Error',
+        Detalle: row.errorMessage ?? '',
+      }))
+
+      const ws = XLSX.utils.json_to_sheet(excelData)
+      ws['!cols'] = [
+        { wch: 6 }, // N°
+        { wch: 20 }, // Fecha servidor
+        { wch: 20 }, // Fecha en PDA
+        { wch: 20 }, // Entidad
+        { wch: 38 }, // ID Entidad
+        { wch: 24 }, // Acción
+        { wch: 22 }, // Usuario
+        { wch: 26 }, // Dispositivo
+        { wch: 14 }, // Estado
+        { wch: 40 }, // Detalle
+      ]
+
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, 'Registros')
+
+      const fechaActual = new Date().toISOString().slice(0, 10)
+      XLSX.writeFile(wb, `auditoria_registros_${fechaActual}.xlsx`)
+    } catch (error) {
+      console.error('Error al exportar Excel:', error)
+      alert('Error al exportar Excel')
+    } finally {
+      setExporting(false)
+    }
+  }
 
   return (
     <section className="space-y-4">
@@ -153,6 +234,17 @@ export function AuditLogTable() {
             setPage(1)
           }}
         />
+
+        <div className="flex justify-end self-end ml-auto">
+          <button
+            type="button"
+            onClick={exportExcel}
+            disabled={exporting}
+            className="h-10 px-4 text-sm rounded-lg bg-green-600 hover:bg-green-700 transition font-medium whitespace-nowrap disabled:opacity-50"
+          >
+            {exporting ? 'Exportando...' : 'Exportar Excel'}
+          </button>
+        </div>
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-white/10 bg-white/5">

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import * as XLSX from 'xlsx'
 import { api } from '../../services/api'
 import { DateRange } from '../DateRange'
 
@@ -27,6 +28,7 @@ export function DeviceActivityTable() {
   const [rows, setRows] = useState<DeviceActivity[]>([])
   const [loading, setLoading] = useState(true)
   const [range, setRange] = useState({ from: '', to: '' })
+  const [exporting, setExporting] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -47,6 +49,48 @@ export function DeviceActivityTable() {
     load()
   }, [load])
 
+  const exportExcel = async () => {
+    if (rows.length === 0) {
+      alert('No hay actividad de dispositivos en este rango para exportar.')
+      return
+    }
+
+    setExporting(true)
+    try {
+      // Deja pintar el estado "Exportando..." antes de armar el archivo.
+      await new Promise((resolve) => setTimeout(resolve, 0))
+
+      const excelData = rows.map((row, idx) => ({
+        'N°': idx + 1,
+        Dispositivo: row.nombre,
+        Identificador: row.deviceId,
+        Estado: !row.registrado ? 'No registrado' : row.habilitado ? 'Habilitado' : 'Deshabilitado',
+        Operaciones: row.totalOperaciones,
+        Errores: row.totalErrores,
+        'Última actividad': formatDate(row.ultimaActividad),
+      }))
+
+      const ws = XLSX.utils.json_to_sheet(excelData)
+      ws['!cols'] = [
+        { wch: 6 }, // N°
+        { wch: 24 }, // Dispositivo
+        { wch: 26 }, // Identificador
+        { wch: 16 }, // Estado
+        { wch: 14 }, // Operaciones
+        { wch: 12 }, // Errores
+        { wch: 20 }, // Última actividad
+      ]
+
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, 'Dispositivos')
+
+      const fechaActual = new Date().toISOString().slice(0, 10)
+      XLSX.writeFile(wb, `auditoria_dispositivos_${fechaActual}.xlsx`)
+    } finally {
+      setExporting(false)
+    }
+  }
+
   return (
     <section className="space-y-4">
       <div className="flex items-end justify-between gap-3">
@@ -54,7 +98,17 @@ export function DeviceActivityTable() {
           Identifica desde qué PDA se realizan las operaciones. Un dispositivo &quot;no
           registrado&quot; envió operaciones pero aún no fue dado de alta en el catálogo de PDAs.
         </p>
-        <DateRange from={range.from} to={range.to} onChange={setRange} />
+        <div className="flex items-end gap-3">
+          <DateRange from={range.from} to={range.to} onChange={setRange} />
+          <button
+            type="button"
+            onClick={exportExcel}
+            disabled={exporting}
+            className="h-10 px-4 text-sm rounded-lg bg-green-600 hover:bg-green-700 transition font-medium whitespace-nowrap disabled:opacity-50"
+          >
+            {exporting ? 'Exportando...' : 'Exportar Excel'}
+          </button>
+        </div>
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-white/10 bg-white/5">
