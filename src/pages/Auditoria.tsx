@@ -1,14 +1,12 @@
 import { useState } from 'react'
 import { AuditLogTable } from '../components/auditoria/AuditLogTable'
 import { DeviceActivityTable } from '../components/auditoria/DeviceActivityTable'
-import { EntityTimeline } from '../components/auditoria/EntityTimeline'
 
-type TabId = 'registros' | 'dispositivos' | 'linea-tiempo'
+type TabId = 'registros' | 'dispositivos'
 
 const TABS: { id: TabId; label: string }[] = [
   { id: 'registros', label: 'Registros' },
   { id: 'dispositivos', label: 'Dispositivos' },
-  { id: 'linea-tiempo', label: 'Línea de tiempo' },
 ]
 
 export default function Auditoria() {
@@ -47,9 +45,6 @@ export default function Auditoria() {
         </div>
         <div className={tab === 'dispositivos' ? '' : 'hidden'}>
           <DeviceActivityTable />
-        </div>
-        <div className={tab === 'linea-tiempo' ? '' : 'hidden'}>
-          <EntityTimeline />
         </div>
       </div>
     </div>
