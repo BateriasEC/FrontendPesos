@@ -532,17 +532,6 @@ function VehicleCard({ vehicle }: { vehicle: ReportVehicle }) {
   )
 }
 
-function Metric({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
-  return (
-    <div className="rounded-lg border border-white/10 bg-neutral-800/40 p-3">
-      <span className="text-xs text-gray-400">{label}</span>
-      <div className={strong ? 'text-base font-bold text-gray-100' : 'text-sm font-semibold text-gray-200'}>
-        {value}
-      </div>
-    </div>
-  )
-}
-
 function SummaryMetric({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="rounded-lg border border-white/10 bg-black/20 p-3">
