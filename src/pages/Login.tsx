@@ -162,8 +162,8 @@ export default function Login() {
       style={{ backgroundColor: '#EB2026' }}
     >
       <div
-        className="w-full max-w-5xl bg-white rounded-4xl shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-2"
-        style={{ border: '3px solid #FDB71A' }}
+        className="w-full max-w-6xl bg-white rounded-4xl shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-2"
+        style={{ border: '3px solid #EB2026' }}
       >
         {/* PANEL IZQUIERDO */}
         <div className="hidden lg:flex items-center justify-center bg-[#FDB71A] p-10">
@@ -175,9 +175,9 @@ export default function Login() {
         </div>
 
         {/* PANEL DERECHO */}
-        <div className="relative flex items-center justify-center p-8 md:p-12">
+        <div className="relative flex items-center justify-center p-8 md:p-16">
 
-          <div className="w-full max-w-md">
+          <div className="w-full max-w-lg">
             <h2 className="text-4xl font-extrabold text-center text-black mb-2">
               Bienvenido
             </h2>
