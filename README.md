@@ -265,7 +265,6 @@ portal-web/
 │   │
 │   ├── images/                   # Imágenes de la app
 │   │   ├── logo.png
-│   │   └── eslogan.png
 │   │
 │   ├── lib/                      # Librerías y utilidades
 │   │   └── auth.tsx              # Contexto de autenticación

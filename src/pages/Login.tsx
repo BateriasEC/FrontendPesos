@@ -13,7 +13,6 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { EyeIcon, EyeSlashIcon, WifiIcon, LockClosedIcon, ServerIcon, ExclamationCircleIcon } from '@heroicons/react/24/outline'
 import loginImg from '../assets/images/login.png'
-import esloganImg from '../assets/images/eslogan.png'
 import { ApiError } from '../services/api'
 import type { ApiErrorKind } from '../services/api'
 
@@ -160,11 +159,11 @@ export default function Login() {
   return (
     <div
       className="min-h-screen flex items-center justify-center px-4"
-      style={{ backgroundColor: '#FDB71A' }}
+      style={{ backgroundColor: '#EB2026' }}
     >
       <div
-        className="w-full max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-2"
-        style={{ border: '3px solid #EE3626' }}
+        className="w-full max-w-5xl bg-white rounded-4xl shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-2"
+        style={{ border: '3px solid #FDB71A' }}
       >
         {/* PANEL IZQUIERDO */}
         <div className="hidden lg:flex items-center justify-center bg-[#FDB71A] p-10">
@@ -177,11 +176,6 @@ export default function Login() {
 
         {/* PANEL DERECHO */}
         <div className="relative flex items-center justify-center p-8 md:p-12">
-          <img
-            src={esloganImg}
-            alt="Eslogan"
-            className="absolute top-4 right-4 h-24"
-          />
 
           <div className="w-full max-w-md">
             <h2 className="text-4xl font-extrabold text-center text-black mb-2">

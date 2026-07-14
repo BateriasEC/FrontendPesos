@@ -282,7 +282,8 @@ function getWeighingDetails(vehicle: ReportVehicle) {
   const diferencia = Number((pesoIngreso - pesoSalida).toFixed(2))
 
   const cantidadPallets = vehicle.cantidadPallets ?? vehicle.resumen?.totalPalletsRegistrados ?? vehicle.pallets?.length ?? 0
-  const pesoPalletsPromedio = vehicle.pesoPalletsPromedio ?? (cantidadPallets * 25)
+  const pesoPalletsPromedioFijo = cantidadPallets * 25
+  let pesoPalletsPromedio = vehicle.pesoPalletsPromedio ?? pesoPalletsPromedioFijo
 
   const basePesoTotalPallets = vehicle.pesoTotalPallets || 0
 
@@ -290,8 +291,23 @@ function getWeighingDetails(vehicle: ReportVehicle) {
   let pesoNetoProductos = vehicle.pesoNetoProductos
 
   if (pesoNetoProductos == null) {
-    if (tipoPesaje === 'con_pallet' || tipoPesaje === 'sin_pallet') {
-      pesoNetoProductos = Number((basePesoTotalPallets - pesoPalletsPromedio).toFixed(2))
+    if (tipoPesaje === 'con_pallet') {
+      pesoNetoProductos = Number((basePesoTotalPallets - pesoPalletsPromedioFijo).toFixed(2))
+    } else if (tipoPesaje === 'sin_pallet') {
+      // El peso de pallet aplicado se ingresa manualmente por pallet en este
+      // flujo (no siempre es el estándar 25kg), así que se suma el valor real
+      // aplicado en cada uno en vez de usar cantidad*25.
+      let sumAplicado = 0
+      let sumNet = 0
+      const palletsList = vehicle.pallets || []
+      palletsList.forEach((p: any) => {
+        const pesoInicial = Number(p.pesoInicial ?? p.pesoTotal ?? p.peso ?? 0)
+        const pesoPalletAplicado = p.pesoPalletAplicado != null ? Number(p.pesoPalletAplicado) : 25
+        sumAplicado += pesoPalletAplicado
+        sumNet += pesoInicial - pesoPalletAplicado
+      })
+      pesoPalletsPromedio = Number(sumAplicado.toFixed(2))
+      pesoNetoProductos = Number(sumNet.toFixed(2))
     } else if (tipoPesaje === 'mixto') {
       let sumNet = 0
       const palletsList = vehicle.pallets || []
@@ -307,7 +323,7 @@ function getWeighingDetails(vehicle: ReportVehicle) {
       })
       pesoNetoProductos = Number(sumNet.toFixed(2))
     } else {
-      pesoNetoProductos = Number((basePesoTotalPallets - pesoPalletsPromedio).toFixed(2))
+      pesoNetoProductos = Number((basePesoTotalPallets - pesoPalletsPromedioFijo).toFixed(2))
     }
   }
 
@@ -404,7 +420,9 @@ function VehicleCard({ vehicle }: { vehicle: ReportVehicle }) {
                 <tr className="bg-neutral-800/60 font-semibold text-gray-300">
                   <th className="border-b border-r border-white/10 p-2 text-left">Peso Total Pallets</th>
                   <th className="border-b border-r border-white/10 p-2 bg-emerald-950/40 text-emerald-300 font-bold text-left"># Pallet</th>
-                  <th className="border-b border-r border-white/10 p-2 bg-emerald-950/40 text-emerald-300 font-bold text-left">Peso Pallets (25 kg promedio)</th>
+                  <th className="border-b border-r border-white/10 p-2 bg-emerald-950/40 text-emerald-300 font-bold text-left">
+                    {details.tipoPesaje === 'sin_pallet' ? 'Peso Pallets Aplicado' : 'Peso Pallets (25 kg promedio)'}
+                  </th>
                   <th className="border-b border-white/10 p-2 bg-emerald-950/40 text-emerald-300 font-bold text-left">Peso Neto Productos</th>
                 </tr>
                 {/* Row 2 Values */}
