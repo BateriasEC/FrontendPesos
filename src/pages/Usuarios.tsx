@@ -119,6 +119,7 @@ export default function Usuarios() {
         const updateData: any = {
           fullName: form.name,
           email: form.email,
+          roleCode: roleCodeMap[form.role],
         };
 
         if (form.password) {
@@ -300,25 +301,17 @@ export default function Usuarios() {
             onChange={(e) => setForm({ ...form, email: e.target.value })}
           />
 
-          {editing?.id ? (
-            <input
-              className="input opacity-70 cursor-not-allowed font-semibold"
-              disabled
-              value={ROLE_LABELS[form.role]}
-            />
-          ) : (
-            <select
-              className="select"
-              value={form.role}
-              onChange={(e) =>
-                setForm({ ...form, role: e.target.value as any })
-              }
-            >
-              <option value="admin">ADMINISTRADOR</option>
-              <option value="supervisor">SUPERVISOR</option>
-              <option value="operador">OPERADOR</option>
-            </select>
-          )}
+          <select
+            className="select"
+            value={form.role}
+            onChange={(e) =>
+              setForm({ ...form, role: e.target.value as Usuario["role"] })
+            }
+          >
+            <option value="admin">ADMINISTRADOR</option>
+            <option value="supervisor">SUPERVISOR</option>
+            <option value="operador">OPERADOR</option>
+          </select>
 
           <input
             className="input"
