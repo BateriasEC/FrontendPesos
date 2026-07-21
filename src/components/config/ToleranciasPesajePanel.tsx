@@ -188,29 +188,16 @@ export function ToleranciasPesajePanel() {
             />
           </div>
           <div>
-            <label className="block text-sm mb-1">Rango permitido (± kg)</label>
-            <input
-              className="input w-full"
-              value={form.margenPalletSimetricoKg}
-              onChange={(e) => setForm((f) => ({ ...f, margenPalletSimetricoKg: e.target.value }))}
-              placeholder="Ej: 5 (0 = usar ±0,5%)"
-            />
-          </div>
-          <div>
-            <label className="block text-sm mb-1">Umbral alerta repesaje (%)</label>
-            <input
-              className="input w-full"
-              value={form.variacionRepesajeAlertaPorcentaje}
-              onChange={(e) => setForm((f) => ({ ...f, variacionRepesajeAlertaPorcentaje: e.target.value }))}
-            />
-          </div>
-          <div>
             <label className="block text-sm mb-1">Tolerancia cuadre de carga (kg)</label>
             <input
               className="input w-full"
               value={form.toleranciaCuadreCargaKg}
               onChange={(e) => setForm((f) => ({ ...f, toleranciaCuadreCargaKg: e.target.value }))}
             />
+            <p className="text-xs text-white/50 mt-1">
+              Al pesar pallets, es la holgura sobre el peso de carga del vehículo.
+              Si la suma de pallets lo supera, aparece “Límite excedido”.
+            </p>
           </div>
           <div>
             <label className="block text-sm mb-1">Peso estándar del pallet (kg)</label>
@@ -221,7 +208,33 @@ export function ToleranciasPesajePanel() {
               placeholder="25"
             />
             <p className="text-xs text-white/50 mt-1">
-              Valor por defecto en recepción sin pallet y mixto. Cada pesaje puede ajustarse sin cambiar esta configuración.
+              Peso por defecto de la madera/pallet usado en reportes y flujos.
+              Cada pesaje puede ajustarse sin cambiar esta configuración.
+            </p>
+          </div>
+          <div>
+            <label className="block text-sm mb-1">Rango permitido (± kg)</label>
+            <input
+              className="input w-full"
+              value={form.margenPalletSimetricoKg}
+              onChange={(e) => setForm((f) => ({ ...f, margenPalletSimetricoKg: e.target.value }))}
+              placeholder="Ej: 5 (0 = usar ±0,5%)"
+            />
+            <p className="text-xs text-white/50 mt-1">
+              En despacho y repesaje, define el margen ± alrededor del peso del pallet.
+              Si es 0, se usa automáticamente ±0,5 % del peso de referencia.
+            </p>
+          </div>
+          <div>
+            <label className="block text-sm mb-1">Umbral alerta repesaje (%)</label>
+            <input
+              className="input w-full"
+              value={form.variacionRepesajeAlertaPorcentaje}
+              onChange={(e) => setForm((f) => ({ ...f, variacionRepesajeAlertaPorcentaje: e.target.value }))}
+            />
+            <p className="text-xs text-white/50 mt-1">
+              En repesaje, avisa cuando la variación supera este porcentaje.
+              No bloquea el registro; solo muestra la alerta.
             </p>
           </div>
           <label className="flex items-center gap-2 text-sm">
