@@ -13,10 +13,7 @@ import axios, { AxiosError } from 'axios'
 // Configuración base
 // ---------------------------------------------------------------------------
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL === undefined
-    ? 'VITE_API_BASE_URL_PLACEHOLDER'
-    : import.meta.env.VITE_API_BASE_URL
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 
 export const api = axios.create({
   baseURL: API_BASE_URL,

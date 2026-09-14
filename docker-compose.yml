@@ -1,20 +1,11 @@
-# Front en stack separado (p. ej. Portainer): unir a la MISMA red Docker que el backend.
-# BACKEND_HOST = nombre del servicio del API en Compose (p. ej. backend-api en Portainer).
+# Front en stack separado (p. ej. Portainer). El API es otro servicio; no hay proxy nginx.
 services:
   frontend:
     build:
       context: .
       dockerfile: Dockerfile
       args:
-        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
-        BACKEND_HOST: ${BACKEND_HOST:-backend-api}
-        BACKEND_PORT: ${BACKEND_PORT:-3000}
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:3000/api}
     restart: unless-stopped
     ports:
-      - "${FRONTEND_PORT:-8080}:80"
-    networks:
-      - red_reciclaje
-
-networks:
-  red_reciclaje:
-    external: true
+      - "${FRONTEND_PORT:-8080}:3000"

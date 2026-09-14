@@ -4,11 +4,11 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"vite\" \"npm:api\"",
+    "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "api": "json-server --host 0.0.0.0 --watch api/db.json --port 5179"
+    "api:mock": "json-server --host 0.0.0.0 --watch api/db.json --port 5179"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
@@ -26,7 +26,6 @@
     "react-hook-form": "^7.65.0",
     "react-router-dom": "^7.9.5",
     "recharts": "^3.3.0",
-    "socket.io-client": "^4.8.1",
     "xlsx": "^0.18.5",
     "zod": "^4.1.12"
   },

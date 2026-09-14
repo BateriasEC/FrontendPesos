@@ -2,7 +2,6 @@
 node_modules
 dist
 .vite
-package-lock.json
 
 # Entorno (build-time si usas VITE_*; no subir secretos)
 .env
@@ -27,6 +26,5 @@ npm-debug.log*
 Thumbs.db
 
 # Docker
-Dockerfile*
 docker-compose*.yml
 .dockerignore
