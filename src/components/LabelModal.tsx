@@ -9,6 +9,11 @@ type LabelData = {
   pesoDescarga: number | null
   variacionPallet: number | null
   descargado: boolean
+  tipoOperacion?: string
+  pesoPalletEstandar?: number | null
+  pesoPalletAplicado?: number | null
+  productoConPallet?: boolean | null
+  pesoProductoNeto?: number | null
 }
 
 type LabelModalProps = {
@@ -201,6 +206,12 @@ export function LabelModal({ labelData, onClose }: LabelModalProps) {
                     <span className="font-bold text-gray-700">Producto:</span>
                     <span className="text-gray-900 font-semibold">{labelData.productNombre || 'N/A'}</span>
                   </div>
+                  {labelData.tipoOperacion && (
+                    <div className="flex justify-between border-b border-gray-200 pb-2 md:col-span-2">
+                      <span className="font-bold text-gray-700">Tipo de operación:</span>
+                      <span className="text-gray-900 font-semibold">{labelData.tipoOperacion}</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -217,6 +228,52 @@ export function LabelModal({ labelData, onClose }: LabelModalProps) {
                     <span className="text-2xl font-bold text-blue-900">{labelData.pesoTotal.toFixed(2)} kg</span>
                   </div>
                 </div>
+
+                {labelData.pesoPalletAplicado != null && (
+                  <>
+                    {labelData.pesoPalletEstandar != null && (
+                      <div className="bg-gray-50 border-2 border-gray-300 rounded-lg p-4">
+                        <div className="flex justify-between items-center">
+                          <span className="font-bold text-lg text-gray-900">Peso estándar pallet:</span>
+                          <span className="text-xl font-bold text-gray-800">
+                            {labelData.pesoPalletEstandar.toFixed(2)} kg
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                    <div className="bg-purple-50 border-2 border-purple-300 rounded-lg p-4">
+                      <div className="flex justify-between items-center">
+                        <span className="font-bold text-lg text-gray-900">Peso pallet aplicado:</span>
+                        <span className="text-xl font-bold text-purple-900">
+                          {labelData.pesoPalletAplicado.toFixed(2)} kg
+                        </span>
+                      </div>
+                    </div>
+                  </>
+                )}
+                {labelData.pesoProductoNeto != null && (
+                  <div className="bg-emerald-50 border-2 border-emerald-300 rounded-lg p-4">
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-lg text-gray-900">Peso neto producto:</span>
+                      <span className="text-xl font-bold text-emerald-900">
+                        {labelData.pesoProductoNeto.toFixed(2)} kg
+                      </span>
+                    </div>
+                    {labelData.pesoPalletAplicado == null && (
+                      <p className="text-xs text-gray-600 mt-2">
+                        Sin descuento de tara (recepción con pallet o mixto con pallet).
+                      </p>
+                    )}
+                  </div>
+                )}
+                {labelData.productoConPallet != null && (
+                  <div className="flex justify-between border border-gray-200 rounded-lg p-3 text-base">
+                    <span className="font-bold text-gray-700">Producto con pallet (mixto):</span>
+                    <span className="text-gray-900 font-semibold">
+                      {labelData.productoConPallet ? 'Sí' : 'No'}
+                    </span>
+                  </div>
+                )}
 
                 {/* Peso de Despacho */}
                 {labelData.pesoDescarga ? (

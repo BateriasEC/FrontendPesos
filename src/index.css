@@ -85,22 +85,22 @@ p, span, label, a, li, td, th, input, select, textarea, button { font-family: 'B
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.03);
   border-radius: 4px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(241, 90, 41, 0.5);
+  background: rgba(255, 255, 255, 0.15);
   border-radius: 4px;
   transition: background 0.2s ease;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(241, 90, 41, 0.8);
+  background: rgba(255, 255, 255, 0.3);
 }
 
 /* Firefox scrollbar */
 .custom-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: rgba(241, 90, 41, 0.5) rgba(255, 255, 255, 0.05);
+  scrollbar-color: rgba(255, 255, 255, 0.15) rgba(255, 255, 255, 0.03);
 }

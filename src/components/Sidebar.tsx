@@ -7,7 +7,11 @@ import {
   ScaleIcon,
   ChartBarIcon,
   TruckIcon,
-  ExclamationTriangleIcon
+  ExclamationTriangleIcon,
+  ArrowsRightLeftIcon,
+  InboxArrowDownIcon,
+  Cog6ToothIcon,
+  ClipboardDocumentListIcon,
 } from '@heroicons/react/24/outline'
 
 const baseLink =
@@ -26,7 +30,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
     <div className="flex flex-col h-full text-sm">
       
       {/* ================= CONTENIDO ================= */}
-      <div className="flex-1 space-y-6 overflow-y-auto">
+      <div className="flex-1 space-y-6 overflow-y-auto custom-scrollbar">
 
         {/* ===== PRINCIPAL ===== */}
         <nav className="space-y-1">
@@ -54,6 +58,20 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
             label="Catálogo"
             onNavigate={onNavigate}
           />
+
+          <SidebarLink
+            to="/tipos-operacion"
+            icon={ArrowsRightLeftIcon}
+            label="Tipos de Operación"
+            onNavigate={onNavigate}
+          />
+
+          <SidebarLink
+            to="/canales-vehiculo"
+            icon={ArrowsRightLeftIcon}
+            label="Canales del Vehículo"
+            onNavigate={onNavigate}
+          />
         </nav>
 
         <div className="h-px bg-white/10 mx-2" />
@@ -68,12 +86,40 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           />
 
           <SidebarLink
+            to="/recepcion"
+            icon={InboxArrowDownIcon}
+            label="Recepción Pallets"
+            onNavigate={onNavigate}
+          />
+
+          <SidebarLink
             to="/vehiculos"
             icon={TruckIcon}
             label="Vehículos"
             onNavigate={onNavigate}
           />
         </nav>
+
+        <div className="h-px bg-white/10 mx-2" />
+
+        {/* ===== CONFIGURACIÓN ===== */}
+        {(hasRole('admin') || hasRole('supervisor')) && (
+          <nav className="space-y-1">
+            <SidebarLink
+              to="/configuracion-dispositivos"
+              icon={Cog6ToothIcon}
+              label="Config. dispositivos"
+              onNavigate={onNavigate}
+            />
+
+            <SidebarLink
+              to="/auditoria"
+              icon={ClipboardDocumentListIcon}
+              label="Auditoría"
+              onNavigate={onNavigate}
+            />
+          </nav>
+        )}
 
         <div className="h-px bg-white/10 mx-2" />
 

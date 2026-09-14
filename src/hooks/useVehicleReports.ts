@@ -21,6 +21,18 @@ export type ReportPallet = {
   horaPesaje: string
   fechaDespacho: string | null
   horaDespacho: string | null
+  codigoRecepcion?: string | null
+  pesoRecibido?: number | null
+  diferenciaRecepcion?: number | null
+  diferenciaRecepcionPorcentaje?: number | null
+  estadoRecepcion?: 'recibido' | 'pendiente_recepcion' | null
+  fechaRecepcion?: string | null
+  horaRecepcion?: string | null
+  recibidoPor?: string | null
+  pesoPalletEstandar?: number | null
+  pesoPalletAplicado?: number | null
+  productoConPallet?: boolean | null
+  pesoProductoNeto?: number | null
 }
 
 export type ReportVehicle = {
@@ -29,7 +41,11 @@ export type ReportVehicle = {
   placa: string
   cliente: string
   producto: string
+  canalVehiculo?: string
   tipoVehiculo: string
+  tipoOperacion?: string
+  codigoTipoOperacion?: string
+  codigoCanalVehiculo?: string
   codigoTrazabilidad: string
   operador: string
   fechaRegistro: string
@@ -38,6 +54,12 @@ export type ReportVehicle = {
   pesoSalida: number
   diferencia: number
   pesoTotalPallets: number
+  tipoPesaje?: 'con_pallet' | 'sin_pallet' | 'mixto'
+  cantidadPallets?: number
+  pesoPalletsPromedio?: number
+  pesoTotalPalletsCalculado?: number
+  pesoNetoProductos?: number
+  diferenciaNeta?: number
   pallets: ReportPallet[]
   resumen: {
     totalPalletsRegistrados: number

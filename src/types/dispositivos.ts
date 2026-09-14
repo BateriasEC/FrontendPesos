@@ -1,0 +1,36 @@
+export type TipoDispositivo = 'IMPRESORA' | 'BALANZA' | 'PDA'
+
+export type RolBalanza = 'INGRESO_SALIDA' | 'PALLETS' | 'DESPACHO' | 'REPESAJE' | 'RECEPCION' | 'OTRO'
+
+export interface DispositivoConfig {
+  id: string
+  tipo: TipoDispositivo
+  nombre: string
+  ip?: string | null
+  puerto?: number | null
+  habilitado: boolean
+  rolBalanza?: RolBalanza | null
+  identificador?: string | null
+  descripcion?: string | null
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface ToleranciaPesajeConfig {
+  id: string
+  nombre: string
+  margenPalletSimetricoKg: number
+  variacionRepesajeAlertaPorcentaje: number
+  toleranciaCuadreCargaKg: number
+  pesoEstandarPalletKg: number
+  activo: boolean
+}
+
+export const ROL_BALANZA_LABELS: Record<RolBalanza, string> = {
+  INGRESO_SALIDA: 'Balanza 1 (Ingreso/Salida)',
+  PALLETS: 'Balanza 2 (Pallets)',
+  DESPACHO: 'Balanza 3 (Despacho)',
+  REPESAJE: 'Balanza 4 (Repesaje)',
+  RECEPCION: 'Balanza 5 (Recepción)',
+  OTRO: 'Otra / adicional',
+}
