@@ -295,6 +295,12 @@ export function DeviceCrudPanel({ tipo, title, description }: Props) {
       <div>
         <h2 className="text-lg font-semibold">{title}</h2>
         <p className="text-sm text-white/60 mt-1">{description}</p>
+        {tipo === 'BALANZA' && (
+          <p className="text-sm text-white/70 mt-2">
+            La conexión de las balanzas se comprueba desde la PDA en la red de planta:
+            Configuración → Test de conexión. Esta web solo administra su IP y puerto.
+          </p>
+        )}
       </div>
 
       <div className="flex flex-wrap items-end gap-3">
@@ -359,7 +365,9 @@ export function DeviceCrudPanel({ tipo, title, description }: Props) {
                       </td>
                       {showNetworkFields && (
                         <td>
-                          {(() => {
+                          {tipo === 'BALANZA' ? (
+                            <span className="text-white/70">Verificar en PDA</span>
+                          ) : (() => {
                             const display = getConnectionDisplay(row, connectionMap, testingId)
                             return (
                               <div>
@@ -375,7 +383,7 @@ export function DeviceCrudPanel({ tipo, title, description }: Props) {
                         </td>
                       )}
                       <td className="text-right space-x-2 whitespace-nowrap">
-                        {showNetworkFields && (
+                        {tipo === 'IMPRESORA' && (
                           <button
                             type="button"
                             className="btn btn-ghost btn-sm"
