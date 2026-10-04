@@ -2,6 +2,9 @@ export type TipoDispositivo = 'IMPRESORA' | 'BALANZA' | 'PDA'
 
 export type RolBalanza = 'INGRESO_SALIDA' | 'PALLETS' | 'DESPACHO' | 'REPESAJE' | 'RECEPCION' | 'OTRO'
 
+export type FormatoTrama = 'ASCII' | 'YAOHUA' | 'ID226' | 'STX'
+export const FORMATOS_TRAMA: FormatoTrama[] = ['ASCII', 'YAOHUA', 'ID226', 'STX']
+
 export interface DispositivoConfig {
   id: string
   tipo: TipoDispositivo
@@ -10,6 +13,7 @@ export interface DispositivoConfig {
   puerto?: number | null
   habilitado: boolean
   rolBalanza?: RolBalanza | null
+  formatosAceptados?: FormatoTrama[]
   identificador?: string | null
   descripcion?: string | null
   createdAt?: string

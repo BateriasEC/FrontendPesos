@@ -2,8 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { api } from '../../services/api'
 import { Modal } from '../Modal'
 import { Pagination } from '../Pagination'
-import type { DispositivoConfig, RolBalanza, TipoDispositivo } from '../../types/dispositivos'
-import { ROL_BALANZA_LABELS } from '../../types/dispositivos'
+import type { DispositivoConfig, FormatoTrama, RolBalanza, TipoDispositivo } from '../../types/dispositivos'
+import { FORMATOS_TRAMA, ROL_BALANZA_LABELS } from '../../types/dispositivos'
 import {
   loadConnectionMap,
   removeConnectionEntry,
@@ -24,6 +24,7 @@ type DeviceForm = {
   puerto: string
   habilitado: boolean
   rolBalanza: RolBalanza
+  formatosAceptados: FormatoTrama[]
   identificador: string
   descripcion: string
 }
@@ -34,6 +35,7 @@ const defaultForm = (tipo: TipoDispositivo): DeviceForm => ({
   puerto: tipo === 'IMPRESORA' ? '9100' : tipo === 'BALANZA' ? '5000' : '',
   habilitado: true,
   rolBalanza: 'INGRESO_SALIDA',
+  formatosAceptados: [...FORMATOS_TRAMA],
   identificador: '',
   descripcion: '',
 })
@@ -163,6 +165,7 @@ export function DeviceCrudPanel({ tipo, title, description }: Props) {
       puerto: item.puerto != null ? String(item.puerto) : defaultForm(tipo).puerto,
       habilitado: item.habilitado,
       rolBalanza: (item.rolBalanza as RolBalanza) || 'INGRESO_SALIDA',
+      formatosAceptados: item.formatosAceptados ?? [...FORMATOS_TRAMA],
       identificador: item.identificador || '',
       descripcion: item.descripcion || '',
     })
@@ -188,6 +191,7 @@ export function DeviceCrudPanel({ tipo, title, description }: Props) {
 
       if (tipo === 'BALANZA') {
         payload.rolBalanza = form.rolBalanza
+        payload.formatosAceptados = form.formatosAceptados
       }
 
       if (editing?.id) {
@@ -492,6 +496,32 @@ export function DeviceCrudPanel({ tipo, title, description }: Props) {
             </div>
           )}
 
+          {tipo === 'BALANZA' && (
+            <fieldset className="rounded border border-white/20 p-3">
+              <legend className="px-1 text-sm">Formatos de trama aceptados</legend>
+              <div className="flex flex-wrap gap-4">
+                {FORMATOS_TRAMA.map((formato) => (
+                  <label key={formato} className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={form.formatosAceptados.includes(formato)}
+                      onChange={(e) => setForm((current) => ({
+                        ...current,
+                        formatosAceptados: e.target.checked
+                          ? [...current.formatosAceptados, formato]
+                          : current.formatosAceptados.filter((value) => value !== formato),
+                      }))}
+                    />
+                    {formato}
+                  </label>
+                ))}
+              </div>
+              {form.habilitado && form.formatosAceptados.length === 0 && (
+                <p className="mt-2 text-sm text-red-300">Seleccione al menos un formato para habilitar la balanza.</p>
+              )}
+            </fieldset>
+          )}
+
           {showPdaFields && (
             <div>
               <label className="block text-sm mb-1">Identificador del PDA</label>
@@ -530,7 +560,7 @@ export function DeviceCrudPanel({ tipo, title, description }: Props) {
             <button
               type="button"
               className="btn btn-primary"
-              disabled={saving || !form.nombre.trim() || (showNetworkFields && !form.ip.trim())}
+              disabled={saving || !form.nombre.trim() || (showNetworkFields && !form.ip.trim()) || (tipo === 'BALANZA' && form.habilitado && form.formatosAceptados.length === 0)}
               onClick={save}
             >
               {saving ? 'Guardando...' : 'Guardar'}
